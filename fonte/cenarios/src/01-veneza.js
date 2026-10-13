@@ -42,7 +42,7 @@ MIRA_CENARIOS.push({
     { k: 'torre', label: 'Trocar a taça do topo da torre de champanhe', where: 'bufê, na frente', s: [-2.3, 4.4], l: [-2.3, 5.4] },
     { k: 'mascara', label: 'Trocar a máscara dourada da banca', where: 'banca de máscaras, à direita', s: [11.5, -2.9], l: [11.5, -4.3] },
     { k: 'gondola', label: 'Esconder o mapa na gôndola', where: 'píer das gôndolas', s: [8.0, 11.0], l: [9.6, 11.0] },
-    { k: 'leao', label: 'Fotografar o leão alado', where: 'coluna na beira do canal', s: [-4.0, 7.6], l: [-4.0, 8.7] },
+    { k: 'leao', label: 'Fotografar o leão alado', where: 'coluna na beira do canal', s: [-2.95, 8.6], l: [-4.0, 8.75] },
     { k: 'lustre', label: 'Afrouxar o lustre de Murano', where: 'pista de dança, pilar do arco', s: [1.7, 1.2], l: [1.0, 1.2] },
     { k: 'partitura', label: 'Trocar a partitura do quarteto', where: 'palco do quarteto', s: [-7.1, 2.4], l: [-8.6, 2.4] },
     { k: 'aperol', label: 'Marcar a garrafa de Aperol', where: 'bacaro, balcão', s: [-10.2, -1.2], l: [-11.2, -2.2] },

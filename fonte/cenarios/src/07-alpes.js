@@ -45,7 +45,7 @@ MIRA_CENARIOS.push({
   missoes: [
     { k: 'esqui', label: 'Trocar o esqui marcado no rack', where: 'rack de esquis, à direita na frente', s: [12.5, 7.6], l: [13.9, 7.6] },
     { k: 'treno', label: 'Apagar a lanterna do trenó', where: 'trenó, na beira do deck', s: [7.0, 7.7], l: [7.6, 8.9] },
-    { k: 'boneco', label: 'Pôr o pacote no boneco de neve', where: 'boneco de neve, na frente', s: [-2.6, 7.5], l: [-2.6, 8.7] },
+    { k: 'boneco', label: 'Pôr o pacote no boneco de neve', where: 'boneco de neve, na frente', s: [-1.45, 8.6], l: [-2.6, 8.7] },
     { k: 'jacuzzi', label: 'Desligar o aquecedor da jacuzzi', where: 'painel ao lado da jacuzzi', s: [10.5, -5.6], l: [10.0, -6.6] },
     { k: 'radio', label: 'Mexer no rádio da patrulha', where: 'posto da patrulha, à direita', s: [12.5, 1.5], l: [13.6, 1.5] },
     { k: 'lareira', label: 'Acender a lareira do segundo andar', where: 'porta do chalé', s: [0.0, -9.0], l: [0.0, -10.3] },

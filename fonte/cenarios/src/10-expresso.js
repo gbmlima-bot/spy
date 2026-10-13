@@ -568,7 +568,7 @@ MIRA_CENARIOS.push({
     }
 
     // ------------------------------------------------------------ painel de partidas de palhetas
-    { const bx = 9.7, bz = -4.4;
+    { const bx = 9.7, bz = -4.4, U = 1.8;
       const rowStr = (h, d, v, p) => (h + ' ' + d.padEnd(10) + ' ' + v.padEnd(9) + ' ' + p).slice(0, 28);
       const drawRow = (g, y0, hgt, str, fg, bg) => { g.font = '700 40px "Courier New", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; const cw = 35; for (let i = 0; i < str.length; i++) { const x = 14 + i * cw; g.fillStyle = bg; g.fillRect(x, y0 + 6, cw - 4, hgt - 12); g.fillStyle = fg; g.fillText(str[i], x + (cw - 4) / 2, y0 + hgt / 2 + 2); g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(x, y0 + hgt / 2 - 1, cw - 4, 2); } };
       const rows = [['21:55', 'VENEZA', 'MILÃO', '3'], ['22:10', 'PARIS', 'DIJON', '2'], ['22:30', 'BUCARESTE', 'VIENA', '4'], ['23:05', 'ATENAS', 'BELGRADO', '5']];
@@ -580,14 +580,14 @@ MIRA_CENARIOS.push({
       });
       const rowA = K.canvasTex(1024, 78, (g) => { g.fillStyle = '#0c0c10'; g.fillRect(0, 0, 1024, 78); drawRow(g, 0, 78, rowStr('21:40', 'ISTAMBUL', 'SIMPLON', '1'), '#ffd23f', '#1c1c22'); });
       const rowB = K.canvasTex(1024, 78, (g) => { g.fillStyle = '#0c0c10'; g.fillRect(0, 0, 1024, 78); drawRow(g, 0, 78, rowStr('21:40', 'BAGDÁ', 'ALEPO', '1'), '#ffffff', '#c8102a'); });
-      const g = K.group(bx, 0, bz, -0.2);
-      for (const s of [-1.45, 1.45]) { K.cyl(0.07, 0.09, 3.3, ironG, s, 1.65, 0, { parent: g }, 8); K.box(0.26, 0.2, 0.26, ironG, s, 0.1, 0, { parent: g }); }
-      K.box(3.2, 1.7, 0.2, K.mat(0x16161a, { roughness: 0.4 }), 0, 2.45, 0, { parent: g }); K.box(3.26, 0.06, 0.24, gilt, 0, 3.32, 0, { parent: g, cast: false }); K.box(3.26, 0.06, 0.24, gilt, 0, 1.58, 0, { parent: g, cast: false });
-      K.add(new T.PlaneGeometry(3.0, 1.5), new T.MeshBasicMaterial({ map: tex, color: new T.Color(0xffffff).multiplyScalar(1.05) }), 0, 2.45, 0.105, { parent: g, cast: false });
+      const g = K.group(bx, 0, bz, -0.2), gu = K.group(0, U, 0, 0, g); // painel alto: mais baixo tapava a lateral da locomotiva para o sniper
+      for (const s of [-1.45, 1.45]) { K.cyl(0.07, 0.09, 3.3 + U, ironG, s, (3.3 + U) / 2, 0, { parent: g }, 8); K.box(0.26, 0.2, 0.26, ironG, s, 0.1, 0, { parent: g }); }
+      K.box(3.2, 1.7, 0.2, K.mat(0x16161a, { roughness: 0.4 }), 0, 2.45, 0, { parent: gu }); K.box(3.26, 0.06, 0.24, gilt, 0, 3.32, 0, { parent: gu, cast: false }); K.box(3.26, 0.06, 0.24, gilt, 0, 1.58, 0, { parent: gu, cast: false });
+      K.add(new T.PlaneGeometry(3.0, 1.5), new T.MeshBasicMaterial({ map: tex, color: new T.Color(0xffffff).multiplyScalar(1.05) }), 0, 2.45, 0.105, { parent: gu, cast: false });
       const rowM = new T.MeshBasicMaterial({ map: rowA, color: new T.Color(0xffffff).multiplyScalar(1.15), toneMapped: false });
-      const row = K.add(new T.PlaneGeometry(3.0, 1.5 * 78 / 512), rowM, 0, 2.45 + 0.75 - (120 + 39) / 512 * 1.5, 0.11, { parent: g, cast: false });
-      K.box(0.5, 0.5, 0.25, K.mat(0x152447), 0, 3.6, 0, { parent: g }); K.sign('1', 0.3, 0.3, 0, 3.6, 0.13, { parent: g, color: '#e2b65a', size: 100, w: 128, h: 128 });
-      K.halo(bx, 2.5, bz + 0.6, 1.4, 0xffe0a0, 0.18);
+      const row = K.add(new T.PlaneGeometry(3.0, 1.5 * 78 / 512), rowM, 0, 2.45 + 0.75 - (120 + 39) / 512 * 1.5, 0.11, { parent: gu, cast: false });
+      K.box(0.5, 0.5, 0.25, K.mat(0x152447), 0, 3.6, 0, { parent: gu }); K.sign('1', 0.3, 0.3, 0, 3.6, 0.13, { parent: gu, color: '#e2b65a', size: 100, w: 128, h: 128 });
+      K.halo(bx, 2.5 + U, bz + 0.6, 1.4, 0xffe0a0, 0.18);
       const cosR = Math.cos(-0.2), sinR = Math.sin(-0.2); for (const s of [-1.45, 1.45]) K.colR(bx + s * cosR, bz - s * sinR, 0.12);
       // palhetas que giram sozinhas de vez em quando
       K.tell('painel', (live) => { if (live) K.anim(1.0, (e, u) => { row.scale.y = Math.abs(Math.cos(u * PI * 3)); if (u > 0.5) rowM.map = rowB; }); else rowM.map = rowB; },

@@ -55,12 +55,12 @@ MIRA_CENARIOS.push({
   missoes: [
     { k: 'estandarte', label: 'Trocar o estandarte do bloco', where: 'mastro ao lado da bateria', s: [1.7, -1.7], l: [0.9, -2.6] },
     { k: 'freio', label: 'Soltar o freio do bonde', where: 'bondinho amarelo, cabine da frente', s: [13.75, 5.7], l: [12.6, 5.7] },
-    { k: 'som', label: 'Cortar o fio do carro de som', where: 'cabo do trio, junto ao poste da esquerda', s: [-10.5, -4.7], l: [-10.0, -5.4] },
+    { k: 'som', label: 'Cortar o fio do carro de som', where: 'cabo do trio, junto ao poste da esquerda', s: [-9.2, -5.0], l: [-10.0, -5.4] },
     { k: 'surdo', label: 'Trocar o surdo de marcação', where: 'bateria, fileira de trás', s: [-5.6, -4.3], l: [-5.6, -3.3] },
     { k: 'fita', label: 'Amarrar as fitas no azulejo', where: 'alto da escadaria Selarón, no mirante', s: [-6.0, -8.7], l: [-5.3, -8.7], lv: 1 },
     { k: 'brasa', label: 'Apagar a brasa do churrasquinho', where: 'carrinho de churrasquinho, à direita', s: [11.4, -1.85], l: [11.4, -3.0] },
     { k: 'placa', label: 'Virar a placa da caipirinha', where: 'barraca de caipirinha, encostada no muro', s: [7.15, -4.2], l: [6.75, -5.0] },
-    { k: 'pipa', label: 'Soltar a pipa do mirante', where: 'guarda-corpo do mirante, à direita', s: [6.8, -11.9], l: [6.8, -12.8], lv: 1 },
+    { k: 'pipa', label: 'Soltar a pipa do mirante', where: 'guarda-corpo do mirante, à direita', s: [7.3, -11.9], l: [7.3, -12.8], lv: 1 },
     { k: 'grafite', label: 'Assinar o grafite do muro', where: 'muro grafitado, à esquerda da escadaria', s: [-7.0, -5.65], l: [-7.0, -6.6] },
   ],
   build(K) {
@@ -592,11 +592,11 @@ MIRA_CENARIOS.push({
       K.cyl(0.01, 0.01, 1.4, wood, 0, 0, 0.01, { parent: kite, cast: false }, 4); K.cyl(0.01, 0.01, 1.0, wood, 0, 0.1, 0.01, { parent: kite, rz: Math.PI / 2, cast: false }, 4);
       const tail = []; for (let k = 0; k < 9; k++) tail.push(K.box(0.14, 0.05, 0.01, K.mat(k % 2 ? 0xffe53f : 0xff2f9a, { side: T.DoubleSide }), 0, -0.75 - k * 0.22, 0, { parent: kite, cast: false }));
       const linePts = new Float32Array(17 * 3); const lineGeo = new T.BufferGeometry(); lineGeo.setAttribute('position', new T.BufferAttribute(linePts, 3)); const kLine = new T.Line(lineGeo, new T.LineBasicMaterial({ color: 0xf6f3ec })); root.add(kLine);
-      const hand = [6.8, L1 + 1.25, -12.75]; let kU = 1;
+      const hand = [7.3, L1 + 1.25, -12.75]; let kU = 1;
       const setLine = () => { const kp = kite.position; for (let i = 0; i <= 16; i++) { const u = i / 16; linePts[i * 3] = hand[0] + (kp.x - hand[0]) * u; linePts[i * 3 + 1] = hand[1] + (kp.y - 0.6 - hand[1]) * u - Math.sin(u * Math.PI) * 0.6; linePts[i * 3 + 2] = hand[2] + (kp.z - hand[2]) * u; } lineGeo.attributes.position.needsUpdate = true; lineGeo.computeBoundingSphere(); };
-      const folded = D(K.group(7.4, L1 + 0.02, -12.4, 0.5)); K.add(new T.PlaneGeometry(0.5, 0.7), K.texMat(kiteTex, { side: T.DoubleSide }), 0, 0.01, 0, { parent: folded, rx: -Math.PI / 2, cast: false }); K.cyl(0.05, 0.05, 0.12, wood, 0.3, 0.06, 0.1, { parent: folded }, 8);
+      const folded = D(K.group(7.9, L1 + 0.02, -12.4, 0.5)); K.add(new T.PlaneGeometry(0.5, 0.7), K.texMat(kiteTex, { side: T.DoubleSide }), 0, 0.01, 0, { parent: folded, rx: -Math.PI / 2, cast: false }); K.cyl(0.05, 0.05, 0.12, wood, 0.3, 0.06, 0.1, { parent: folded }, 8);
       kite.visible = false; kLine.visible = false;
-      K.tick((dt, t) => { if (!kite.visible) return; kite.position.set(6.8 + (9.4 - 6.8) * kU + Math.sin(t * 0.9) * 0.4 * kU, (L1 + 1.3) + (7.4 - L1 - 1.3) * kU + Math.sin(t * 1.7) * 0.25 * kU, -12.75 + (-15.2 + 12.75) * kU); kite.rotation.z = Math.sin(t * 1.3) * 0.25; tail.forEach((b, k) => { b.position.x = Math.sin(t * 3 - k * 0.6) * 0.06 * k; b.rotation.z = Math.sin(t * 3 - k * 0.6) * 0.5; }); setLine(); });
+      K.tick((dt, t) => { if (!kite.visible) return; kite.position.set(7.3 + (9.4 - 7.3) * kU + Math.sin(t * 0.9) * 0.4 * kU, (L1 + 1.3) + (7.4 - L1 - 1.3) * kU + Math.sin(t * 1.7) * 0.25 * kU, -12.75 + (-15.2 + 12.75) * kU); kite.rotation.z = Math.sin(t * 1.3) * 0.25; tail.forEach((b, k) => { b.position.x = Math.sin(t * 3 - k * 0.6) * 0.06 * k; b.rotation.z = Math.sin(t * 3 - k * 0.6) * 0.5; }); setLine(); });
       K.tell('pipa', (live) => { kite.visible = true; kLine.visible = true; folded.visible = false; if (live) K.anim(2.6, e => { kU = e; }); else kU = 1; setLine(); }, () => { kite.visible = false; kLine.visible = false; folded.visible = true; kU = 1; });
     }
 
