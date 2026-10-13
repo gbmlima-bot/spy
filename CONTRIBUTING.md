@@ -51,6 +51,10 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   Rode antes e depois de mudar o sniper de IA, as missões ou os convidados e ponha os números no PR.
 - Missões: `t11.js` confere gesto, duração e conclusão das missões do agente; `rotulos.js <url> <arquivo>`
   lista os rótulos das missões de todos os mapas.
+- Visibilidade dos pontos de missão: `node fonte/testes/t12.js <url> [mapas]`. Um ponto é válido se, do olho
+  do sniper, há linha livre até a cabeça (1,6 m) ou o peito (1,2 m) de quem está no ponto de pé, sem nada que
+  bloqueie o tiro (a lista que o anfitrião confere) nem nada opaco que tape a visão. Sai com código 1 se algum
+  ponto for inválido. Rode ao mexer em cenário, objeto de missão ou posição do sniper.
 - Rede: `node fonte/web/teste-rede.js` (3 navegadores, anfitrião sai, outro assume). Usa o
   `index.html` da raiz e precisa de `npm i peer express@4` (servidor de sinalização local).
 - Cenários: `node fonte/cenarios/ferramentas/testar.js <id> <pasta-de-saida> [--rapido]`
