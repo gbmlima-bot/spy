@@ -579,15 +579,15 @@ MIRA_CENARIOS.push({
       K.add(new T.PlaneGeometry(0.4, 0.7), K.texMat(kanjiTex('おみくじ', { w: 64, h: 256, bg: '#f6f0e0', color: '#c8221a' })), x + 1.2, 1.1, z + 0.05, { cast: false });
       K.box(0.06, 1.4, 0.06, woodD, x + 1.2, 0.7, z);
       K.col(x - 1.1, z - 0.2, x + 1.1, z + 0.2);
-      // pinheiro baixo atrás com papéis amarrados
-      const pg = K.group(x + 0.2, 0, z - 1.1);
+      // pinheiro baixo atrás com papéis amarrados (à esquerda do arco: à direita ele tapava o campanário para o sniper)
+      const pg = K.group(x - 0.8, 0, z - 1.1);
       K.cyl(0.1, 0.15, 1.7, K.mat(0x4a3a2a), 0, 0.85, 0, { parent: pg }, 7);
       for (const [a, y, r] of [[0, 1.8, 0.9], [2.1, 2.3, 0.7], [4.2, 2.0, 0.8], [1.0, 2.8, 0.5]]) K.add(new T.SphereGeometry(r, 9, 6).scale(1, 0.4, 1), K.mat(0x23402a, { roughness: 0.9 }), Math.cos(a) * 0.4, y, Math.sin(a) * 0.4, { parent: pg });
-      const pp = []; for (let k = 0; k < 40; k++) { const a = R() * 6.28, r = 0.3 + R() * 0.6; pp.push([x + 0.2 + Math.cos(a) * r, 1.7 + R() * 0.9, z - 1.1 + Math.sin(a) * r, R() * 3, 1]); }
+      const pp = []; for (let k = 0; k < 40; k++) { const a = R() * 6.28, r = 0.3 + R() * 0.6; pp.push([x - 0.8 + Math.cos(a) * r, 1.7 + R() * 0.9, z - 1.1 + Math.sin(a) * r, R() * 3, 1]); }
       K.inst(new T.BoxGeometry(0.04, 0.1, 0.012), K.mat(0xf6f3ec, { emissive: 0x444444 }), pp, { cast: false });
-      K.colR(x + 0.2, z - 1.1, 0.3);
+      K.colR(x - 0.8, z - 1.1, 0.3);
       // o omikuji vermelho (missão): faixa longa que tremula
-      const rg = K.group(x + 0.2, 3.35, z - 0.5); rg.scale.setScalar(0.001);
+      const rg = K.group(x - 0.8, 3.35, z - 0.5); rg.scale.setScalar(0.001);
       const strip = K.add(new T.PlaneGeometry(0.3, 1.4).translate(0, -0.7, 0), new T.MeshBasicMaterial({ color: new T.Color(0xff2a1a).multiplyScalar(1.4), side: T.DoubleSide, toneMapped: false }), 0, 0, 0, { parent: rg, cast: false });
       K.box(0.2, 0.06, 0.06, K.mat(0xff2a1a), 0, 0, 0, { parent: rg, cast: false });
       K.tick((dt, t) => { strip.rotation.x = Math.sin(t * 3.1) * 0.25; strip.rotation.y = Math.sin(t * 1.7) * 0.4; });
