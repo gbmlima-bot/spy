@@ -28,7 +28,7 @@ function MIRA_KIT(T, root, seed) {
 
   // ---------------------------------------------------------------- texturas em canvas
   K.canvasTex = (w, h, draw, rep) => {
-    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d', { willReadFrequently: true }), w, h);
     const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
     if (rep) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); }
     return t;

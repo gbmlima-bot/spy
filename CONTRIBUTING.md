@@ -12,7 +12,9 @@
 
 - `fonte/web/`: camada de rede ponto a ponto (`rede-p2p.js`), o montador (`montar.js`) e o teste de rede.
 - `fonte/cenarios/`: os 10 cenários (`src/`), ferramentas de prévia e teste (`ferramentas/`) e o guia
-  `INTEGRACAO.md`. A prévia (`previa.html`) é gerada por `node fonte/cenarios/ferramentas/build.js`
+  `INTEGRACAO.md`. O `mira.html` leva uma cópia de `src/kit.js`, `src/personagens.js` e de cada cenário: edite o
+  arquivo em `src/` e rode `npm run cenarios` (`node fonte/cenarios/ferramentas/embutir.js`) para copiar para o
+  `mira.html`; `npm run build` já faz isso antes de montar. Não edite esses blocos direto no `mira.html`. A prévia (`previa.html`) é gerada por `node fonte/cenarios/ferramentas/build.js`
   e não vai para o repositório.
 - `fonte/testes/`: testes headless (Playwright) do jogo.
 
@@ -43,7 +45,7 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Rede: `node fonte/web/teste-rede.js` (3 navegadores, anfitrião sai, outro assume). Usa o
   `index.html` da raiz e precisa de `npm i peer express@4` (servidor de sinalização local).
 - Cenários: `node fonte/cenarios/ferramentas/testar.js <id> <pasta-de-saida> [--rapido]`
-  (three.js via a variável `THREE_LIB`).
+  (three.js de `fonte/testes/cdn/`, ou de um pacote three@0.128 apontado por `THREE_LIB`).
 
 ### Notas para testar headless (contêiner)
 

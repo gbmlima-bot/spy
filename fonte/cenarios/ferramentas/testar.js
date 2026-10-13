@@ -1,9 +1,12 @@
 // Testa um cenário em Chromium headless: node testar.js <id> <pasta-de-saida> [--rapido]
 // Gera capturas (visão geral, outro ângulo, closes do elenco, luneta) e checa caminhos, colisões e erros.
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const fs = require('fs'), path = require('path'), cp = require('child_process');
+const { chromium } = require(fs.existsSync('/opt/node-tools/node_modules/playwright') ? '/opt/node-tools/node_modules/playwright' : 'playwright');
 const id = process.argv[2], outDir = path.resolve(process.argv[3] || '.'), fast = process.argv.includes('--rapido');
-const LIB = process.env.THREE_LIB || '/tmp/claude-0/-home-claude/4400ced9-9d68-5d58-b722-bdaad0f20ca4/scratchpad/lib/package';
+// three.js: THREE_LIB aponta para um pacote three@0.128 (build/ e examples/js/); sem ela, usa fonte/testes/cdn (ver CONTRIBUTING.md)
+const LIB = process.env.THREE_LIB, CDN = {};
+if (!LIB) { const dir = path.join(__dirname, '..', '..', 'testes', 'cdn'); for (const l of fs.readFileSync(path.join(dir, 'index.txt'), 'utf8').trim().split('\n')) { const [n, u] = l.split(' '); CDN[u.replace(/.*three(\.js\/r128|@0\.128\.0)\//, '')] = path.join(dir, n); } }
+const libFile = (rel) => LIB ? path.join(LIB, rel) : CDN[rel] || CDN[rel.replace(/^build\//, '')];
 fs.mkdirSync(outDir, { recursive: true });
 const html = path.join(outDir, `_teste-${id}.html`);
 cp.execFileSync('node', [path.join(__dirname, 'build.js'), html, '--so', id], { stdio: 'inherit' });
@@ -25,8 +28,8 @@ async function lock() {
   pg.on('pageerror', e => errs.push('pageerror: ' + e.message));
   await pg.route('**/*', r => {
     const u = r.request().url();
-    if (u.includes('three.min.js')) return r.fulfill({ path: LIB + '/build/three.min.js', contentType: 'text/javascript' });
-    const m = u.match(/examples\/js\/(.*\.js)$/); if (m) return r.fulfill({ path: LIB + '/examples/js/' + m[1], contentType: 'text/javascript' });
+    if (u.includes('three.min.js')) return r.fulfill({ path: libFile('build/three.min.js'), contentType: 'text/javascript' });
+    const m = u.match(/examples\/js\/(.*\.js)$/); if (m) return r.fulfill({ path: libFile('examples/js/' + m[1]), contentType: 'text/javascript' });
     if (u.startsWith('file:')) return r.continue();
     return r.fulfill({ body: '', contentType: 'text/css' });
   });

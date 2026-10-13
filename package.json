@@ -3,6 +3,7 @@
   "private": true,
   "description": "Mira na Cobertura: jogo de navegador. Fonte em fonte/mira.html; index.html da raiz é gerado.",
   "scripts": {
-    "build": "node fonte/web/montar.js"
+    "build": "node fonte/cenarios/ferramentas/embutir.js && node fonte/web/montar.js",
+    "cenarios": "node fonte/cenarios/ferramentas/embutir.js"
   }
 }
