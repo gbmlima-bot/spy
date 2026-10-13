@@ -8013,7 +8013,7 @@ const T = THREE;
 const $ = s => document.querySelector(s);
 
 // ---------------------------------------------------------------- constants
-const NPC_N = 30, ACT_T = 4, ROUND_T = 300, BRIEF_T = 15, NEED = 4, MS_N = 6, IR = 1.4, P_SPEED = 1.5, RAD = 0.28;
+const NPC_N = 30, ROUND_T = 300, BRIEF_T = 15, NEED = 4, MS_N = 6, IR = 1.4, P_SPEED = 1.5, RAD = 0.28;
 const SNIPER_POS = new T.Vector3(0, 27, 46);
 // the wide (unscoped) view is fitted so the whole stepped tower is on screen: all six levels, bottom party to the top deck
 // envelope of the stepped tower: each level's front edge at floor height and its back edge with the tallest props on it
@@ -8530,10 +8530,40 @@ function buildMap0Missions() {
     ['Derrubar a vela da ' + nm, [RO('ht|' + x + ',' + z + '|c', 'x', 1.5), OFF('ht|' + x + ',' + z + '|f')]], ...leaveActs(1.105, x, z, 'na ' + nm)]);
   return P;
 }
+// How a mission is done: a gesture (the animation everyone sees) and how long it takes. Read from the verb of the label,
+// so photographing pulls out the phone, a toast raises the glass and passing a word is a chat. Guests of the computer who
+// stop at an object use the same gesture and the same span, so the gesture alone never gives the agent away.
+const GESTURES = {
+  mexer: { anim: 2, d: [3.2, 5.0] }, // swap, hide, switch off, tip over...
+  largar: { anim: 2, d: [2.0, 3.0] }, // leave or drop something small
+  marcar: { anim: 14, d: [2.6, 3.8] }, // chalk, stick, write
+  foto: { anim: 18, d: [2.4, 3.6] }, // phone out: photograph, copy
+  brinde: { anim: 6, d: [3.0, 4.4] }, // glass up: toast, spill, spike a drink
+  conversa: { anim: 4, d: [4.0, 5.6] }, // a word with someone
+  regar: { anim: 19, d: [3.0, 4.2] }, // water or feed
+};
+const GESTURE_RX = [
+  ['foto', /^(fotografar|copiar|filmar|escanear|gravar|clonar)\b/],
+  ['brinde', /^(brindar|batizar|derramar|envenenar)\b|^(trocar|derrubar|pôr algo|levar)\b.*\b(taças?|copos?|garrafas?|drinques?|champanhe|xícaras?|chá|bule|chaleira)(?=\s|$)/],
+  ['conversa', /^(passar|sussurrar|entregar|cochichar|pedir|subornar|sinalizar)\b/],
+  ['regar', /^(regar|alimentar)\b/],
+  ['marcar', /^(marcar|colar|pichar|riscar|pintar|assinar|arranhar|prender|escrever)\b/],
+  ['largar', /^(deixar|largar|esquecer|soltar|jogar|enterrar)\b/],
+];
+function gestureOf(label, fx) {
+  if (fx && fx.k === 'host') return 'brinde';
+  const l = String(label).toLowerCase();
+  for (const [g, rx] of GESTURE_RX) if (rx.test(l)) return g;
+  return 'mexer';
+}
+// how long mission o takes for whoever does it: a draw inside its gesture's span (u in [0, 1))
+const actDur = (o, u) => { const d = GESTURES[MISSIONS[o].g].d; return d[0] + (d[1] - d[0]) * u; };
+// the local player's span is fixed per round and mission, so it is never the same few seconds every time
+const playerActDur = (o, rd) => actDur(o, mulberry32(((rd || 1) * 7919 + o * 104729) >>> 0)());
 // flatten props into the mission list (each act is a mission; `p` points back at its prop)
 function setMissions(props) {
   PROPS = props; MISSIONS = [];
-  PROPS.forEach((P, pi) => { P.ms = []; for (const [label, fx] of P.acts) { P.ms.push(MISSIONS.length); MISSIONS.push({ k: P.key, label, where: P.where, s: P.s, l: P.l, lv: P.lv, p: pi, fx, host: fx && fx.k === 'host' }); } });
+  PROPS.forEach((P, pi) => { P.ms = []; for (const [label, fx] of P.acts) { const g = gestureOf(label, fx); P.ms.push(MISSIONS.length); MISSIONS.push({ k: P.key, label, where: P.where, s: P.s, l: P.l, lv: P.lv, p: pi, fx, host: fx && fx.k === 'host', g, ga: GESTURES[g].anim }); } });
 }
 const WHY = {
   agent: 'O sniper acertou o agente infiltrado.',
@@ -8894,8 +8924,9 @@ class Sim {
     e.trot = s.type === 'dance' ? this.rng() * Math.PI * 2 : s.rot;
     if (initial) e.rot = e.trot;
     if (s.type === 'obj' && !initial) {
-      e.st = 'act'; e.obj = e.wantM >= 0 && MISSIONS[e.wantM].p === s.obj ? e.wantM : PROPS[s.obj].ms[Math.floor(this.rng() * PROPS[s.obj].ms.length)]; e.anim = 2;
-      e.timer = e.kind === 'bot' ? ACT_T + 0.2 : 2.2 + this.rng() * 2;
+      e.st = 'act'; e.obj = e.wantM >= 0 && MISSIONS[e.wantM].p === s.obj ? e.wantM : PROPS[s.obj].ms[Math.floor(this.rng() * PROPS[s.obj].ms.length)]; e.anim = MISSIONS[e.obj].ga;
+      // everyone (bots, guests, the players) takes a span drawn from the gesture of the act
+      e.timer = actDur(e.obj, this.rng()) + (e.kind === 'bot' ? 0.2 : 0);
       return;
     }
     e.st = 'idle'; e.obj = -1;
@@ -8908,7 +8939,7 @@ class Sim {
     if (e.kind === 'bot' && this.ph === 'play') {
       if (e.role === 'agent') { if (e.todo.length && rng() < 0.55) want = e.todo[0]; }
       else if (rng() < 0.4) want = Math.floor(rng() * MISSIONS.length);
-    } else if (rng() < 0.07) want = Math.floor(rng() * MISSIONS.length);
+    } else if (rng() < 0.15) want = Math.floor(rng() * MISSIONS.length); // guests stop at objects often enough to hide the agent
     let si = -1;
     e.wantM = -1;
     if (want >= 0) { const i = this.slots.findIndex(s => s.type === 'obj' && s.obj === MISSIONS[want].p); if (i >= 0 && this.slots[i].busy < 0) { si = i; e.wantM = want; } }
@@ -11736,7 +11767,7 @@ function tryAct() {
   if (ctrl.pose) { ctrl.pose = null; ctrl.settle = null; return; }
   const it = nearInteraction(st); if (!it) return;
   ctrl.path = []; ctrl.goal = null;
-  if (it.k === 'mission') { ctrl.act = { o: it.o, t: 0 }; const m = MISSIONS[it.o]; ctrl.settle = { rot: Math.atan2(m.l[0] - ctrl.x, m.l[1] - ctrl.z) }; return; }
+  if (it.k === 'mission') { ctrl.act = { o: it.o, t: 0, d: playerActDur(it.o, st.rd) }; const m = MISSIONS[it.o]; ctrl.settle = { rot: Math.atan2(m.l[0] - ctrl.x, m.l[1] - ctrl.z) }; return; }
   if (it.k === 'stair') { startClimb(it.dir, it.li); return; }
   // seats and poses are eased into over a few frames instead of snapping
   if (it.k === 'seat') { ctrl.settle = { x: it.slot.x, z: it.slot.z, rot: it.slot.rot }; ctrl.pose = { anim: it.anim, nt: 0 }; return; }
@@ -11837,7 +11868,7 @@ function updateLocal(dt, st) {
           ctrl.rot = lerpAngle(ctrl.rot, s.rot, ks);
           if ((s.x === undefined || Math.hypot(s.x - ctrl.x, s.z - ctrl.z) < 0.01) && Math.abs(lerpAngle(ctrl.rot, s.rot, 1) - ctrl.rot) < 0.01) { if (s.x !== undefined) { ctrl.x = s.x; ctrl.z = s.z; } ctrl.rot = s.rot; ctrl.settle = null; }
         }
-        if (ctrl.act) { ctrl.act.t += dt; if (ctrl.act.t >= ACT_T) finishAct(st); }
+        if (ctrl.act) { ctrl.act.t += dt; if (ctrl.act.t >= ctrl.act.d) finishAct(st); }
         if (ctrl.pose) {
           if (ctrl.pose.until && now > ctrl.pose.until) ctrl.pose = null;
           else if (ctrl.pose.anim === 9) { ctrl.pose.nt -= dt; if (ctrl.pose.nt <= 0) { ctrl.pose.nt = 0.26 + Math.random() * 0.1; ctrl.pose.ni = ((ctrl.pose.ni || 0) + 1) % PIANO_NOTES.length; tone(PIANO_NOTES[ctrl.pose.ni], 0.35, 0.035, 'triangle'); } }
@@ -11845,14 +11876,14 @@ function updateLocal(dt, st) {
       }
       ctrl.y = ctrl.lk ? ctrl.y : LVY(ctrl.lv);
     }
-    ctrl.anim = dead ? 5 : moving ? 1 : ctrl.act ? 2 : ctrl.pose ? ctrl.pose.anim : 0;
+    ctrl.anim = dead ? 5 : moving ? 1 : ctrl.act ? MISSIONS[ctrl.act.o].ga : ctrl.pose ? ctrl.pose.anim : 0;
     if (G.sim && !dead) G.sim.setPlayer(G.myEid, ctrl.x, ctrl.z, ctrl.rot, ctrl.anim, ctrl.y);
     isoState.tx = ctrl.x; isoState.tz = ctrl.z; isoState.ty = ctrl.y;
     stepRipple(dt);
     meRing.visible = !dead; meRing.position.set(ctrl.x, ctrl.y + 0.035, ctrl.z);
     // prompt
     const it = st.ph === 'play' && !dead && !ctrl.lk && !ctrl.act ? (ctrl.pose ? { k: 'up', label: ctrl.pose.anim === 3 ? 'Parar de dançar' : [7, 8, 9, 12, 15, 16, 17].includes(ctrl.pose.anim) ? 'Levantar' : 'Parar' } : nearInteraction(st)) : null;
-    if (ctrl.act) { show('#prompt', true); $('#promptText').textContent = MISSIONS[ctrl.act.o].label + '…'; $('#promptBar').style.width = (ctrl.act.t / ACT_T * 100) + '%'; }
+    if (ctrl.act) { show('#prompt', true); $('#promptText').textContent = MISSIONS[ctrl.act.o].label + '…'; $('#promptBar').style.width = (ctrl.act.t / ctrl.act.d * 100) + '%'; }
     else if (it) { show('#prompt', true); $('#promptText').innerHTML = `<kbd>E</kbd> ${esc(it.label)}`; $('#promptBar').style.width = '0%'; }
     else show('#prompt', false);
     const ab = $('#actBtn'); ab.hidden = !(it && matchMedia('(pointer:coarse)').matches); if (it && ab.textContent !== it.label) ab.textContent = it.label;
@@ -12101,7 +12132,7 @@ Net.init().then(ok => {
   $('#multiBox').hidden = !ok; $('#multiOff').hidden = ok;
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
-window.__mira = { makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+window.__mira = { makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 })();
 </script>
 
