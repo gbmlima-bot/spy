@@ -11480,7 +11480,7 @@ function syncRound(st) {
   if (st.sd !== G.seed) {
     G.seed = st.sd; loadMap(st.mp || 0); setNight(!!st.nt && !(st.mp || 0)); buildChars(st); resetProps(); G.tellsApplied = 0; G.dnSeen = 0; G.lastPh = null;
     G.role = undefined; G.myEid = -2;
-    snip.marks = []; snip.shotSent = false; snip.yaw = 0; snip.pitch = WIDE_ELEV; setScope(false); snip.air = 1; snip.gasp = 0; snip.hold = false; snip.nbKey = ''; snip.radioSeen = 0; snip.tellAt = {}; NEST_FX.scare = 0;
+    snip.marks = []; snip.shotSent = false; snip.yaw = 0; snip.pitch = WIDE_ELEV; setScope(false); snip.air = 1; snip.gasp = 0; snip.hold = false; snip.nbKey = ''; snip.radioSeen = 0; snip.tellAt = {}; snip.idd = {}; snip.idT = {}; NEST_FX.scare = 0;
     ctrl.path = []; ctrl.act = null; ctrl.actDone = null; ctrl.pose = null; ctrl.lk = null;
     isoState.tx = 0; isoState.tz = 0; isoState.ty = 0; isoState.az = -0.55; isoState.zoom = G.screen === 'game' ? 8.5 : 11; placeIso(0, true); resize();
   }
@@ -11497,7 +11497,7 @@ function syncRound(st) {
   if (st.ph !== G.lastPh) { onPhase(st); G.lastPh = st.ph; }
   if (G.role === 's' && st.ph === 'play') {
     snip.tellAt = snip.tellAt || {};
-    while (snip.radioSeen < st.tells.length) { const o = st.tells[snip.radioSeen++]; snip.tellAt[o] = st.tl; toast('📻 Rádio: ' + MISSIONS[o].label.toLowerCase() + ' — ' + MISSIONS[o].where); }
+    while (snip.radioSeen < st.tells.length) { const o = st.tells[snip.radioSeen++]; snip.tellAt[o] = st.tl; toast('📻 Rádio: algo mudou ' + areaOf(o) + '. Enquadre com a luneta para ver o quê.'); }
   } else snip.radioSeen = st.tells.length;
   if (G.role === 'a' && st.dn.length > G.dnSeen) {
     for (let i = G.dnSeen; i < st.dn.length; i++) toast(`Missão cumprida: ${MISSIONS[st.dn[i]].label} (${i + 1}/${NEED})`, 'good');
@@ -11516,7 +11516,7 @@ function renderBrief(st) {
   const r = G.role; let body = '';
   const nGuests = st.ents.length - 2 - (st.sx || []).length - Object.keys(st.pm || {}).length, lvTxt = LV_N === 1 ? 'num único terraço' : `por ${LV_N} andares`;
   const whereTxt = SCEN.id ? `<p class="muted"><b>${esc(SCEN.sc.nome)}</b> · ${esc(SCEN.sc.lugar)}. Você está ${esc(SCEN.sc.sniper.desc || 'no prédio em frente')}.</p>` : '';
-  if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. Você tem um único tiro.</p>`;
+  if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. O rádio avisa onde algo mudou; enquadre o lugar com zoom para descobrir o quê. Você tem um único tiro.</p>`;
   else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <small class="muted">· ${esc(MISSIONS[o].where)}</small></li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando.</p>`;
   else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Se o sniper atirar em você, os convidados vencem.</p>`;
   else body = `<p>A rodada já começou. Você entra na próxima.</p>`;
@@ -11861,6 +11861,43 @@ function updateLocal(dt, st) {
   } else show('#prompt', false);
 }
 
+// the radio only says roughly where something changed (level, side, front or back from the sniper's point of view);
+// what changed is identified when the sniper frames that spot in the scope, zoomed in, for a moment
+function lvLabel(lv) { const L = LEVELS[lv] || LEVELS[0]; return SCEN.id ? L.name : lv === 0 ? 'festa' : lv === 1 ? 'terraço' : L.name + ' (' + lv + 'º)'; }
+function areaOf(o) {
+  const m = MISSIONS[o], L = LEVELS[m.lv || 0] || LEVELS[0], q = m.l || m.s;
+  const fx = (q[0] - L.x0) / ((L.x1 - L.x0) || 1), fz = (q[1] - L.z0) / ((L.z1 - L.z0) || 1);
+  const side = fx < 0.36 ? 'à esquerda' : fx > 0.64 ? 'à direita' : 'no centro', depth = fz > 0.5 ? 'perto da frente' : 'mais ao fundo';
+  return (LV_N > 1 ? 'em ' + lvLabel(m.lv || 0) + ', ' : '') + side + ', ' + depth;
+}
+const idV = new T.Vector3();
+// can the sniper see any part of the spot (a few points around it, from the floor up)?
+function spotVisible(x, y, z) {
+  const occ = SCEN.id ? (SCEN.occ || []) : OCCLUDERS, tg = new T.Vector3(), dir = new T.Vector3();
+  for (const [ox, oy] of [[0, 0.9], [0, 0.4], [0.45, 0.7], [-0.45, 0.7], [0, 1.4]]) {
+    tg.set(x + ox, y + oy, z); const dist = tg.distanceTo(SNIPER_POS); dir.copy(tg).sub(SNIPER_POS).normalize();
+    ray.set(SNIPER_POS, dir); ray.far = dist; const h = ray.intersectObjects(occ, true)[0]; ray.far = Infinity;
+    if (!h || h.distance > dist - 0.8) return true;
+  }
+  return false;
+}
+function scopeIdentify(dt, st) {
+  if (!snip.scoped || snip.zoom < 5 || !st.tells.length) return;
+  snip.idd = snip.idd || {}; snip.idT = snip.idT || {};
+  const R = Math.min(innerWidth * 0.44, innerHeight * 0.44, innerHeight * 0.46) * 0.6;
+  for (const o of new Set(st.tells)) {
+    if (snip.idd[o]) continue;
+    const m = MISSIONS[o], q = m.l || m.s;
+    idV.set(q[0], LVY(m.lv || 0) + 0.9, q[1]);
+    idV.project(scopeCam);
+    const px = idV.x * innerWidth / 2, py = idV.y * innerHeight / 2;
+    const seen = idV.z < 1 && Math.hypot(px, py) < R;
+    // a spot behind something solid takes longer to make out (a few spots can't be seen from the sniper's roof at all)
+    const need = seen && !spotVisible(q[0], LVY(m.lv || 0), q[1]) ? 1600 : 600;
+    const now = performance.now(); snip.idT[o] = seen ? (snip.idT[o] || now) : 0;
+    if (snip.idT[o] && now - snip.idT[o] > need) { snip.idd[o] = true; snip.nbKey = ''; toast('🔎 Identificado: ' + m.label.toLowerCase() + ' — ' + m.where, 'good'); tone(880, 0.12, 0.03); }
+  }
+}
 function updateSniper(dt, st) {
   if (G.role !== 's' || G.screen !== 'game') { canvas.classList.remove('blur'); return; }
   snip.breath += dt;
@@ -11896,17 +11933,18 @@ function updateSniper(dt, st) {
     const w = snip.wind, wt = w === 0 ? 'sem vento' : 'vento ' + Math.abs(w) + ' m/s ' + (w < 0 ? '◀' : '▶'); if ($('#siWind').textContent !== wt) $('#siWind').textContent = wt;
     const br = $('#breath'); br.firstElementChild.style.height = (snip.air * 100).toFixed(0) + '%'; br.classList.toggle('gasp', snip.gasp > 0);
   }
+  if (st.ph === 'play') scopeIdentify(dt, st);
   updateNotebook(st);
 }
 // the sniper's notebook: who is marked and what they are doing, plus the radio log of things that changed in the party
 function updateNotebook(st) {
   if (G.role !== 's' || st.ph !== 'play') return;
   const sl = $('#suspectList'), rl = $('#radioLog'); if (!sl || !rl) return;
-  const key = snip.marks.join(',') + '|' + snip.marks.map(id => { const e = st.ents.find(x => x.id === id); return e ? e.anim + ':' + lvOfY(e.y || 0) : ''; }).join(',') + '|' + st.tells.length;
+  const key = snip.marks.join(',') + '|' + snip.marks.map(id => { const e = st.ents.find(x => x.id === id); return e ? e.anim + ':' + lvOfY(e.y || 0) : ''; }).join(',') + '|' + st.tells.length + '|' + Object.keys(snip.idd || {}).length;
   if (key === snip.nbKey) return; snip.nbKey = key;
-  sl.innerHTML = snip.marks.length ? snip.marks.map((id, i) => { const e = st.ents.find(x => x.id === id); const o = outfitFor(st.sd, id, st); const lv = e ? lvOfY(e.y || 0) : 0; return `<li class="${i === 0 ? 'first' : ''}"><b>${i === 0 ? 'Principal' : 'Suspeito ' + (i + 1)}</b> · ${esc(o.name)}<small>${e ? esc(ANIM_LABEL[e.anim] || '') : ''} · ${lv === 0 ? 'festa' : lv === 1 ? 'terraço' : esc(LEVELS[lv].name) + ' (' + lv + 'º)'}</small></li>`; }).join('') : '<li class="muted">Mire num convidado e aperte <kbd>F</kbd> para anotar.</li>';
+  sl.innerHTML = snip.marks.length ? snip.marks.map((id, i) => { const e = st.ents.find(x => x.id === id); const o = outfitFor(st.sd, id, st); const lv = e ? lvOfY(e.y || 0) : 0; return `<li class="${i === 0 ? 'first' : ''}"><b>${i === 0 ? 'Principal' : 'Suspeito ' + (i + 1)}</b> · ${esc(o.name)}<small>${e ? esc(ANIM_LABEL[e.anim] || '') : ''} · ${esc(lvLabel(lv))}</small></li>`; }).join('') : '<li class="muted">Mire num convidado e aperte <kbd>F</kbd> para anotar.</li>';
   const tm = (o) => { const i = st.tells.indexOf(o); return i >= 0 ? '' : ''; };
-  rl.innerHTML = st.tells.length ? st.tells.slice().reverse().map(o => `<li><b>${fmt(Math.max(0, ROUND_T - (snip.tellAt && snip.tellAt[o] !== undefined ? snip.tellAt[o] : st.tl)))}</b>${esc(MISSIONS[o].label)} <span class="muted">· ${esc(MISSIONS[o].where)}</span></li>`).join('') : '<li class="muted">Silêncio no rádio por enquanto.</li>';
+  rl.innerHTML = st.tells.length ? st.tells.slice().reverse().map(o => `<li><b>${fmt(Math.max(0, ROUND_T - (snip.tellAt && snip.tellAt[o] !== undefined ? snip.tellAt[o] : st.tl)))}</b>${snip.idd && snip.idd[o] ? `${esc(MISSIONS[o].label)} <span class="muted">· ${esc(MISSIONS[o].where)}</span>` : `Algo mudou <span class="muted">· ${esc(areaOf(o))} · enquadre com zoom</span>`}</li>`).join('') : '<li class="muted">Silêncio no rádio por enquanto.</li>';
 }
 
 function laserFor(st) {
@@ -12103,6 +12141,6 @@ Net.init().then(ok => {
   $('#multiBox').hidden = !ok; $('#multiOff').hidden = ok;
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
-window.__mira = { makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+window.__mira = { spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 })();
 </script>
