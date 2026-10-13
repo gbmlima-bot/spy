@@ -9542,21 +9542,37 @@ class Sim {
   }
 }
 
+// knobs of the computer sniper (solo training): suspicion from an area on the radio, from making out the exact object,
+// and per second of a mission gesture; how far back it remembers who was at an object; when it makes the object out
+// th scales how sure it must be before shooting; `map` adjusts th or gest per map (0 = rooftop, 1..10 = the extra
+// scenarios) so the robot agent wins 40-55% everywhere in t10.js (crowded maps make gestures noisier, sparse ones easier)
+const AI_SNIPER = { area: 0.8, exact: 0.8, gest: 0.02, win: 9, idWin: 20, idT: [5, 12], th: 1.2,
+  map: { 2: { th: 1.5 }, 3: { th: 1.2 }, 4: { th: 1.2 }, 6: { th: 1.5 }, 9: { th: 1.9 }, 10: { th: 0.9 } } };
+const aiMap = () => AI_SNIPER.map[SCEN.id] || {};
+const GESTURE_ANIMS = new Set(Object.values(GESTURES).map(g => g.anim));
 class AISniper {
   constructor(sim) { this.s = sim; this.sus = new Float32Array(sim.ents.length); this.tgt = -1; this.aim = new T.Vector3(0, 1.4, 0); this.lock = 0; this.scan = 0; this.shot = false; }
+  // like the player, the computer hears only the area on the radio: everyone seen at any object of that area lately is a
+  // suspect; a few seconds later it makes out the exact object (as the player does by zooming in) and narrows it down
   onTell(obj) {
-    const now = this.s.time, list = [];
-    for (const [id, t] of this.s.near[MISSIONS[obj].p]) if (now - t < 9 && !this.s.ents[id].dead && this.s.ents[id].kind !== 'static') list.push(id);
-    const inc = 2.0 / Math.sqrt(Math.max(1, list.length));
-    for (const id of list) this.sus[id] += inc;
+    const s = this.s, now = s.time, key = areaKey(obj), list = new Set();
+    PROPS.forEach((P, pi) => { if (areaKey(P.ms[0]) !== key) return; for (const [id, t] of s.near[pi]) if (now - t < AI_SNIPER.win) list.add(id); });
+    this.addSus(list, AI_SNIPER.area);
+    (this.later = this.later || []).push({ at: now + AI_SNIPER.idT[0] + s.rng() * (AI_SNIPER.idT[1] - AI_SNIPER.idT[0]), p: MISSIONS[obj].p });
+  }
+  addSus(ids, k) {
+    const E = this.s.ents, live = [...ids].filter(id => !E[id].dead && E[id].kind !== 'static'), inc = k / Math.sqrt(Math.max(1, live.length));
+    for (const id of live) this.sus[id] += inc;
   }
   update(dt) {
     const s = this.s, E = s.ents;
+    if (this.later) for (let i = this.later.length - 1; i >= 0; i--) { const q = this.later[i]; if (s.time < q.at) continue; this.later.splice(i, 1);
+      const ids = []; for (const [id, t] of s.near[q.p]) if (s.time - t < AI_SNIPER.idWin) ids.push(id); this.addSus(ids, AI_SNIPER.exact); }
     let best = -1, bv = 0, second = 0;
     for (const e of E) {
       if (e.dead || e.kind === 'static') continue;
       this.sus[e.id] *= Math.exp(-dt / 120);
-      if (e.anim === 2) this.sus[e.id] += dt * 0.08;
+      if (GESTURE_ANIMS.has(e.anim)) this.sus[e.id] += dt * (aiMap().gest ?? AI_SNIPER.gest);
       const v = this.sus[e.id];
       if (v > bv) { second = bv; bv = v; best = e.id; } else if (v > second) second = v;
     }
@@ -9566,7 +9582,7 @@ class AISniper {
     const e = E[this.tgt];
     if (e) this.aim.lerp(new T.Vector3(e.x, e.y + 1.45, e.z), 1 - Math.exp(-dt * 2.5));
     s.mk = bv > 0.35 ? [best] : [];
-    const u = s.dn.length >= 3 ? 0.65 : 1;
+    const u = (s.dn.length >= 3 ? 0.65 : 1) * AI_SNIPER.th * (aiMap().th || 1);
     if (!this.shot && bv > 0.35 && this.tgt === best && this.lock > 2.5 && ((bv > 2.6 * u && bv - second > 1.0 * u) || (s.t < 12 && bv > 0.6))) { this.shot = true; s.shoot(best); }
   }
 }
@@ -12672,7 +12688,7 @@ function updateSniper(dt, st) {
     const d = hit ? hit.point.distanceTo(SNIPER_POS) : 0;
     const rt = d ? Math.round(d) + ' m' : '— m'; if ($('#siRange').textContent !== rt) $('#siRange').textContent = rt;
     let tt = '', sus = false;
-    if (hit && hit.object.userData.eid !== undefined) { const e = st.ents.find(x => x.id === hit.object.userData.eid); if (e) { const o = outfitFor(st.sd, e.id, st); sus = e.anim === 2; tt = o.name + ' · ' + (ANIM_LABEL[e.anim] || ''); if (snip.marks.includes(e.id)) tt = (snip.marks[0] === e.id ? '★ ' : '☆ ') + tt; } }
+    if (hit && hit.object.userData.eid !== undefined) { const e = st.ents.find(x => x.id === hit.object.userData.eid); if (e) { const o = outfitFor(st.sd, e.id, st); sus = GESTURE_ANIMS.has(e.anim); tt = o.name + ' · ' + (ANIM_LABEL[e.anim] || ''); if (snip.marks.includes(e.id)) tt = (snip.marks[0] === e.id ? '★ ' : '☆ ') + tt; } }
     else if (hit && hit.blocked !== undefined) tt = '';
     const si = $('#siTarget'); if (si.textContent !== tt) si.textContent = tt; si.classList.toggle('sus', sus);
     const w = snip.wind, wt = w === 0 ? 'sem vento' : 'vento ' + Math.abs(w) + ' m/s ' + (w < 0 ? '◀' : '▶'); if ($('#siWind').textContent !== wt) $('#siWind').textContent = wt;
@@ -12889,6 +12905,8 @@ Net.init().then(ok => {
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply });
+// sniper: what the sniper's tests and the balance tuning read
+Object.assign(window.__mira, { AI_SNIPER });
 })();
 </script>
 
