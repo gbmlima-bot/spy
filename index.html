@@ -8958,8 +8958,8 @@ function gestureOf(label, fx) {
   const l = String(label).toLowerCase();
   let g = 'mexer';
   for (const [k, rx] of GESTURE_RX) if (rx.test(l)) { g = k; break; }
-  // leaving or fiddling with something down on the floor is done kneeling
-  return (g === 'largar' || g === 'mexer') && onFloor(label, fx) ? 'agachar' : g;
+  // leaving something on the floor (or anything the label places "no chão") is done kneeling
+  return (g === 'largar' && onFloor(label, fx)) || (g === 'mexer' && /no chão/.test(l)) ? 'agachar' : g;
 }
 // how long mission o takes for whoever does it: a draw inside its gesture's span (u in [0, 1))
 const actDur = (o, u) => { const d = GESTURES[MISSIONS[o].g].d; return d[0] + (d[1] - d[0]) * u; };
