@@ -1,0 +1,20 @@
+const L = require('./lib'); const OUT = __dirname + '/out/'; require('fs').mkdirSync(OUT, { recursive: true });
+const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
+(async () => {
+  const b = await L.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 760 } });
+  const p = await L.page(ctx, U);
+  const t0 = Date.now();
+  console.log('menu', await p.evaluate(() => ({ multiOff: !document.querySelector('#multiOff').hidden, opts: [...document.querySelectorAll('#mapSel option')].map(o => o.textContent), note: document.querySelectorAll('#menu .note')[1]?.textContent })));
+  await p.evaluate(() => document.querySelector('#btnSoloA').click());
+  await p.waitForFunction(() => window.__mira.G.sim && window.__mira.G.sim.ph === 'brief', null, { timeout: 60000 });
+  const s = await p.evaluate(() => { const M = window.__mira, S = M.G.sim; const k = {}; S.ents.forEach(e => k[e.kind + '/' + e.role] = (k[e.kind + '/' + e.role] || 0) + 1);
+    return { kinds: k, levels: M.LEVELS.length, levelNames: M.LEVELS.map(l => l.name), props: M.PROPS.length, missions: S.ms.length, allMissions: M.PROPS.reduce((a, p) => a + p.ms.length, 0), briefT: S.t, brief: document.querySelector('#brief').innerText.slice(0, 600) }; });
+  console.log(JSON.stringify(s, null, 1));
+  await p.screenshot({ path: OUT + 'agent-brief.png', timeout: 180000 });
+  await p.evaluate(() => { window.__mira.G.sim.t = 0.01; });
+  await p.waitForFunction(() => window.__mira.G.sim.ph === 'play', null, { timeout: 60000 }); await L.sleep(4000);
+  console.log('play', await p.evaluate(() => ({ t: window.__mira.G.sim.t, hud: !document.querySelector('#hud').hidden, card: document.querySelector('#roleCard').innerText.slice(0, 400), hints: document.querySelector('#hints').innerText })));
+  await p.screenshot({ path: OUT + 'agent-play.png', timeout: 180000 });
+  console.log('secs', (Date.now() - t0) / 1000);
+  await b.close();
+})();

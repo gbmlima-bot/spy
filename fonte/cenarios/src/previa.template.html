@@ -1,0 +1,107 @@
+<title>Cenários da Mira</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Prévia dos cenários: diorama em tela cheia, cartões de dossiê com borda de latão por cima. Um visual escuro só, igual ao jogo. */
+:root{--ink:#0c0f14;--panel:rgba(14,17,23,.88);--panel-2:rgba(255,255,255,.05);--line:rgba(217,164,65,.38);--brass:#d9a441;--paper:#f3ecdc;--muted:#a7adb6;--ok:#74d39a;
+  --f-display:"Saira Condensed","Arial Narrow",sans-serif;--f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);overflow:hidden}
+body{font-family:var(--f-body);font-size:14px;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.card{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:.95;text-wrap:balance}
+.eyebrow{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass)}
+p{margin:0;line-height:1.5}
+button{font:inherit;cursor:pointer;border-radius:4px;border:1px solid var(--line);background:var(--panel-2);color:var(--paper);padding:8px 12px;font-family:var(--f-display);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+button:hover{background:rgba(217,164,65,.14);border-color:var(--brass)}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--paper)}
+#hud{position:fixed;inset:0;pointer-events:none;transition:opacity .2s}
+#hud.dim .side{opacity:0;pointer-events:none}
+#info{position:fixed;left:16px;top:calc(16px + env(safe-area-inset-top,0px));width:min(330px,calc(100% - 32px));padding:16px;display:grid;gap:10px;max-height:calc(100% - 150px);overflow:auto}
+#info h1{font-size:34px}
+#scWhere{font-size:13px;color:var(--brass)}
+#scDesc,#sniperDesc{font-size:13px;color:var(--muted);line-height:1.45}
+#sniperDesc{color:#e6b3a8}
+#missions{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13px}
+#missions li small{color:var(--muted)}
+#missions li.done{color:var(--ok);text-decoration:line-through}
+#nav{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;display:flex;gap:6px;align-items:center;padding:6px}
+#scNum{font-family:var(--f-mono);color:var(--brass);font-size:13px;padding:0 6px}
+#castCard{position:fixed;right:16px;top:calc(70px + env(safe-area-inset-top,0px));width:min(300px,calc(100% - 32px));padding:12px 14px;display:grid;gap:8px;max-height:calc(100% - 200px);overflow:auto}
+#castCard.fold #cast{display:none}
+#castCard header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#castCard header button{padding:4px 8px;font-size:12px}
+#cast{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#cast button{width:100%;text-align:left;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:500;font-size:13px;display:grid;gap:2px;padding:7px 9px}
+#cast b{font-weight:600}
+#cast small{color:var(--muted);font-style:italic}
+#prompt{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:10px 16px;display:grid;gap:8px;min-width:220px;text-align:center}
+.bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--brass)}
+#hints{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 14px;font-size:12px;color:var(--muted);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:10px 16px;max-width:min(560px,calc(100% - 32px));text-align:center;font-size:14px;z-index:5}
+#toast.ok{border-color:var(--ok);color:var(--ok)}
+#touch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom,0px));display:none;gap:8px;pointer-events:auto}
+#touch button{width:92px;padding:12px 8px}
+#joy{position:fixed;left:24px;bottom:calc(40px + env(safe-area-inset-bottom,0px));width:110px;height:110px;border-radius:50%;border:1px solid var(--line);background:rgba(14,17,23,.5);display:none;place-items:center;pointer-events:auto;touch-action:none}
+#joy i{width:44px;height:44px;border-radius:50%;background:rgba(217,164,65,.5);display:block}
+@media (pointer:coarse){#touch{display:grid}#joy{display:grid}#hints{display:none}}
+#scope{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent calc(var(--r) - 2px),rgba(0,0,0,.55) calc(var(--r) - 1px),#000 calc(var(--r) + 6px));--r:min(44vmin,46vh)}
+#scope svg{position:absolute;left:50%;top:50%;width:calc(var(--r)*2);height:calc(var(--r)*2);transform:translate(-50%,-50%)}
+#zoomTag{position:absolute;left:50%;top:calc(50% + var(--r) + 14px);transform:translateX(-50%);font-family:var(--f-mono);color:var(--brass);font-size:13px;letter-spacing:.1em}
+#menu{position:fixed;inset:0;background:rgba(6,8,12,.72);display:grid;place-items:center;padding:16px;z-index:10}
+#menu[hidden]{display:none}
+#menu .card{width:min(880px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px;display:grid;gap:14px}
+#menu header{display:flex;justify-content:space-between;align-items:end;gap:12px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+#grid button{text-align:left;display:grid;gap:3px;padding:12px;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:500}
+#grid button span{font-family:var(--f-mono);color:var(--brass);font-size:12px}
+#grid button b{font-family:var(--f-display);font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+#grid button small{color:var(--muted)}
+#grid button.on{border-color:var(--brass);background:rgba(217,164,65,.12)}
+[hidden]{display:none!important}
+@media (max-width:720px){#castCard{display:none}#info{max-height:40vh}#info h1{font-size:26px}}
+</style>
+<canvas id="c" tabindex="0" aria-label="Diorama do cenário"></canvas>
+<div id="hud">
+  <section id="info" class="card side" aria-live="polite">
+    <div class="eyebrow">Novo cenário</div>
+    <h1 id="scName"></h1>
+    <div id="scWhere"></div>
+    <p id="scDesc"></p>
+    <p id="sniperDesc"></p>
+    <div class="eyebrow">Missões do agente</div>
+    <ol id="missions"></ol>
+  </section>
+  <nav id="nav" class="card side" aria-label="Cenários">
+    <button id="prev" aria-label="Cenário anterior">‹</button><span id="scNum"></span><button id="next" aria-label="Próximo cenário">›</button><button id="all">Todos</button>
+  </nav>
+  <section id="castCard" class="card side">
+    <header><div class="eyebrow">Elenco único</div><button id="foldCast">Ocultar</button></header>
+    <ul id="cast"></ul>
+  </section>
+  <div id="prompt" class="card" hidden><span></span><div class="bar"><i></i></div></div>
+  <div id="hints" class="card"><kbd>WASD</kbd> andar · <kbd>E</kbd> missão / sentar / escada · arrastar gira · roda zoom · <kbd>Q</kbd> luneta do sniper · <kbd>[</kbd> <kbd>]</kbd> trocar cenário</div>
+  <div id="touch"><button id="actBtn">Agir</button><button id="scopeBtn">Luneta</button></div>
+  <div id="joy" aria-hidden="true"><i></i></div>
+</div>
+<div id="scope" hidden>
+  <svg viewBox="-100 -100 200 200" aria-hidden="true"><circle r="99" fill="none" stroke="#000" stroke-width="2"/><path d="M-100 0H-8M8 0H100M0 -100V-8M0 8V100" stroke="#000" stroke-width="1.2"/><path d="M-30 0h-6M30 0h6M0 30v6" stroke="#000" stroke-width="2.5"/><circle r="1.6" fill="#ff4134"/></svg>
+  <div id="zoomTag"></div>
+</div>
+<div id="toast" class="card" hidden role="status"></div>
+<div id="menu" hidden><div class="card"><header><div><div class="eyebrow">Mira na Cobertura</div><h2 style="font-size:34px">10 novos cenários</h2></div><button id="closeMenu">Fechar</button></header><div id="grid"></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+//@@SCRIPTS@@
+</script>

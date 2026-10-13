@@ -1,0 +1,9 @@
+node_modules/
+# saídas de build e de teste
+fonte/cenarios/previa.html
+fonte/cenarios/ferramentas/_teste-*.html
+fonte/testes/out/
+fonte/testes/cdn/
+fonte/testes/*.html
+fonte/web/cdn/
+fonte/web/index.html
