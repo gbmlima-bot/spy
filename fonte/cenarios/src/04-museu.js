@@ -680,5 +680,7 @@ MIRA_CENARIOS.push({
     { const g = K.group(-20, -0.9, -36); K.box(10, 14, 8, K.mat(0x4a4a56), 0, 7, 0, { parent: g, cast: false }); K.cyl(3.4, 3.6, 4, K.mat(0x4a4a56), 0, 16, 0, { parent: g, cast: false }, 16); K.add(new T.SphereGeometry(3.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), K.mat(0x3a5a5a, { metalness: 0.4, roughness: 0.5 }), 0, 18, 0, { parent: g, cast: false }); K.cyl(0.2, 0.3, 2, gilt, 0, 22.5, 0, { parent: g, cast: false }, 6); K.halo(-20, 21, -32, 6, 0xffc080, 0.15); }
     // lua
     K.halo(-40, 60, -110, 9, 0xdfe6ff, 0.5); K.sphere(3.2, K.glow(0xf4f0e0, 1.1), -40, 60, -112, { cast: false }, 16, 12);
+    // ------------------------------------------------------------ ambiente vivo: poeira dourada flutuando nos fachos dos spots do salão
+    K.particles({ modo: 'paira', x0: -3.5, x1: 3.5, z0: -1, z1: 6, y0: 1.6, y1: 6.5, n: 70, cor: [0xffe8c0, 0xfff4e0], tam: 0.035, vel: 0.25, balanco: 0.35, add: true, opacity: 0.55, pisca: 0.8 });
   },
 });

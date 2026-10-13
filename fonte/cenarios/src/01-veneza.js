@@ -407,5 +407,8 @@ MIRA_CENARIOS.push({
     K.plight(-4.5, 3.0, -8.4, 0xffb070, 1.5, 9); K.plight(6.0, 3.0, -8.4, 0xffb070, 1.5, 9);
     K.plight(11.0, 2.2, 6.5, 0xffa860, 0.9, 6);
     K.pool(0, -2.0, 2.2, 0xffb070, 0.3); K.pool(-4.6, 5.6, 2.4, 0xffc080, 0.3);
+    // ------------------------------------------------------------ ambiente vivo: fogos sobre a laguna, atrás do palazzo, e brilho das lanternas no canal
+    K.fireworks({ x0: -24, x1: 24, y: 12.5, dy: 4, z: -44, dz: 10, raio: 4.5, tam: 0.6, cada: 2.4, n: 3, cores: [0xffc860, 0xff4a6a, 0x7ad8ff, 0xf6f1e8] });
+    K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });
   },
 });
