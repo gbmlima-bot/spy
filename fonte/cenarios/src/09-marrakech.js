@@ -840,5 +840,7 @@ MIRA_CENARIOS.push({
     // peças miúdas não projetam sombra (alivia o mapa de sombras)
     const sc = new T.Vector3();
     K.root.traverse(m => { if (!m.isMesh || !m.castShadow || m.isInstancedMesh) return; m.geometry.computeBoundingSphere(); m.getWorldScale(sc); if (m.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < 0.16) m.castShadow = false; });
+    // ------------------------------------------------------------ ambiente vivo: mariposas rodeando a grande lanterna perfurada
+    K.particles({ modo: 'paira', x0: -0.9, x1: 0.9, z0: -8.9, z1: -7.6, y0: 1.9, y1: 3.0, n: 14, cor: [0xffe0a0], tam: 0.04, vel: 2.2, balanco: 0.35, add: true, pisca: 3 });
   },
 });

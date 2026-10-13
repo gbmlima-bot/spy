@@ -821,5 +821,8 @@ MIRA_CENARIOS.push({
     K.plight(10.4, 2.6, 1.0, 0xffb070, 1.1, 9);
     K.plight(11.0, 2.6, -5.4, 0xffc080, 0.9, 7);
     K.pool(0, 1.0, 3.0, 0xffb070, 0.22); K.pool(0, -3.9, 2.4, 0xff7040, 0.25);
+    // ------------------------------------------------------------ ambiente vivo: hanabi sobre o rio, atrás do templo, e pétalas da cerejeira
+    K.fireworks({ x0: -30, x1: 30, y: 19, dy: 3, z: -44, dz: 10, raio: 5, tam: 0.6, cada: 2.2, n: 4, cores: [0xffb04a, 0xff5a7a, 0x9ad8ff, 0xc8ff60, 0xffffff] });
+    K.particles({ modo: 'cai', x0: -15.5, x1: -11.5, z0: -4.6, z1: 0.6, y0: 0.05, y1: 4.2, n: 46, cor: [0xf6b8cc, 0xf8d0dc, 0xe890b0], tam: 0.07, vel: 0.35, balanco: 0.45 });
   },
 });

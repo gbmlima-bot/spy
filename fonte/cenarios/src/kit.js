@@ -201,6 +201,77 @@ function MIRA_KIT(T, root, seed) {
     const m = new T.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: o.glow ?? 0.55, roughness: 0.8 });
     return K.add(new T.BoxGeometry(w, h, d), m, x, (o.y || 0) + h / 2, z, { cast: false, parent: o.parent });
   };
+  // ---------------------------------------------------------------- ambiente vivo (partículas, fogos, pássaros, brilhos na água)
+  // Tudo aqui é Points ou InstancedMesh: uma chamada de desenho por sistema, fora da junção estática, da navegação e da colisão.
+  // Fica longe do caminho do tiro (céu, água, alto) ou é fino demais para esconder alguém.
+  const dotTex = K.canvasTex(32, 32, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  const pointsMat = (size, o = {}) => new T.PointsMaterial({ size, map: dotTex, vertexColors: true, transparent: true, depthWrite: false, sizeAttenuation: true, opacity: o.opacity ?? 1, blending: o.add ? T.AdditiveBlending : T.NormalBlending, toneMapped: !o.add, fog: o.fog ?? true });
+  // o tamanho do ponto do three.js não acompanha a câmera ortográfica (vista de cima, em pixels) nem o zoom da luneta (ignora o fov):
+  // converte metros para o tamanho certo a cada quadro
+  const sizeInMeters = (pts, size) => { pts.onBeforeRender = (r, s, cam) => { pts.material.size = cam.isOrthographicCamera ? size * r.domElement.height / ((cam.top - cam.bottom) / cam.zoom) : size / Math.tan(cam.fov * Math.PI / 360); }; };
+  // partículas numa caixa: 'cai' (neve, pétalas, confete), 'sobe' (faíscas, bolhas, vapor), 'paira' (vagalumes, poeira na luz)
+  K.particles = (o) => {
+    const n = o.n || 120, r = K.rng((seed | 0) + n * 7 + K.ticks.length * 131), cols = [].concat(o.cor || 0xffffff).map(c => new T.Color(c));
+    const x0 = o.x0, x1 = o.x1, z0 = o.z0, z1 = o.z1, y0 = o.y0 ?? 0, y1 = o.y1 ?? 6, H = y1 - y0, v = o.vel ?? 0.4, sway = o.balanco ?? 0.3, modo = o.modo || 'cai';
+    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), base = [];
+    for (let i = 0; i < n; i++) { const c = cols[i % cols.length]; col.set([c.r, c.g, c.b], i * 3); base.push({ x: x0 + r() * (x1 - x0), z: z0 + r() * (z1 - z0), y: r() * H, ph: r() * 6.28, sp: 0.6 + r() * 0.8, c }); }
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('color', new T.BufferAttribute(col, 3));
+    const pts = new T.Points(geo, pointsMat(o.tam || 0.08, o)); pts.frustumCulled = false; pts.userData.noCol = true; sizeInMeters(pts, o.tam || 0.08); (o.parent || root).add(pts);
+    K.tick((dt, t) => {
+      for (let i = 0; i < n; i++) {
+        const b = base[i]; let y;
+        if (modo === 'cai') y = y0 + (((b.y - t * v * b.sp) % H) + H) % H;
+        else if (modo === 'sobe') y = y0 + ((b.y + t * v * b.sp) % H);
+        else y = y0 + b.y + Math.sin(t * v * b.sp + b.ph) * 0.4;
+        pos[i * 3] = b.x + Math.sin(t * 0.9 * b.sp + b.ph) * sway; pos[i * 3 + 1] = y; pos[i * 3 + 2] = b.z + Math.cos(t * 0.7 * b.sp + b.ph) * sway;
+        if (o.pisca) { const k = 0.35 + 0.65 * Math.max(0, Math.sin(t * o.pisca * b.sp + b.ph)); col[i * 3] = b.c.r * k; col[i * 3 + 1] = b.c.g * k; col[i * 3 + 2] = b.c.b * k; }
+        else if (modo === 'sobe') { const k = 1 - (y - y0) / H; col[i * 3] = b.c.r * k; col[i * 3 + 1] = b.c.g * k; col[i * 3 + 2] = b.c.b * k; }
+      }
+      geo.attributes.position.needsUpdate = true; if (o.pisca || modo === 'sobe') geo.attributes.color.needsUpdate = true;
+    });
+    return pts;
+  };
+  // brilhos que piscam numa superfície (reflexo de lanternas na água, lantejoulas, gelo)
+  K.glints = (o) => K.particles(Object.assign({ modo: 'paira', vel: 0.15, balanco: 0.25, pisca: 2.2, add: true, y1: (o.y0 ?? 0) + 0.02 }, o));
+  // fogos de artifício no céu: estouros em sequência, cada um um Points que abre, cai e apaga
+  K.fireworks = (o) => {
+    const r = K.rng((seed | 0) + 977), N = 70, cols = [].concat(o.cores || [0xffc860, 0xff5a7a, 0x7ad8ff, 0xb48cff]).map(c => new T.Color(c)), shells = [];
+    for (let s = 0; s < (o.n || 3); s++) {
+      const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), dir = [];
+      for (let i = 0; i < N; i++) { const a = r() * 6.28, e = Math.acos(2 * r() - 1); dir.push([Math.sin(e) * Math.cos(a), Math.cos(e), Math.sin(e) * Math.sin(a)]); }
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('color', new T.BufferAttribute(col, 3));
+      const pts = new T.Points(geo, pointsMat(o.tam || 0.3, { add: true, fog: false })); pts.frustumCulled = false; sizeInMeters(pts, o.tam || 0.3); pts.userData.noCol = true; pts.visible = false; root.add(pts);
+      shells.push({ pts, geo, pos, col, dir, t0: -1 - s * (o.cada || 2.6) / (o.n || 3), cx: 0, cy: 0, cz: 0, c: cols[0], c2: cols[1] });
+    }
+    const per = o.cada || 2.6, life = 2.2;
+    K.tick((dt, t) => {
+      for (const sh of shells) {
+        // primeira vez, ou o relógio voltou (a montagem do jogo simula tempo adiantado): reagenda em sequência
+        if (sh.t0 < 0 || sh.t0 - t > per * shells.length + 1) sh.t0 = t + shells.indexOf(sh) * per + r() * 0.5;
+        let u = t - sh.t0;
+        if (u < 0) { sh.pts.visible = false; continue; }
+        if (u > per * shells.length || !sh.R) { sh.t0 = t + (sh.R ? r() * 0.6 : 0); u = 0; sh.cx = o.x0 + r() * (o.x1 - o.x0); sh.cy = o.y + r() * (o.dy || 8); sh.cz = o.z + (r() - 0.5) * (o.dz || 10); sh.c = cols[Math.floor(r() * cols.length)]; sh.c2 = cols[Math.floor(r() * cols.length)]; sh.R = (o.raio || 7) * (0.7 + r() * 0.6); }
+        sh.pts.visible = u < life; if (!sh.pts.visible) continue;
+        const e = 1 - Math.pow(1 - Math.min(1, u / 0.9), 3), fade = Math.max(0, 1 - u / life), g = u * u * 0.9;
+        for (let i = 0; i < N; i++) { const d = sh.dir[i], c = i % 3 ? sh.c : sh.c2, tw = 0.6 + 0.4 * Math.sin(u * 30 + i); sh.pos[i * 3] = sh.cx + d[0] * sh.R * e; sh.pos[i * 3 + 1] = sh.cy + d[1] * sh.R * e - g; sh.pos[i * 3 + 2] = sh.cz + d[2] * sh.R * e; sh.col[i * 3] = c.r * fade * tw * 2; sh.col[i * 3 + 1] = c.g * fade * tw * 2; sh.col[i * 3 + 2] = c.b * fade * tw * 2; }
+        sh.geo.attributes.position.needsUpdate = true; sh.geo.attributes.color.needsUpdate = true;
+      }
+    });
+    return shells;
+  };
+  // bando de pássaros (gaivotas, pombos, andorinhas) dando voltas bem acima da cena; asas batendo
+  K.birds = (o) => {
+    const n = o.n || 7, r = K.rng((seed | 0) + 4441), s = o.tam || 0.35;
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0.25 * s, -s, 0.12 * s, -0.1 * s, 0, 0, -0.2 * s, 0, 0, 0.25 * s, 0, 0, -0.2 * s, s, 0.12 * s, -0.1 * s], 3)); g.computeVertexNormals();
+    const m = new T.InstancedMesh(g, new T.MeshBasicMaterial({ color: o.cor ?? 0x2a2a30, side: T.DoubleSide, fog: true }), n); m.frustumCulled = false; m.userData.noCol = true; m.raycast = () => { }; root.add(m);
+    const b = []; for (let i = 0; i < n; i++) b.push({ ph: r() * 6.28, rr: (o.r || 18) * (0.8 + r() * 0.4), dy: (r() - 0.5) * 2.5, w: (o.vel || 0.18) * (0.85 + r() * 0.3), f: 7 + r() * 4 });
+    const q = new T.Object3D();
+    K.tick((dt, t) => {
+      b.forEach((p, i) => { const a = p.ph + t * p.w; q.position.set(o.x + Math.cos(a) * p.rr, o.y + p.dy + Math.sin(t * 0.5 + p.ph) * 0.8, o.z + Math.sin(a) * p.rr * 0.6); q.rotation.set(0, -a, Math.sin(t * 0.7 + p.ph) * 0.2); const fl = Math.sin(t * p.f + p.ph); q.scale.set(1, 0.2 + fl * 1.6, 1); q.updateMatrix(); m.setMatrixAt(i, q.matrix); });
+      m.instanceMatrix.needsUpdate = true;
+    });
+    return m;
+  };
   // varanda/janela de onde o sniper atira (uma moldura simples no ponto dado)
   K.sniperNest = (x, y, z, o = {}) => {
     const g = K.group(x, y, z, o.ry || Math.PI, o.parent), wm = o.mat || K.mat(0x3a3530, { roughness: 0.8 });

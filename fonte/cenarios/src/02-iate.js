@@ -756,5 +756,9 @@ MIRA_CENARIOS.push({
 
     // ------------------------------------------------------------ luz de preenchimento (pôr do sol)
     K.pool(-6, 2, 6, 0xffa860, 0.12); K.pool(6, -4, 5, 0xffa860, 0.1);
+    // ------------------------------------------------------------ ambiente vivo: sol poente cintilando no porto em volta do iate
+    K.glints({ x0: -40, x1: 40, z0: 22, z1: 46, y0: WY + 0.05, n: 140, cor: [0xffc080, 0xffe0b0, 0xff9a60], tam: 0.22, pisca: 1.6 });
+    K.glints({ x0: -30, x1: -14, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
+    K.glints({ x0: 14, x1: 30, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
   },
 });
