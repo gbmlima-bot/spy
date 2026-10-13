@@ -761,4 +761,27 @@ MIRA_CENARIOS.push({
     K.glints({ x0: -30, x1: -14, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
     K.glints({ x0: 14, x1: 30, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
   },
+  // ninho do sniper: sacada da suíte do Hôtel Belvédère. Balaustrada de mármore com veios, corrimão de latão polido,
+  // marca de copo e o cartão do quarto; buganvília num vaso à direita e o balde de champanhe à esquerda
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.4 }), marble = 0xe2ddd4;
+    N.tampo(marble, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 21, mat: { roughness: 0.25 }, draw: (c, w, h, R) => {
+      c.fillStyle = '#e6e1d8'; c.fillRect(0, 0, w, h); K.manchas(c, w, h, R, 120, ['200,196,188', '245,243,238'], 6, 40, 0.3);
+      c.lineCap = 'round'; for (let k = 0; k < 14; k++) { c.strokeStyle = `rgba(110,110,120,${0.15 + R() * 0.25})`; c.lineWidth = 0.6 + R() * 1.6; c.beginPath(); let x = R() * w, y = R() * h; c.moveTo(x, y); c.bezierCurveTo(x + R() * 200 - 60, y + R() * 60 - 30, x + R() * 260, y + R() * 80 - 40, x + 120 + R() * 260, y + R() * 60 - 30); c.stroke(); }
+      c.strokeStyle = 'rgba(150,110,70,.35)'; c.lineWidth = 3; c.beginPath(); c.arc(w * 0.27, h * 0.55, 15, 0.3, 5.6); c.stroke();
+      c.save(); c.translate(w * 0.13, h * 0.5); c.rotate(0.12); c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(-58, -32, 120, 70); c.fillStyle = '#f6f0e2'; c.fillRect(-62, -36, 120, 70); c.fillStyle = '#1f3a5a'; c.fillRect(-62, -36, 120, 14);
+      c.fillStyle = '#c8a050'; c.font = '700 10px Georgia, serif'; c.textAlign = 'center'; c.fillText('HÔTEL BELVÉDÈRE', -2, -25); c.fillStyle = '#1f3a5a'; c.font = '700 22px Georgia, serif'; c.fillText('512', -2, 14); c.restore();
+      c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(0, 0, w, 5); K.grain(c, w, h, 8);
+    } });
+    N.box(5.6, 0.1, 1.0, marble, 0, -0.97, -1.1).cyl(0.05, 0.05, 5.6, 0xd8a848, 0, -0.91, -1.46, 12, 0, 0, Math.PI / 2);
+    N.box(5.4, 3.2, 0.9, 0xe8d8b8, 0, -2.6, -0.95);
+    for (let x = -2.4; x <= 2.41; x += 0.3) N.cyl(0.06, 0.05, 0.6, marble, x, -1.35, -1.42, 8);
+    for (const sx of [-1, 1]) N.box(0.8, 1.3, 0.8, marble, sx * 2.25, -0.14, -0.87).box(0.86, 0.08, 0.84, 0xd0cac0, sx * 2.25, 0.55, -0.87);
+    // buganvília no vaso de terracota
+    N.cyl(0.2, 0.15, 0.32, 0xb8643a, 2.3, 0.75, -0.85, 12); const R = K.rng(23);
+    for (let k = 0; k < 26; k++) N.geo(new T.SphereGeometry(0.07 + R() * 0.06, 6, 4), k % 4 ? 0xd02a8a : 0x3a7a3a, 2.3 + (R() - 0.5) * 0.7, 0.95 + R() * 0.4, -0.85 + (R() - 0.5) * 0.6);
+    // balde de champanhe com a garrafa
+    N.cyl(0.13, 0.1, 0.24, 0xc9ced6, -2.25, 0.71, -0.9, 14).cyl(0.045, 0.045, 0.3, 0x1f4a2a, -2.22, 0.88, -0.9, 8, 0, 0, 0.15).cyl(0.018, 0.03, 0.1, 0xd8b048, -2.2, 1.07, -0.9, 8, 0, 0, 0.15);
+    N.fim();
+  },
 });

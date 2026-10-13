@@ -720,4 +720,24 @@ MIRA_CENARIOS.push({
     // brilho geral (manchas de luz quente no chão)
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);
   },
+  // ninho do sniper: ameias da torre de vigia medieval. Pedra arenítica irregular com argamassa, líquen laranja e uma
+  // lagartixa tomando sol; mísulas de pedra na frente e hera subindo pela ameia da direita
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.95 }), stone = 0xa88c66;
+    N.tampo(stone, { x0: -2.8, x1: 2.8, z0: -1.3, z1: -0.4, seed: 31, draw: (c, w, h, R) => {
+      c.fillStyle = '#8a7458'; c.fillRect(0, 0, w, h);
+      let x = 0; while (x < w) { const sw = 70 + R() * 120; let y = 0; while (y < h) { const sh = 40 + R() * 90; const v = 150 + R() * 40; c.fillStyle = `rgb(${v + 20},${v},${v - 34})`; c.beginPath(); c.moveTo(x + 3 + R() * 4, y + 3); c.lineTo(x + sw - 3, y + 2 + R() * 5); c.lineTo(x + sw - 4 - R() * 4, y + sh - 3); c.lineTo(x + 3, y + sh - 2 - R() * 5); c.closePath(); c.fill(); y += sh; } x += sw; }
+      K.manchas(c, w, h, R, 160, ['90,70,50', '220,200,170'], 3, 22, 0.25);
+      for (let k = 0; k < 26; k++) { c.fillStyle = R() < 0.6 ? 'rgba(214,150,40,.55)' : 'rgba(170,180,140,.5)'; c.beginPath(); c.arc(R() * w, R() * h, 3 + R() * 9, 0, 7); c.fill(); }
+      c.save(); c.translate(w * 0.14, h * 0.45); c.rotate(-0.4); c.fillStyle = '#5a7a3a'; c.beginPath(); c.ellipse(0, 0, 20, 6, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(24, 0, 7, 5, 0, 0, 7); c.fill();
+      c.strokeStyle = '#5a7a3a'; c.lineWidth = 3; c.beginPath(); c.moveTo(-18, 0); c.quadraticCurveTo(-40, 8, -52, -4); c.stroke(); c.lineWidth = 2; for (const [a, b] of [[8, 1], [8, -1], [-10, 1], [-10, -1]]) { c.beginPath(); c.moveTo(a, 0); c.lineTo(a + 6, b * 13); c.stroke(); } c.restore();
+      c.fillStyle = 'rgba(255,240,210,.25)'; c.fillRect(0, 0, w, 6); K.grain(c, w, h, 20);
+    } });
+    N.box(5.8, 0.12, 1.0, 0x9a8060, 0, -0.97, -1.1).box(5.6, 3.4, 0.9, 0x9a8060, 0, -2.75, -0.95);
+    for (let x = -2.5; x <= 2.51; x += 0.55) N.box(0.26, 0.2, 0.45, 0x8a7050, x, -1.13, -1.62);
+    const R = K.rng(33);
+    for (const sx of [-1, 1]) { N.box(0.9, 1.9, 0.82, stone, sx * 2.3, 0.16, -0.87); for (let k = 0; k < 6; k++) N.box(0.2 + R() * 0.3, 0.02, 0.01, 0x6a5440, sx * 2.3 + (R() - 0.5) * 0.3, -0.6 + k * 0.32, -1.285); }
+    for (let k = 0; k < 40; k++) N.geo(new T.SphereGeometry(0.04 + R() * 0.03, 5, 3), R() < 0.5 ? 0x2f5a2a : 0x3f7a35, 1.95 + R() * 0.7, -0.7 + Math.pow(R(), 0.7) * 1.7, -1.22);
+    N.fim();
+  },
 });

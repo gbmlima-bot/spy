@@ -411,4 +411,28 @@ MIRA_CENARIOS.push({
     K.fireworks({ x0: -24, x1: 24, y: 12.5, dy: 4, z: -44, dz: 10, raio: 4.5, tam: 0.6, cada: 2.4, n: 3, cores: [0xffc860, 0xff4a6a, 0x7ad8ff, 0xf6f1e8] });
     K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });
   },
+  // ninho do sniper: janela do campanário de San Vidal. Peitoril de pedra da Ístria gasto (musgo, iniciais riscadas,
+  // marcas de pombo), pilares de tijolo com capitel, a corda do sino e gerânios espiando por cima da borda
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.85 }), stone = 0xb8ad98, brick = 0x8a4030, brickD = 0x6a3022;
+    N.tampo(stone, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 11, draw: (c, w, h, R) => {
+      c.fillStyle = '#b9ae98'; c.fillRect(0, 0, w, h);
+      for (let k = 0; k < 260; k++) { c.fillStyle = `rgba(${R() < 0.5 ? '90,80,64' : '230,224,210'},${0.05 + R() * 0.1})`; c.beginPath(); c.ellipse(R() * w, R() * h, 4 + R() * 30, 2 + R() * 8, R() * 3, 0, 7); c.fill(); }
+      c.strokeStyle = 'rgba(80,72,60,.35)'; c.lineWidth = 1.2; for (let k = 0; k < 9; k++) { c.beginPath(); let x = R() * w, y = R() * h; c.moveTo(x, y); for (let j = 0; j < 6; j++) { x += (R() - 0.3) * 50; y += (R() - 0.5) * 18; c.lineTo(x, y); } c.stroke(); }
+      for (const x of [w * 0.12, w * 0.36, w * 0.64, w * 0.88]) { c.fillStyle = 'rgba(40,34,26,.55)'; c.fillRect(x, 0, 2, h); } // juntas entre os blocos
+      c.fillStyle = 'rgba(70,96,40,.55)'; for (let k = 0; k < 22; k++) c.fillRect(w * 0.36 - 3 + R() * 6, R() * h, 2 + R() * 3, 2 + R() * 4);
+      c.fillStyle = 'rgba(250,250,240,.75)'; for (let k = 0; k < 14; k++) { c.beginPath(); c.arc(R() * w, R() * h, 2 + R() * 4, 0, 7); c.fill(); }
+      c.fillStyle = 'rgba(255,255,245,.35)'; c.fillRect(0, 0, w, 6); c.fillStyle = 'rgba(40,34,26,.25)'; c.fillRect(0, h - 5, w, 5);
+      c.save(); c.translate(w * 0.3, h * 0.55); c.rotate(-0.06); c.strokeStyle = 'rgba(60,52,40,.6)'; c.lineWidth = 2; c.font = '28px Georgia, serif'; c.strokeText('G ♥ L  1797', 0, 0); c.restore();
+      K.grain(c, w, h, 14);
+    } });
+    N.box(5.4, 3.6, 0.9, brick, 0, -2.81, -0.95).box(5.6, 0.14, 1.0, stone, 0, -0.98, -1.1);
+    for (let k = 0; k < 7; k++) N.box(5.4, 0.015, 0.02, brickD, 0, -1.25 - k * 0.24, -1.405);
+    for (const sx of [-1, 1]) { N.box(0.8, 2.1, 0.8, brick, sx * 2.25, 0.26, -0.87).box(0.86, 0.18, 0.84, stone, sx * 2.25, 1.41, -0.87).box(0.86, 0.1, 0.84, stone, sx * 2.25, -0.74, -0.87); }
+    N.cyl(0.018, 0.018, 2.0, 0xc8b48a, 1.95, 0.35, -0.75, 6);
+    // floreira pendurada do lado de fora: só os gerânios aparecem por cima da borda
+    N.box(1.0, 0.16, 0.24, 0x7a5a3a, -1.35, -1.0, -1.74);
+    const R = K.rng(71); for (let k = 0; k < 16; k++) N.geo(new T.SphereGeometry(0.045 + R() * 0.03, 6, 4), k % 3 ? 0xd8283a : 0x3f7a3a, -1.8 + R() * 0.9, -0.93 + R() * 0.01, -1.66 - R() * 0.14);
+    N.fim();
+  },
 });

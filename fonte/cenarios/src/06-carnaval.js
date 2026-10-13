@@ -721,4 +721,23 @@ MIRA_CENARIOS.push({
       rm.forEach(o => o.parent.remove(o));
     }
   },
+  // ninho do sniper: torre da igrejinha, entre os sinos. Peitoril caiado descascando (aparece o tijolo), faixa de azulejo
+  // azul e branco, confete e serpentina que voaram do bloco, e os dois sinos de bronze balançando devagar nas laterais
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.9 }), cal = 0xe2dccc;
+    N.tampo(cal, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 61, draw: (c, w, h, R) => {
+      c.fillStyle = '#e4ddcc'; c.fillRect(0, 0, w, h); K.manchas(c, w, h, R, 140, ['200,190,170', '250,248,240'], 6, 40, 0.3);
+      for (let k = 0; k < 7; k++) { c.fillStyle = '#b06848'; const x = R() * w, y = 30 + R() * (h - 50); c.beginPath(); c.moveTo(x, y); for (let j = 0; j < 7; j++) c.lineTo(x + Math.cos(j) * (10 + R() * 22), y + Math.sin(j) * (6 + R() * 10)); c.fill(); }
+      for (let x = 0; x < w; x += 22) for (let r = 0; r < 1; r++) { c.fillStyle = '#f2f0ea'; c.fillRect(x, 2, 21, 21); c.fillStyle = '#2a5aa8'; c.beginPath(); c.arc(x + 10.5, 12.5, 6, 0, 7); c.fill(); c.fillRect(x + 9, 3, 3, 19); c.fillRect(x + 1, 11, 19, 3); }
+      const cf = ['#ff3d7f', '#ffd23f', '#2ec4b6', '#7a3aff', '#ff7a2a', '#3fe07a']; for (let k = 0; k < 420; k++) { c.fillStyle = cf[(R() * 6) | 0]; c.save(); c.translate(R() * w, 26 + R() * (h - 26)); c.rotate(R() * 3); c.fillRect(-2.5, -1.5, 5, 3); c.restore(); }
+      for (const [col, y0] of [['#ff3d7f', h * 0.5], ['#ffd23f', h * 0.7]]) { c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); for (let x = w * 0.05; x < w * 0.45; x += 4) c.lineTo(x, y0 + Math.sin(x * 0.05) * 12 + Math.sin(x * 0.013) * 20); c.stroke(); }
+      K.grain(c, w, h, 10);
+    } });
+    N.box(5.6, 0.1, 1.0, 0x2a5aa8, 0, -0.96, -1.1).box(5.6, 0.06, 1.02, 0xf2f0ea, 0, -0.88, -1.1).box(5.4, 3.2, 0.9, 0xe0d8c4, 0, -2.6, -0.95);
+    for (const sx of [-1, 1]) N.box(0.8, 2.2, 0.8, cal, sx * 2.25, 0.31, -0.87).box(0.4, 0.06, 0.06, 0x5a4030, sx * 2.25, 1.38, -0.9);
+    N.fim();
+    const bronze = K.metal(0x8a6a3a, 0.45), bells = [];
+    for (const sx of [-1, 1]) { const b = K.group(sx * 2.25, 1.36, -0.9, 0, g); K.lathe([[0, -0.02], [0.12, -0.02], [0.17, -0.2], [0.22, -0.42], [0.3, -0.5], [0.3, -0.53], [0, -0.53]], bronze, 0, 0, 0, { parent: b, cast: false }, 18); K.sphere(0.05, bronze, 0, -0.47, 0, { parent: b, cast: false }, 8, 6); bells.push(b); }
+    K.tick((dt, t) => bells.forEach((b, i) => { b.rotation.x = Math.sin(t * 0.8 + i * 1.7) * 0.08; }));
+  },
 });

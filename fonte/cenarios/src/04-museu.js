@@ -683,4 +683,23 @@ MIRA_CENARIOS.push({
     // ------------------------------------------------------------ ambiente vivo: poeira dourada flutuando nos fachos dos spots do salão
     K.particles({ modo: 'paira', x0: -3.5, x1: 3.5, z0: -1, z1: 6, y0: 1.6, y1: 6.5, n: 70, cor: [0xffe8c0, 0xfff4e0], tam: 0.035, vel: 0.25, balanco: 0.35, add: true, opacity: 0.55, pisca: 0.8 });
   },
+  // ninho do sniper: parapeito art déco do Edifício Aurora. Granilite com filete de latão em zigue-zague e a data gravada,
+  // pilares escalonados e o para-raios com a luz vermelha de aviação que pisca
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.6 }), conc = 0xcfc4ae;
+    N.tampo(conc, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 41, draw: (c, w, h, R) => {
+      c.fillStyle = '#c4bcad'; c.fillRect(0, 0, w, h);
+      const chips = ['120,110,100', '240,236,228', '160,90,70', '70,80,90', '200,170,120']; for (let k = 0; k < 2600; k++) { c.fillStyle = `rgba(${chips[(R() * 5) | 0]},.8)`; c.fillRect(R() * w, R() * h, 1 + R() * 3, 1 + R() * 3); }
+      c.strokeStyle = '#c89a48'; c.lineWidth = 4; c.beginPath(); for (let x = 0, k = 0; x <= w; x += 40, k++) c.lineTo(x, k % 2 ? 30 : 60); c.stroke();
+      c.fillStyle = '#c89a48'; c.fillRect(0, 14, w, 3); c.fillRect(0, 74, w, 3);
+      c.fillStyle = 'rgba(60,50,40,.55)'; c.font = '700 26px Futura, "Century Gothic", sans-serif'; c.textAlign = 'center'; c.fillText('AURORA · MCMXXXI', w * 0.22, h * 0.78);
+      K.manchas(c, w, h, R, 60, ['80,74,66'], 6, 30, 0.12); K.grain(c, w, h, 10);
+    } });
+    N.box(5.6, 0.06, 1.0, 0xc89a48, 0, -0.885, -1.1).box(5.6, 0.2, 1.0, conc, 0, -1.02, -1.1).box(5.4, 3.2, 0.9, 0xd8cbb0, 0, -2.7, -0.95);
+    for (const sx of [-1, 1]) { N.box(0.9, 1.0, 0.82, conc, sx * 2.3, -0.29, -0.87).box(0.7, 0.55, 0.7, conc, sx * 2.3, 0.48, -0.87).box(0.5, 0.45, 0.56, conc, sx * 2.3, 0.98, -0.87).box(0.92, 0.04, 0.84, 0xc89a48, sx * 2.3, 0.21, -0.87); }
+    N.cyl(0.02, 0.025, 0.3, 0x3a3a3e, -2.3, 1.35, -0.87, 6);
+    N.fim();
+    const red = K.add(new T.SphereGeometry(0.05, 10, 8), K.glow(0xff2a20, 3), -2.3, 1.44, -0.87, { parent: g, cast: false });
+    K.tick((dt, t) => { red.visible = (t % 1.6) < 0.5; });
+  },
 });

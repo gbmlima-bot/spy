@@ -57,6 +57,9 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   ponto for inválido. Rode ao mexer em cenário, objeto de missão ou posição do sniper.
 - Rede: `node fonte/web/teste-rede.js` (3 navegadores, anfitrião sai, outro assume). Usa o
   `index.html` da raiz e precisa de `npm i peer express@4` (servidor de sinalização local).
+- Ninhos temáticos (`sc.ninho`): `node fonte/cenarios/ferramentas/ninhos.js <url> [mapas]` confere a interface
+  do ninho (superfície em -0,79, visão livre, laterais) e que nada dele tapa a cabeça de quem anda em qualquer
+  célula livre. Sai com código 1 se algo falhar.
 - Cenários: `node fonte/cenarios/ferramentas/testar.js <id> <pasta-de-saida> [--rapido]`
   (three.js de `fonte/testes/cdn/`, ou de um pacote three@0.128 apontado por `THREE_LIB`).
 

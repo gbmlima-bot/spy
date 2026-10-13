@@ -592,4 +592,24 @@ MIRA_CENARIOS.push({
     K.plight(6.8, 3.0, 3.6, 0xffd2a8, 1.2, 9);
     K.pool(-7.0, 1.0, 3.0, 0xffb880, 0.2); K.pool(6.8, 3.6, 3.0, 0xffb880, 0.2);
   },
+  // ninho do sniper: atrás da chaminé, no telhado de zinco. Chapas com juntas em pé, pátina e escorridos de ferrugem,
+  // a calha na frente, a chaminé de tijolo com potes de terracota à direita e a antena velha à esquerda
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.55 }), zinc = 0x8a9098;
+    N.tampo(zinc, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 81, mat: { roughness: 0.45, metalness: 0.4 }, draw: (c, w, h, R) => {
+      c.fillStyle = '#8a9098'; c.fillRect(0, 0, w, h); K.manchas(c, w, h, R, 120, ['230,232,236', '90,96,104'], 8, 50, 0.3);
+      for (let x = 50; x < w; x += 100) { c.fillStyle = 'rgba(220,224,230,.8)'; c.fillRect(x, 0, 3, h); c.fillStyle = 'rgba(40,44,50,.6)'; c.fillRect(x + 3, 0, 3, h); }
+      for (let k = 0; k < 10; k++) { const x = R() * w, l = 20 + R() * 60; const gr = c.createLinearGradient(0, 0, 0, l); gr.addColorStop(0, 'rgba(150,80,30,.5)'); gr.addColorStop(1, 'rgba(150,80,30,0)'); c.fillStyle = gr; c.save(); c.translate(x, 0); c.fillRect(0, 0, 4 + R() * 6, l); c.restore(); }
+      c.fillStyle = 'rgba(40,44,50,.8)'; for (let x = 10; x < w; x += 34) c.beginPath(), c.arc(x, h - 12, 2, 0, 7), c.fill();
+      c.save(); c.translate(w * 0.2, h * 0.5); c.rotate(0.6); c.strokeStyle = '#4a4e58'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-26, 0); c.lineTo(26, 0); c.stroke(); for (let k = -22; k < 24; k += 3) { c.beginPath(); c.moveTo(k, 0); c.lineTo(k - 4, -7); c.moveTo(k, 0); c.lineTo(k - 4, 7); c.stroke(); } c.restore();
+      K.grain(c, w, h, 10);
+    } });
+    N.cyl(0.08, 0.08, 5.6, 0x7a8088, 0, -0.95, -1.42, 12, 0, 0, Math.PI / 2).box(5.4, 3.0, 0.9, 0x6a7078, 0, -2.5, -0.95);
+    N.box(1.0, 1.9, 0.8, 0xa85a3c, 2.35, 0.16, -0.87).box(1.06, 0.08, 0.84, 0x8a4a30, 2.35, 1.1, -0.87);
+    for (const [x, hh] of [[2.12, 0.34], [2.36, 0.28], [2.6, 0.34]]) N.cyl(0.08, 0.1, hh, 0xc8643a, x, 1.14 + hh / 2, -0.85, 10);
+    for (let k = 0; k < 9; k++) N.box(1.0, 0.012, 0.01, 0x6a3a28, 2.35, -0.7 + k * 0.2, -1.275);
+    N.cyl(0.015, 0.015, 2.2, 0x5a5e66, -2.2, 0.32, -0.9, 6).box(0.7, 0.015, 0.015, 0x5a5e66, -2.2, 1.2, -0.9, 0.4).box(0.6, 0.015, 0.015, 0x5a5e66, -2.2, 1.35, -0.9, 0.4).box(0.012, 0.012, 0.9, 0x5a5e66, -2.2, 1.0, -0.9, 0, 0.6);
+    N.fim();
+    const smoke = K.particles({ x0: 2.3, x1: 2.42, z0: -0.9, z1: -0.8, y0: 1.32, y1: 1.5, n: 10, cor: 0xb8b8c0, tam: 0.18, vel: 0.05, modo: 'paira', opacity: 0.25, parent: g });
+  },
 });

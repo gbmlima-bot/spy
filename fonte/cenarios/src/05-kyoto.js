@@ -825,4 +825,28 @@ MIRA_CENARIOS.push({
     K.fireworks({ x0: -30, x1: 30, y: 19, dy: 3, z: -44, dz: 10, raio: 5, tam: 0.6, cada: 2.2, n: 4, cores: [0xffb04a, 0xff5a7a, 0x9ad8ff, 0xc8ff60, 0xffffff] });
     K.particles({ modo: 'cai', x0: -15.5, x1: -11.5, z0: -4.6, z1: 0.6, y0: 0.05, y1: 4.2, n: 46, cor: [0xf6b8cc, 0xf8d0dc, 0xe890b0], tam: 0.07, vel: 0.35, balanco: 0.45 });
   },
+  // ninho do sniper: último andar do pagode. Corrimão de laca vermelha gasta (o preto aparece nas bordas), pétalas de
+  // sakura, beiral de telhas escuras logo abaixo, uma lanterna de papel acesa e um sino de vento (fūrin) que balança
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.5 }), lac = 0xa8302a;
+    N.tampo(lac, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 51, mat: { roughness: 0.35 }, draw: (c, w, h, R) => {
+      c.fillStyle = '#a8322a'; c.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 2) { c.fillStyle = `rgba(${R() < 0.5 ? '70,14,10' : '200,80,60'},${0.04 + R() * 0.08})`; c.fillRect(0, y, w, 2); }
+      c.fillStyle = 'rgba(30,18,14,.85)'; for (let k = 0; k < 30; k++) { const x = R() * w; c.beginPath(); c.ellipse(x, R() < 0.5 ? 3 : h - 3, 8 + R() * 40, 3 + R() * 4, 0, 0, 7); c.fill(); }
+      K.manchas(c, w, h, R, 50, ['40,14,10'], 4, 26, 0.25);
+      for (let k = 0; k < 16; k++) { c.save(); c.translate(R() * w, R() * h); c.rotate(R() * 6); c.fillStyle = R() < 0.5 ? '#f6c8d4' : '#f2b4c4'; c.beginPath(); c.ellipse(0, 0, 7, 4, 0, 0, 7); c.fill(); c.restore(); }
+      c.fillStyle = 'rgba(255,220,200,.25)'; c.fillRect(0, h * 0.1, w, 3); K.grain(c, w, h, 10);
+    } });
+    N.box(5.8, 0.1, 1.0, 0x2a2420, 0, -0.97, -1.1);
+    for (let x = -2.8; x <= 2.81; x += 0.2) N.cyl(0.07, 0.07, 1.3, 0x3a3e44, x, -1.13, -1.75, 8, 0, Math.PI / 2 - 0.35);
+    N.box(5.6, 3.0, 0.9, 0x3a2a22, 0, -2.6, -0.95);
+    for (const sx of [-1, 1]) N.cyl(0.11, 0.11, 2.3, lac, sx * 2.0, 0.35, -0.95, 10).box(0.6, 0.12, 0.3, 0x2a2420, sx * 2.15, 1.42, -0.95);
+    N.cyl(0.006, 0.006, 0.35, 0xe8e0c8, 2.3, 1.2, -1.05, 4).cyl(0.006, 0.006, 0.3, 0xe8e0c8, -2.3, 1.25, -0.95, 4);
+    N.fim();
+    const lan = K.add(new T.CylinderGeometry(0.2, 0.2, 0.42, 14), new T.MeshStandardMaterial({ color: 0xf0e0c0, emissive: 0xff8a40, emissiveIntensity: 0.9, roughness: 0.8 }), -2.3, 0.85, -0.95, { parent: g, cast: false });
+    K.cyl(0.21, 0.21, 0.04, K.mat(0x1a1a1a), 0, 0.22, 0, { parent: lan, cast: false }); K.cyl(0.21, 0.21, 0.04, K.mat(0x1a1a1a), 0, -0.22, 0, { parent: lan, cast: false });
+    const fu = K.group(2.3, 1.03, -1.05, 0, g); K.add(new T.SphereGeometry(0.07, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), K.mat(0xa8dcf0, { transparent: true, opacity: 0.75, roughness: 0.1, side: T.DoubleSide }), 0, -0.07, 0, { parent: fu, cast: false });
+    const tanzaku = K.add(new T.PlaneGeometry(0.06, 0.2).translate(0, -0.1, 0), K.mat(0xe8384a, { side: T.DoubleSide }), 0, -0.12, 0, { parent: fu, cast: false });
+    K.tick((dt, t) => { fu.rotation.z = Math.sin(t * 1.3) * 0.12; tanzaku.rotation.x = Math.sin(t * 2.1) * 0.5; tanzaku.rotation.y = Math.sin(t * 0.7) * 0.6; lan.rotation.z = Math.sin(t * 0.9 + 1) * 0.05; });
+  },
 });
