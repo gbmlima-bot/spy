@@ -83,10 +83,12 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 /* scope */
 #scope{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent calc(var(--r) - 2px),rgba(0,0,0,.55) calc(var(--r) - 1px),#000 calc(var(--r) + 6px));--r:min(44vmin,46vh)}
 #scope svg{position:absolute;left:50%;top:50%;width:calc(var(--r)*2);height:calc(var(--r)*2);transform:translate(-50%,-50%)}
-#zoomTag{position:absolute;left:50%;top:calc(50% + var(--r) + 14px);transform:translateX(-50%);font-family:var(--f-mono);color:var(--brass);font-size:13px;letter-spacing:.1em}
+#scope.opening{animation:scopeIn .2s ease-out}
+@keyframes scopeIn{from{opacity:.2;transform:scale(1.35)}}
+#zoomTag{position:absolute;left:calc(50% + var(--r) + 22px);top:calc(50% - 44px);font-family:var(--f-mono);color:var(--brass);font-size:13px;letter-spacing:.1em}
 #scope::before{content:"";position:absolute;left:50%;top:50%;width:calc(var(--r)*2);height:calc(var(--r)*2);transform:translate(-50%,-50%);border-radius:50%;box-shadow:inset 0 0 0 3px rgba(0,0,0,.9),inset 0 0 40px rgba(0,0,0,.55),inset 0 0 0 7px rgba(120,160,255,.08),inset -18px 10px 60px rgba(255,190,120,.06);pointer-events:none}
 #scope::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--r)*2);height:calc(var(--r)*2);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse at 28% 22%,rgba(255,255,255,.14),rgba(255,255,255,0) 32%);pointer-events:none;mix-blend-mode:screen}
-#scopeInfo{position:absolute;left:50%;top:calc(50% + var(--r) - 70px);transform:translateX(-50%);display:flex;gap:18px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--brass);white-space:nowrap}
+#scopeInfo{position:absolute;left:calc(50% + var(--r) + 22px);top:calc(50% - 16px);display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(50% - var(--r) - 34px);overflow:hidden;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--brass);white-space:nowrap}
 #scopeInfo span{opacity:1;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.8)}#scopeInfo #siTarget{color:var(--paper)}#scopeInfo #siTarget.sus{color:var(--laser)}
 #breath{position:absolute;left:calc(50% - var(--r) - 22px);top:calc(50% - 70px);width:6px;height:140px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
 #breath i{position:absolute;left:0;right:0;bottom:0;height:100%;background:var(--brass);transition:height .12s linear}
@@ -127,7 +129,9 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
   #hints{display:none}
   #topbar{top:calc(8px + env(safe-area-inset-top,0px))}
 }
-@media (prefers-reduced-motion:reduce){.toast{animation:none}#flash{transition:none}}
+@media (max-width:700px){body.scoped #roleCard{display:none}}
+@media (orientation:portrait){#zoomTag{left:50%;top:calc(50% + var(--r) + 12px);transform:translateX(-50%)}#scopeInfo{left:50%;top:calc(50% + var(--r) + 34px);transform:translateX(-50%);flex-direction:row;gap:14px;padding:4px 10px;border-radius:4px;background:rgba(0,0,0,.6);max-width:calc(100% - 24px)}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}#scope.opening{animation:none}#flash{transition:none}}
 </style>
 
 <canvas id="c" tabindex="0" aria-label="Cena da festa na cobertura"></canvas>
@@ -11475,6 +11479,24 @@ function tone(freq, dur, gain = 0.05, type = 'sine') {
 }
 const sndShot = () => { noise(0.9, 1800, 0.9); noise(0.25, 6000, 0.4); };
 const sndScope = () => tone(1400, 0.06, 0.03, 'square');
+// the shot rolling back off the buildings, then the spent case ringing on the concrete
+const sndEcho = () => { setTimeout(() => noise(0.8, 700, 0.25), 320); setTimeout(() => noise(1.1, 420, 0.12), 760); setTimeout(() => { tone(3300, 0.05, 0.02, 'triangle'); setTimeout(() => tone(2900, 0.04, 0.015, 'triangle'), 140); }, 620); };
+// air through the nose: a band of noise with its own swell (in rises, out falls, a gasp is two quick rasps)
+function breath(dur, freq, gain, shape) {
+  const ac = audio(); if (!ac) return;
+  const len = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * shape(i / len);
+  const src = ac.createBufferSource(); src.buffer = buf; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8;
+  const g = ac.createGain(); g.gain.value = gain; src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
+}
+const sndInhale = () => breath(0.55, 1100, 0.18, x => Math.sin(Math.PI * Math.min(1, x * 1.3)) * (0.4 + x));
+const sndExhale = () => breath(0.8, 700, 0.16, x => Math.pow(1 - x, 1.6) * Math.min(1, x * 8));
+const sndGasp = () => { breath(0.3, 1300, 0.22, x => Math.sin(Math.PI * x)); setTimeout(() => breath(0.35, 1000, 0.2, x => Math.sin(Math.PI * x)), 380); };
+const sndBeat = () => { tone(58, 0.12, 0.09); setTimeout(() => tone(52, 0.1, 0.06), 150); };
+// the scope going up to the eye: a soft slide and the click of the eyecup; zoom ring detents
+const sndScopeIn = () => { noise(0.12, 900, 0.12); setTimeout(() => tone(2400, 0.025, 0.02, 'square'), 90); };
+const sndScopeOut = () => noise(0.1, 700, 0.09);
+const sndZoom = () => tone(2600, 0.018, 0.012, 'square');
 const sndGood = () => { tone(660, 0.15, 0.05); setTimeout(() => tone(990, 0.2, 0.05), 110); };
 const AMB = { g: null, f: null };
 function ambBuild(ac) {
@@ -11764,7 +11786,7 @@ function syncRound(st) {
   if (st.sd !== G.seed) {
     G.seed = st.sd; loadMap(st.mp || 0); setNight(!!st.nt && !(st.mp || 0)); buildChars(st); resetProps(); G.tellsApplied = 0; G.dnSeen = 0; G.lastPh = null;
     G.role = undefined; G.myEid = -2;
-    snip.marks = []; snip.shotSent = false; snip.yaw = 0; snip.pitch = WIDE_ELEV; setScope(false); snip.air = 1; snip.gasp = 0; snip.hold = false; snip.nbKey = ''; snip.radioSeen = 0; snip.tellAt = {}; snip.idd = {}; snip.idT = {}; NEST_FX.scare = 0;
+    snip.marks = []; snip.shotSent = false; snip.yaw = 0; snip.pitch = WIDE_ELEV; setScope(false); snip.air = 1; snip.gasp = 0; snip.hold = false; snip.nbKey = ''; snip.radioSeen = 0; snip.tellAt = {}; snip.idd = {}; snip.idT = {}; snip.killcam = false; snip.firedAt = 0; NEST_FX.scare = 0;
     ctrl.path = []; ctrl.act = null; ctrl.actDone = null; ctrl.pose = null; ctrl.lk = null;
     isoState.tx = 0; isoState.tz = 0; isoState.ty = 0; isoState.az = -0.55; isoState.zoom = G.screen === 'game' ? 8.5 : 11; placeIso(0, true); resize();
   }
@@ -11792,7 +11814,17 @@ function onPhase(st) {
   show('#brief', false); show('#reveal', false); show('#lobby', false);
   if (st.ph === 'brief') { renderBrief(st); show('#brief', true); show('#hud', false); }
   if (st.ph === 'play') { show('#hud', true); renderRoleCard(st); setupControls(); }
-  if (st.ph === 'reveal') { setScope(false); show('#hud', false); renderReveal(st); show('#reveal', true); if (st.sh) { sndShot(); const f = $('#flash'); f.style.opacity = '0.35'; setTimeout(() => f.style.opacity = '0', 90); } }
+  if (st.ph === 'reveal') {
+    const fired = snip.firedAt && performance.now() - snip.firedAt < 4000;
+    if (st.sh && !fired) { sndShot(); const f = $('#flash'); f.style.opacity = '0.35'; setTimeout(() => f.style.opacity = '0', 90); }
+    // the shooter stays behind the scope for a moment to see the shot land before the reveal
+    if (st.sh && G.role === 's' && snip.scoped) {
+      const sd = st.sd; snip.killcam = true; show('#hud', false);
+      setTimeout(() => { snip.killcam = false; if (G.seed !== sd || G.screen !== 'game') return; const s2 = currentState(); setScope(false); if (s2 && s2.ph === 'reveal') { renderReveal(s2); show('#reveal', true); } }, 1800);
+      return;
+    }
+    setScope(false); show('#hud', false); renderReveal(st); show('#reveal', true);
+  }
 }
 
 function roleTitle(r) { return r === 's' ? 'Você é o sniper' : r === 'a' ? 'Você é o agente infiltrado' : r === 'c' ? 'Você é cúmplice' : 'Você está assistindo'; }
@@ -11914,11 +11946,11 @@ canvas.addEventListener('pointermove', e => {
 });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
-  if (G.role === 's' && snip.scoped) { snip.zoom = Math.max(3, Math.min(10, snip.zoom + (e.deltaY < 0 ? 1 : -1))); $('#zoomTag').textContent = snip.zoom + '×'; sndScope(); }
+  if (G.role === 's' && snip.scoped) { snip.zoom = Math.max(3, Math.min(10, snip.zoom + (e.deltaY < 0 ? 1 : -1))); $('#zoomTag').textContent = snip.zoom + '×'; sndZoom(); }
   else { isoState.zoom = Math.max(5, Math.min(16, isoState.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); }
 }, { passive: false });
 $('#scopeBtn').onclick = () => setScope(!snip.scoped);
-$('#zoomBtn').onclick = () => { snip.zoom = snip.zoom >= 10 ? 4 : snip.zoom + 2; $('#zoomTag').textContent = snip.zoom + '×'; };
+$('#zoomBtn').onclick = () => { snip.zoom = snip.zoom >= 10 ? 4 : snip.zoom + 2; $('#zoomTag').textContent = snip.zoom + '×'; sndZoom(); };
 $('#markBtn').onclick = () => markUnderCrosshair();
 { const bb = $('#breathBtn'); const on = () => { if (snip.gasp <= 0 && snip.air > 0.15) snip.hold = true; }; const off = () => { snip.hold = false; }; bb.addEventListener('pointerdown', on); bb.addEventListener('pointerup', off); bb.addEventListener('pointercancel', off); bb.addEventListener('pointerleave', off); }
 $('#shootBtn').onclick = () => { if (!snip.scoped) setScope(true); else shoot(); };
@@ -11933,8 +11965,11 @@ function aimFromPointer(px, py) {
 function setScope(on) {
   if (on && (G.role !== 's' || G.screen !== 'game')) on = false;
   if (snip.scoped === on) return;
-  snip.scoped = on; show('#scope', on); $('#zoomTag').textContent = snip.zoom + '×';
-  if (on) { sndScope(); try { const r = canvas.requestPointerLock && matchMedia('(pointer:fine)').matches ? canvas.requestPointerLock() : null; if (r && r.catch) r.catch(() => { }); } catch (e) { } }
+  snip.scoped = on; show('#scope', on); $('#zoomTag').textContent = snip.zoom + '×'; document.body.classList.toggle('scoped', on);
+  // coming up to the eye: the ring closes in and the image settles from half the zoom (see updateSniper)
+  if (on) { const sc = $('#scope'); sc.classList.remove('opening'); void sc.offsetWidth; sc.classList.add('opening'); snip.zoomCur = Math.max(1.5, snip.zoom * 0.45); }
+  if (G.screen === 'game') (on ? sndScopeIn : sndScopeOut)();
+  if (on) { try { const r = canvas.requestPointerLock && matchMedia('(pointer:fine)').matches ? canvas.requestPointerLock() : null; if (r && r.catch) r.catch(() => { }); } catch (e) { } }
   else if (document.pointerLockElement) try { document.exitPointerLock(); } catch (e) { }
 }
 const occTargets = () => SCEN.id ? CHARS.concat(SCEN.occ || []) : CHARS.concat(OCCLUDERS);
@@ -11959,7 +11994,8 @@ function shoot() {
   const st = currentState(); if (!st || st.ph !== 'play' || snip.shotSent) return;
   const h = crosshairHit();
   if (!h || h.eid < 0) { toast(h && h.blocked ? 'Tiro bloqueado: tem algo na frente.' : 'Ninguém na mira. O tiro não foi disparado.', 'bad'); return; }
-  snip.shotSent = true; snip.kick = 1; NEST_FX.flashT = 0.09; NEST_FX.scare = 8;
+  snip.shotSent = true; snip.kick = 1; NEST_FX.flashT = 0.09; NEST_FX.scare = 8; snip.firedAt = performance.now();
+  sndShot(); sndEcho(); { const f = $('#flash'); f.style.opacity = '0.5'; setTimeout(() => f.style.opacity = '0', 70); }
   if (G.sim) G.sim.shoot(h.eid); else Net.set({ shot: { rd: st.rd, e: h.eid } });
 }
 
@@ -12256,6 +12292,12 @@ function updateSniper(dt, st) {
   if (snip.hold && snip.gasp <= 0 && snip.air > 0) { snip.air = Math.max(0, snip.air - dt / 5); if (snip.air <= 0) { snip.gasp = 2.6; snip.hold = false; } }
   else { snip.air = Math.min(1, snip.air + dt / (snip.gasp > 0 ? 2.6 : 4)); }
   if (snip.gasp > 0) snip.gasp -= dt;
+  if (snip.scoped) {
+    if (snip.hold && !snip.wasHold) sndInhale();
+    else if (!snip.hold && snip.wasHold) (snip.gasp > 0 ? sndGasp : sndExhale)();
+    if (snip.hold) { snip.beat = (snip.beat || 0) - dt; if (snip.beat <= 0) { sndBeat(); snip.beat = 0.62 + snip.air * 0.35; } } else snip.beat = 0;
+  }
+  snip.wasHold = snip.hold;
   if (!snip.hold && snip.air <= 0.001) snip.air = 0.001;
   snip.wind = windFor(st);
   const steady = snip.hold && snip.gasp <= 0 ? 0.12 : snip.gasp > 0 ? 2.4 : 1;
@@ -12263,7 +12305,8 @@ function updateSniper(dt, st) {
   snip.kick *= Math.exp(-dt * 6);
   const yaw = snip.yaw + Math.sin(snip.breath * 0.9) * sway + Math.sin(snip.breath * 0.45 + 1) * sway * 0.5 * snip.wind, pitch = snip.pitch + Math.sin(snip.breath * 1.3) * sway * 0.8 + snip.kick * 0.035;
   const dir = new T.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
-  scopeCam.fov = Math.max(2.5, wide.fov / snip.zoom); scopeCam.aspect = innerWidth / innerHeight; scopeCam.updateProjectionMatrix();
+  snip.zoomCur = (snip.zoomCur || snip.zoom) + (snip.zoom - (snip.zoomCur || snip.zoom)) * (1 - Math.exp(-dt * 9));
+  scopeCam.fov = Math.max(2.5, wide.fov / snip.zoomCur); scopeCam.aspect = innerWidth / innerHeight; scopeCam.updateProjectionMatrix();
   scopeCam.position.copy(SNIPER_POS); scopeCam.lookAt(SNIPER_POS.clone().add(dir));
   wide.position.copy(SNIPER_POS); wide.lookAt(WIDE_AIM);
   activeCam = snip.scoped ? scopeCam : wide;
@@ -12443,7 +12486,7 @@ function frame(now) {
     if (st && st.ents) {
       syncRound(st);
       updateLocal(dt, st);
-      if (G.screen === 'game' && G.role === 's' && st.ph !== 'reveal') updateSniper(dt, st);
+      if (G.screen === 'game' && G.role === 's' && (st.ph !== 'reveal' || snip.killcam)) updateSniper(dt, st);
       else {
         canvas.classList.remove('blur'); activeCam = iso;
         if (G.screen !== 'game' && !window.__noOrbit) { isoState.az += dt * 0.04; isoState.tx = Math.sin(now / 9000) * 3; isoState.tz = 0; }
