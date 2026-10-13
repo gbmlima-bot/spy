@@ -10264,8 +10264,8 @@ const lathe = (pts, sz = 0.62, seg = 16) => { if (pts[0][1] > pts[pts.length - 1
 CG.jacket = lathe([[5, -2.5], [15.2, -2], [15.6, 2], [14.4, 10], [15.3, 20], [17.0, 30], [17.6, 36], [13.5, 39.5], [5, 40.5]]);
 CG.hem = lathe([[5, -9.5], [15.4, -9], [15.8, -3], [15.3, 3], [14.9, 8], [5, 8.5]]);
 CG.bodice = lathe([[4, -1.5], [13.3, -1], [13.7, 3], [11.7, 12], [13.9, 22], [14.7, 29], [14.1, 34], [9.5, 37], [4, 37.5]], 0.66);
-CG.gown = lathe([[14.3, 0], [15.7, -10], [14.9, -30], [14.2, -48], [16.5, -66], [24, -84], [35, -100]], 0.74);
-CG.cocktail = lathe([[14.3, 0], [15.7, -10], [18.5, -25], [25, -40], [30, -50]], 0.74);
+CG.gown = lathe([[13.4, 10], [14.6, 4], [17.2, -10], [19.4, -30], [20.2, -48], [21.5, -66], [26, -84], [35, -100]], 0.82);
+CG.cocktail = lathe([[13.4, 10], [14.6, 4], [16.2, -10], [19, -25], [25, -40], [30, -50]], 0.8);
 CG.shoe = (() => { const g = new T.SphereGeometry(1, 10, 7); g.scale(5, 3.6, 12.5); g.translate(0, -4.3, 4.5); return g; })();
 CG.sole = new T.BoxGeometry(9.6, 1.2, 24).translate(0, -7.4, 4.5);
 CG.sclera = (() => { const g = new T.SphereGeometry(1.75, 8, 6); g.scale(1.25, 1, 0.55); return g; })(); CG.pupil = new T.SphereGeometry(0.95, 6, 5);
@@ -10286,21 +10286,22 @@ function makeChar(o, id) {
   const dark = mat(0x16161a, { roughness: 0.3, metalness: 0.2 }), pants = mat(o.pants || o.main, { roughness: 0.75 }), shirt = mat(o.shirt, { roughness: 0.6 });
   const sh = new T.Mesh(CG.shadow, blobMat); sh.position.y = 0.012; sh.renderOrder = 1; root.add(sh);
   // legs
+  // under a long gown the legs are slimmer and drawn in a little, so they stay inside the skirt
   for (const s of ['Left', 'Right']) {
-    if (o.dress) { m(CG.bareThigh, skin, 0, 0, 0, B[s + 'UpLeg']); m(CG.bareKnee, skin, 0, 0, 0, B[s + 'Leg']); m(CG.bareShin, skin, 0, 0, 0, B[s + 'Leg']); const hm = mat(o.shoe, { roughness: 0.3, metalness: 0.2 }); m(CG.heel, hm, 0, 0, 0, B[s + 'Foot']); m(CG.heelBlock, hm, 0, 0, 0, B[s + 'Foot']); }
+    if (o.dress) { const lg = [m(CG.bareThigh, skin, 0, 0, 0, B[s + 'UpLeg']), m(CG.bareKnee, skin, 0, 0, 0, B[s + 'Leg']), m(CG.bareShin, skin, 0, 0, 0, B[s + 'Leg'])]; if (o.gown) for (const g of lg) { g.scale.set(0.72, 1, 0.72); g.position.x = s === 'Left' ? -2.2 : 2.2; } const hm = mat(o.shoe, { roughness: 0.3, metalness: 0.2 }); m(CG.heel, hm, 0, 0, 0, B[s + 'Foot']); m(CG.heelBlock, hm, 0, 0, 0, B[s + 'Foot']); }
     else { m(CG.thigh, pants, 0, 0, 0, B[s + 'UpLeg'], true); m(CG.knee, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shin, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shoe, dark, 0, 0, 0, B[s + 'Foot']); m(CG.sole, mat(0x0d0d10, { roughness: 0.6 }), 0, 0, 0, B[s + 'Foot']); }
   }
   // torso
   if (o.dress) {
-    m(CG.bodice, cloth, 0, 18, 0, B.Spine, true);
+    m(CG.bodice, cloth, 0, -3, 0, B.Spine, true);
     m(o.gown ? CG.gown : CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
-    m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, 1, 0, B.Spine);
+    m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
     for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 9 : -9, 16, 6, B.Spine2); }
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
     m(CG.pelvis, pants, 0, 0, 0, B.Hips);
     m(CG.hem, cloth, 0, 0, 0, B.Hips);
-    m(CG.jacket, cloth, 0, 18, 0, B.Spine, true);
+    m(CG.jacket, cloth, 0, -4, 0, B.Spine, true);
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
     const v = m(CG.vee, o.vest ? mat(o.vest, { roughness: 0.5 }) : shirt, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05;
     // shirt collar points and the band round the neck
@@ -11814,6 +11815,6 @@ Net.init().then(ok => {
   $('#multiBox').hidden = !ok; $('#multiOff').hidden = ok;
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
-window.__mira = { get PROPS() { return PROPS; }, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+window.__mira = { makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 })();
 </script>
