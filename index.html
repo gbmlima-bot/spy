@@ -3986,9 +3986,9 @@ MIRA_CENARIOS.push({
         K.col(-1.05, -9.45, 1.05, -8.65, 1);
         for (const s of [-1, 1]) { const tw = K.add(new T.CylinderGeometry(0.045, 0.045, 2.4, 6), K.texMat(K.canvasTex(16, 64, (g, w, h) => { const c = ['#c8322f', '#f6f3ec', '#6b3f8c']; for (let k = 0; k < 16; k++) { g.fillStyle = c[k % 3]; g.save(); g.translate(0, k * 4); g.transform(1, 0.5, 0, 1, 0, 0); g.fillRect(0, 0, w, 4); g.restore(); } }, [1, 6])), s * 0.55, TY + 1.95, -9.6, { cast: false }); K.sphere(0.14, brass, s * 0.55, TY + 3.2, -9.6, {}, 10, 8); } }
       // queimador de incenso de bronze (fumaça)
-      { const ix = -3.6, iz = -8.4; K.lathe([[0, 0], [0.4, 0], [0.5, 0.15], [0.55, 0.55], [0.6, 0.62], [0, 0.62]], bronze, ix, TY + 0.3, iz, {}, 14); for (let k = 0; k < 3; k++) { const a = k * 2.1; K.cyl(0.05, 0.07, 0.35, bronze, ix + Math.cos(a) * 0.35, TY + 0.17, iz + Math.sin(a) * 0.35, {}, 6); }
+      { const ix = -3.9, iz = -8.8; // atrás, perto do muro: entre ele e o komainu fica a passagem para o balcão de amuletos K.lathe([[0, 0], [0.4, 0], [0.5, 0.15], [0.55, 0.55], [0.6, 0.62], [0, 0.62]], bronze, ix, TY + 0.3, iz, {}, 14); for (let k = 0; k < 3; k++) { const a = k * 2.1; K.cyl(0.05, 0.07, 0.35, bronze, ix + Math.cos(a) * 0.35, TY + 0.17, iz + Math.sin(a) * 0.35, {}, 6); }
         K.box(0.9, 0.06, 0.9, bronze, ix, TY + 1.4, iz); K.cone(0.7, 0.45, bronze, ix, TY + 1.65, iz, {}, 6); K.sphere(0.08, brass, ix, TY + 1.95, iz); for (const [a, b] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) K.cyl(0.03, 0.03, 0.5, bronze, ix + a * 0.38, TY + 1.15, iz + b * 0.38, {}, 4);
-        K.pool(ix, iz, 0.8, 0xff7030, 0.3, TY + 0.02); K.halo(ix, TY + 0.95, iz, 0.4, 0xff6020, 0.6); K.colR(ix, iz, 0.6, 1); }
+        K.pool(ix, iz, 0.8, 0xff7030, 0.3, TY + 0.02); K.halo(ix, TY + 0.95, iz, 0.4, 0xff6020, 0.6); K.colR(ix, iz, 0.55, 1); }
       // lanternas de pedra do terraço
       for (const s of [-1, 1]) toro(s * 8.3, -6.8, TY, 0.85, false), K.colR(s * 8.3, -6.8, 0.35, 1);
       // barril de saquê empilhado (komodaru) aos pés da escadaria
@@ -4000,7 +4000,7 @@ MIRA_CENARIOS.push({
       // vagas no terraço
       [[-1.0, -8.0], [1.0, -8.0]].forEach(([x, z]) => K.slot(x, z, 0, -9.1, 'talk', 1));
       [[-5.4, -6.7], [-4.0, -6.7], [4.2, -6.7], [5.6, -6.7]].forEach(([x, z]) => K.slot(x, z, x * 0.6, 2, 'view', 1));
-      K.slot(-2.6, -8.0, -3.6, -8.4, 'talk', 1); K.slot(-4.6, -7.6, -3.6, -8.4, 'talk', 1);
+      K.slot(-2.8, -8.2, -3.9, -8.8, 'talk', 1); K.slot(-4.9, -8.0, -3.9, -8.8, 'talk', 1);
       K.slot(3.6, -7.4, 3.6, -3, 'selfie', 1);
     }
 
@@ -4397,8 +4397,8 @@ MIRA_CENARIOS.push({
     // pedras de travessia
     for (const z of [7.2, 7.65, 8.1, 8.5]) K.cyl(0.4, 0.45, 0.32, stoneG, -10.0 + (z === 7.65 ? 0.12 : -0.05), -0.15, z, {}, 9);
     // ponte arqueada vermelha (taiko-bashi)
-    { const z0 = 6.5, z1 = 9.1, L = z1 - z0, H = 0.22, arcY = (u) => Math.sin(u * Math.PI) * H;
-      for (let k = 0; k < 14; k++) { const u = (k + 0.5) / 14, z = z0 + u * L; K.box(2.5, 0.07, L / 14 + 0.01, woodM, 0, arcY(u) + 0.02, z, { rx: -Math.cos(u * Math.PI) * H * Math.PI / L, cast: false }); }
+    { const z0 = 6.5, z1 = 9.1, L = z1 - z0, H = 0.12, arcY = (u) => Math.sin(u * Math.PI) * H;
+      for (let k = 0; k < 14; k++) { const u = (k + 0.5) / 14, z = z0 + u * L; K.box(2.5, 0.07, L / 14 + 0.01, woodM, 0, arcY(u) + 0.02, z, { rx: -Math.cos(u * Math.PI) * H * Math.PI / L, cast: false }).userData.noCol = true; } // o tabuleiro é chão: dá para atravessar
       // viga em arco por baixo
       for (const s of [-1, 1]) { const pts = []; for (let i = 0; i <= 16; i++) { const u = i / 16; pts.push(new T.Vector3(s * 1.15, -0.3 + Math.sin(u * Math.PI) * 0.55, z0 - 0.2 + u * (L + 0.4))); } K.add(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 16, 0.07, 6), verm, 0, 0, 0); }
       // guarda-corpo com giboshi de latão
@@ -4419,7 +4419,7 @@ MIRA_CENARIOS.push({
       K.box(0.3, 0.03, 0.3, woodD, 0, 0.35, 0, { parent: g });
       const halo = K.halo(0, 0.3, 0, 1.2, 0xffb040, 0.0, g);
       const pool = K.pool(0, 0, 0.9, 0xffa040, 0.0, 0.01, g);
-      for (let k = 0; k < 4; k++) { const b = K.group(6.0 - k * 0.38, -0.02, 8.95 + (k % 2) * 0.12); K.box(0.26, 0.04, 0.26, woodL, 0, 0.02, 0, { parent: b }); K.box(0.2, 0.22, 0.2, pm, 0, 0.15, 0, { parent: b, cast: false }); }
+      for (let k = 0; k < 4; k++) { const b = K.group(7.4 + k * 0.38, -0.02, 8.95 + (k % 2) * 0.12); K.box(0.26, 0.04, 0.26, woodL, 0, 0.02, 0, { parent: b }); K.box(0.2, 0.22, 0.2, pm, 0, 0.15, 0, { parent: b, cast: false }); }
       let floating = false;
       K.tick((dt, t) => { if (floating) { g.position.y = -0.24 + Math.sin(t * 1.8) * 0.02; g.rotation.y = Math.sin(t * 0.4) * 0.3; } });
       return { g, box, pm, lit, halo, pool, set(f) { floating = f; } };
