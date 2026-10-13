@@ -42,6 +42,15 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   Cada teste recebe a URL da página como 1º argumento, por exemplo
   `node fonte/testes/t1.js http://localhost:8765/mira-pub.html`, com um servidor estático local
   servindo uma cópia de `fonte/mira.html`. As capturas vão para `fonte/testes/out/`.
+- Equilíbrio: `node fonte/testes/t10.js <url> [rodadas] [mapas]` joga rodadas inteiras só com o
+  computador (agente e 3 cúmplices robôs contra o sniper de IA), sem desenhar, e mostra por mapa a
+  vitória do agente (`agentWinPct`), missões por rodada, por que a rodada acabou (`why`) e quantos
+  convidados fazem gestos de missão por minuto (`coverPerMin`). Mapas: 0 é a cobertura, 1 a 10 os
+  cenários extras. Exemplo, 30 rodadas em cada cenário extra:
+  `node fonte/testes/t10.js http://localhost:8765/mira-pub.html 30 1,2,3,4,5,6,7,8,9,10`.
+  Rode antes e depois de mudar o sniper de IA, as missões ou os convidados e ponha os números no PR.
+- Missões: `t11.js` confere gesto, duração e conclusão das missões do agente; `rotulos.js <url> <arquivo>`
+  lista os rótulos das missões de todos os mapas.
 - Rede: `node fonte/web/teste-rede.js` (3 navegadores, anfitrião sai, outro assume). Usa o
   `index.html` da raiz e precisa de `npm i peer express@4` (servidor de sinalização local).
 - Cenários: `node fonte/cenarios/ferramentas/testar.js <id> <pasta-de-saida> [--rapido]`
