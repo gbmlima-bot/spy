@@ -813,9 +813,8 @@ MIRA_CENARIOS.push({
     const T = K.T, N = K.ninhoPecas(g, { roughness: 0.8 }), gran = 0x6a6660;
     N.tampo(gran, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 101, draw: (c, w, h, R) => {
       c.fillStyle = '#6e6a64'; c.fillRect(0, 0, w, h); for (let k = 0; k < 3000; k++) { c.fillStyle = `rgba(${R() < 0.5 ? '30,30,32' : '200,196,188'},.5)`; c.fillRect(R() * w, R() * h, 1 + R() * 2, 1 + R() * 2); }
-      K.manchas(c, w, h, R, 60, ['20,20,22'], 10, 50, 0.3);
+      K.manchas(c, w, h, R, 24, ['20,20,22'], 10, 50, 0.18);
       c.fillStyle = '#3a3a3e'; c.fillRect(0, 0, w, 34); c.fillStyle = '#5a5a60'; for (let x = 12; x < w; x += 28) { c.beginPath(); c.arc(x, 17, 4, 0, 7); c.fill(); }
-      c.fillStyle = '#2a2a2e'; for (const x of [w * 0.25, w * 0.5, w * 0.75]) c.fillRect(x, 34, 2, h);
       c.save(); c.translate(w * 0.2, h * 0.62); c.fillStyle = '#b8893a'; c.fillRect(-70, -22, 140, 44); c.strokeStyle = '#6a4a1a'; c.lineWidth = 3; c.strokeRect(-66, -18, 132, 36);
       c.fillStyle = '#4a3010'; c.font = '700 15px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('C.I.W.L. · 1883', 0, 1); c.restore();
       K.grain(c, w, h, 10);
