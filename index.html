@@ -8934,17 +8934,17 @@ function buildMap0Missions() {
 // so photographing pulls out the phone, a toast raises the glass and passing a word is a chat. Guests of the computer who
 // stop at an object use the same gesture and the same span, so the gesture alone never gives the agent away.
 const GESTURES = {
-  mexer: { anim: 2, d: [3.2, 5.0] }, // swap, hide, switch off, tip over...
+  mexer: { anim: 2, d: [3.2, 6.0] }, // swap, hide, switch off, tip over... (long enough to cover the challenges)
   largar: { anim: 2, d: [2.0, 3.0] }, // leave or drop something small
-  marcar: { anim: 14, d: [2.6, 3.8] }, // chalk, stick, write
-  foto: { anim: 18, d: [2.4, 3.6] }, // phone out: photograph, copy
+  marcar: { anim: 14, d: [2.6, 5.0] }, // chalk, stick, write
+  foto: { anim: 18, d: [2.4, 4.5] }, // phone out: photograph, copy
   brinde: { anim: 6, d: [3.0, 4.4] }, // glass up: toast, spill, spike a drink
   conversa: { anim: 4, d: [4.0, 5.6] }, // a word with someone
   regar: { anim: 19, d: [3.0, 4.2] }, // water or feed
 };
 const GESTURE_RX = [
   ['foto', /^(fotografar|copiar|filmar|escanear|gravar|clonar)\b/],
-  ['brinde', /^(brindar|batizar|derramar|envenenar)\b|^(trocar|derrubar|pôr algo|levar)\b.*\b(taças?|copos?|garrafas?|drinques?|champanhe|xícaras?|chá|bule|chaleira)(?=\s|$)/],
+  ['brinde', /^(brindar|batizar|derramar|envenenar)\b|^(trocar|derrubar|pôr algo|levar)\b.*\b(taças?|copos?|canecas?|garrafas?|drinques?|caipirinhas?|champanhe|xícaras?|chá|bule|chaleira)(?=\s|$)/],
   ['conversa', /^(passar|sussurrar|entregar|cochichar|pedir|subornar|sinalizar)\b/],
   ['regar', /^(regar|alimentar)\b/],
   ['marcar', /^(marcar|colar|pichar|riscar|pintar|assinar|arranhar|prender|escrever)\b/],
@@ -8979,6 +8979,15 @@ function makeChallenge(o, rd) {
 }
 // where the needle of a `ponto` challenge is (0..1) after t seconds
 const needleAt = (ch, t) => 0.5 + 0.5 * Math.sin(ch.ph + t * ch.sp);
+// how long a robot player takes on an act: the same challenge a person gets, solved at a person's pace and with a
+// person's slips (a wrong arrow, a missed needle, a shaky hand), and never quicker than the gesture's span
+function botActTime(o, rd, rng) {
+  const ch = makeChallenge(o, rd), d = actDur(o, rng()); let t = d;
+  if (ch.k === 'seq') { t = 0.6; for (let i = 0; i < ch.keys.length; i++) t += 0.45 + rng() * 0.4 + (rng() < 0.15 ? 1.0 : 0); }
+  else if (ch.k === 'ponto') { const per = Math.PI * 2 / ch.sp; t = 0.5; for (let h = 0; h < ch.need; h++) { t += per * (0.3 + rng() * 0.7); while (rng() < 0.25) t += per * 0.6; } }
+  else if (ch.k === 'calma') t = d * (1 + rng() * 0.8);
+  return Math.max(t, GESTURES[MISSIONS[o].g].d[0]) + 0.2;
+}
 // how far the challenge is (0..1); the act ends when it is complete and a minimum time has passed
 function challengeProgress(a) {
   const ch = a.ch;
@@ -9353,7 +9362,7 @@ class Sim {
     if (s.type === 'obj' && !initial) {
       e.st = 'act'; e.obj = e.wantM >= 0 && MISSIONS[e.wantM].p === s.obj ? e.wantM : PROPS[s.obj].ms[Math.floor(this.rng() * PROPS[s.obj].ms.length)]; e.anim = MISSIONS[e.obj].ga;
       // everyone (bots, guests, the players) takes a span drawn from the gesture of the act
-      e.timer = actDur(e.obj, this.rng()) + (e.kind === 'bot' ? 0.2 : 0);
+      e.timer = e.kind === 'bot' ? botActTime(e.obj, this.round, this.rng) : actDur(e.obj, this.rng());
       return;
     }
     e.st = 'idle'; e.obj = -1;
@@ -11282,15 +11291,153 @@ function setNight(on) {
   }
   for (const pl of NIGHT.lights) { pl.visible = on; pl.intensity = on ? 2.4 : 0; }
 }
-// a scenario's missions become props: its own visible change, plus three small things left on the floor by the object
+// a scenario's missions become props: its own visible change, two small things left on the object (SCEN_ACTS below) and
+// one left on the floor by it
 const SCEN_GEN = [['Deixar um bilhete no chão', 'note'], ['Deixar uma moeda marcada no chão', 'coin'], ['Largar um envelope no chão', 'envelope'], ['Deixar uma rosa no chão', 'rose'], ['Esquecer uma luva no chão', 'glove'], ['Marcar o chão com giz', 'mark'], ['Deixar uma chave no chão', 'key'], ['Largar um charuto no chão', 'cigar'], ['Derrubar uma taça no chão', 'glass'], ['Deixar uma ficha de pôquer no chão', 'chip'], ['Largar uma carta de baralho no chão', 'card'], ['Colar um adesivo no chão', 'sticker']];
+// Acts of the extra scenarios that belong to the object itself (instead of "leave something on the floor"):
+// two per mission, [label, item]. The item lands on the object's own surface (found when the map loads).
+const SCEN_ACTS = {
+  veneza: {
+    poco: [['Esconder uma chave na borda do poço', 'key'], ['Colar um adesivo no poço', 'sticker']],
+    torre: [['Pôr algo numa taça da torre de champanhe', 'glass'], ['Deixar um bilhete no bufê', 'note']],
+    mascara: [['Esconder um anel entre as máscaras', 'ring'], ['Deixar um cartão na banca de máscaras', 'card']],
+    gondola: [['Esquecer uma luva no píer da gôndola', 'glove'], ['Deixar uma rosa no píer das gôndolas', 'rose']],
+    leao: [['Deixar uma moeda marcada aos pés do leão', 'coin'], ['Marcar a coluna do leão com giz', 'mark']],
+    lustre: [['Esconder um chip ao pé do pilar do arco', 'chip'], ['Deixar um envelope junto ao pilar', 'envelope']],
+    partitura: [['Prender um bilhete na estante do quarteto', 'note'], ['Esconder um pendrive no palco', 'usb']],
+    aperol: [['Pôr algo num drinque do bacaro', 'glass'], ['Deixar um charuto no balcão do bacaro', 'cigar']],
+    relogio: [['Esconder a chave no chão da loggia', 'key'], ['Colar um adesivo no piso da loggia', 'sticker']],
+  },
+  iate: {
+    balde: [['Pôr algo na taça da mesa de centro', 'glass'], ['Esquecer os óculos na mesa de centro', 'glasses']],
+    sushi: [['Esconder um chip na mesa de sushi', 'chip'], ['Deixar um bilhete sob o hashi', 'note']],
+    jetski: [['Esconder a chave do jet-ski no convés', 'key'], ['Esquecer uma luva junto ao cunho', 'glove']],
+    bandeira: [['Deixar um bilhete ao pé do mastro da popa', 'note'], ['Marcar o convés junto ao mastro com giz', 'mark']],
+    piscina: [['Esconder um pendrive no painel da piscina', 'usb'], ['Deixar o celular no painel da piscina', 'phone']],
+    guardasol: [['Pôr algo no drinque sob o guarda-sol', 'glass'], ['Deixar uma moeda marcada na mesa do guarda-sol', 'coin']],
+    radar: [['Colar um adesivo no painel do timão', 'sticker'], ['Esconder um chip no posto de comando', 'chip']],
+    vinil: [['Deixar um envelope na cabine da DJ', 'envelope'], ['Esconder um pendrive entre os discos', 'usb']],
+    holofote: [['Deixar uma rosa no guarda-corpo', 'rose'], ['Colar um adesivo no holofote', 'sticker']],
+  },
+  toscana: {
+    alianca: [['Deixar um envelope no altar', 'envelope'], ['Esconder um anel entre as flores do altar', 'ring']],
+    fita: [['Prender um bilhete na coluna do arco', 'note'], ['Deixar uma rosa na coluna do arco', 'rose']],
+    pomba: [['Esconder uma chave na gaiola', 'key'], ['Prender um cartão na gaiola', 'card']],
+    safra: [['Pôr algo na taça da adega', 'glass'], ['Colar um adesivo na vitrine da safra', 'sticker']],
+    tonel: [['Esconder um chip no tonel', 'chip'], ['Marcar o tonel com giz', 'mark']],
+    cartao: [['Prender um bilhete no cavalete', 'note'], ['Deixar uma moeda marcada no cavalete', 'coin']],
+    bolo: [['Deixar uma rosa na mesa do bolo', 'rose'], ['Pôr algo na taça da mesa do bolo', 'glass']],
+    catavento: [['Esconder a chave na borda do poço', 'key'], ['Deixar uma moeda marcada no poço', 'coin']],
+    carroca: [['Esquecer uma luva na carroça', 'glove'], ['Esconder um envelope no feno', 'envelope']],
+  },
+  museu: {
+    gema: [['Colar um adesivo na vitrine das gemas', 'sticker'], ['Esconder um anel ao pé da vitrine', 'ring']],
+    rastreador: [['Deixar um cartão no pedestal do T-rex', 'card'], ['Marcar o pedestal com giz', 'mark']],
+    telao: [['Esconder um pendrive na mesa de projeção', 'usb'], ['Deixar o celular na mesa de projeção', 'phone']],
+    baleia: [['Esconder um chip no guincho', 'chip'], ['Esquecer uma luva na balaustrada', 'glove']],
+    meteorito: [['Deixar um bilhete na vitrine do meteorito', 'note'], ['Colar um adesivo na vitrine do meteorito', 'sticker']],
+    catalogo: [['Prender um bilhete no púlpito', 'note'], ['Deixar um envelope entre os catálogos', 'envelope']],
+    elefante: [['Esconder uma chave no pedestal do elefante', 'key'], ['Deixar uma moeda marcada no pedestal', 'coin']],
+    magnum: [['Pôr algo na taça do bar de champanhe', 'glass'], ['Deixar um charuto no bar de champanhe', 'cigar']],
+    casaco: [['Esconder a ficha do guarda-volumes', 'card'], ['Esquecer os óculos no guarda-volumes', 'glasses']],
+  },
+  kyoto: {
+    omamori: [['Esconder uma moeda no balcão de amuletos', 'coin'], ['Prender um bilhete no balcão de amuletos', 'note']],
+    lanterna: [['Deixar uma rosa na margem do riacho', 'rose'], ['Esconder uma chave na margem', 'key']],
+    alvo: [['Esconder um chip na barraca de shateki', 'chip'], ['Colar um adesivo no balcão do shateki', 'sticker']],
+    peixe: [['Deixar uma moeda marcada na pescaria', 'coin'], ['Esquecer o celular na pescaria', 'phone']],
+    gongo: [['Prender um bilhete no campanário', 'note'], ['Marcar o pilar do sino com giz', 'mark']],
+    omikuji: [['Amarrar um cartão na árvore dos papéis', 'card'], ['Esconder um anel ao pé da árvore', 'ring']],
+    toro: [['Deixar um envelope na lanterna de pedra', 'envelope'], ['Esconder a chave na lanterna de pedra', 'key']],
+    mascara: [['Esconder um chip entre as máscaras', 'chip'], ['Deixar um bilhete na barraca de máscaras', 'note']],
+    takoyaki: [['Deixar uma moeda marcada no balcão do takoyaki', 'coin'], ['Esquecer uma luva na barraca de takoyaki', 'glove']],
+  },
+  carnaval: {
+    estandarte: [['Deixar um bilhete ao pé do estandarte', 'note'], ['Colar um adesivo na base do mastro', 'sticker']],
+    freio: [['Esconder uma chave na cabine do bonde', 'key'], ['Deixar um envelope no bonde', 'envelope']],
+    som: [['Esconder um chip junto ao poste', 'chip'], ['Marcar o chão junto ao poste com giz', 'mark']],
+    surdo: [['Deixar uma moeda marcada no surdo', 'coin'], ['Esquecer uma luva na bateria', 'glove']],
+    fita: [['Deixar uma rosa no mirante', 'rose'], ['Prender um cartão no azulejo', 'card']],
+    brasa: [['Deixar um charuto no carrinho de churrasquinho', 'cigar'], ['Pôr algo no copo do churrasqueiro', 'glass']],
+    placa: [['Esquecer um copo de caipirinha junto à barraca', 'glass'], ['Deixar um bilhete ao pé da barraca de caipirinha', 'note']],
+    pipa: [['Esconder uma chave no guarda-corpo do mirante', 'key'], ['Esquecer os óculos no mirante', 'glasses']],
+    grafite: [['Marcar o chão junto ao muro com giz', 'mark'], ['Colar um adesivo na calçada do muro grafitado', 'sticker']],
+  },
+  alpes: {
+    esqui: [['Esconder um chip no rack de esquis', 'chip'], ['Esquecer uma luva no rack de esquis', 'glove']],
+    treno: [['Deixar um envelope no trenó', 'envelope'], ['Esconder a chave no trenó', 'key']],
+    boneco: [['Deixar uma rosa no boneco de neve', 'rose'], ['Deixar uma moeda marcada no boneco de neve', 'coin']],
+    jacuzzi: [['Pôr algo na taça da jacuzzi', 'glass'], ['Esquecer os óculos na borda da jacuzzi', 'glasses']],
+    radio: [['Colar um adesivo no rádio da patrulha', 'sticker'], ['Deixar um bilhete no posto da patrulha', 'note']],
+    lareira: [['Esconder uma chave junto à porta do chalé', 'key'], ['Prender um cartão na porta do chalé', 'card']],
+    gondola: [['Esconder um chip no holofote', 'chip'], ['Marcar o holofote com giz', 'mark']],
+    gluhwein: [['Pôr algo na caneca de glühwein', 'glass'], ['Deixar um charuto ao lado do caldeirão', 'cigar']],
+    fogueira: [['Esquecer uma luva perto da fogueira', 'glove'], ['Deixar um envelope perto da fogueira', 'envelope']],
+  },
+  paris: {
+    vestido: [['Esconder um anel na arara de roupas', 'ring'], ['Prender um bilhete na arara', 'note']],
+    spot: [['Colar um adesivo na torre de luz', 'sticker'], ['Esconder um chip na torre de luz', 'chip']],
+    cartao: [['Deixar um envelope na cadeira da primeira fila', 'envelope'], ['Esquecer os óculos na primeira fila', 'glasses']],
+    macaron: [['Pôr algo na taça perto dos macarons', 'glass'], ['Deixar uma rosa ao lado da torre de macarons', 'rose']],
+    claraboia: [['Esconder uma chave junto à claraboia', 'key'], ['Marcar o vidro da claraboia com giz', 'mark']],
+    filme: [['Esconder um pendrive no pódio dos fotógrafos', 'usb'], ['Esquecer o celular no pódio', 'phone']],
+    letreiro: [['Colar um adesivo no chão do quadro de força', 'sticker'], ['Deixar um bilhete ao pé do quadro de força', 'note']],
+    manequim: [['Deixar uma luva no manequim', 'glove'], ['Esconder um cartão nos manequins', 'card']],
+    lenco: [['Deixar uma rosa na grade da frente', 'rose'], ['Deixar uma moeda marcada na grade', 'coin']],
+  },
+  marrakech: {
+    chave: [['Deixar uma moeda marcada na fonte', 'coin'], ['Deixar uma rosa na borda da fonte', 'rose']],
+    tapete: [['Deixar um bilhete sob o varal de tapetes', 'note'], ['Esconder um anel sob os tapetes', 'ring']],
+    lanterna: [['Esconder uma chave no arco da galeria', 'key'], ['Marcar o arco com giz', 'mark']],
+    bule: [['Pôr algo no copo de chá', 'glass'], ['Deixar um envelope no balcão do chá', 'envelope']],
+    mapa: [['Esconder um chip na mesa de jantar', 'chip'], ['Deixar um cartão na mesa de jantar', 'card']],
+    porta: [['Colar um adesivo na soleira do portão', 'sticker'], ['Deixar um bilhete na soleira do portão', 'note']],
+    petalas: [['Esquecer os óculos no parapeito', 'glasses'], ['Deixar uma moeda marcada no parapeito', 'coin']],
+    incenso: [['Deixar um charuto junto ao incensário', 'cigar'], ['Esconder a chave junto ao incensário', 'key']],
+    paprica: [['Esconder um chip na banca de especiarias', 'chip'], ['Esquecer uma luva na banca de especiarias', 'glove']],
+  },
+  expresso: {
+    mala: [['Prender um cartão na mala', 'card'], ['Esconder um envelope no carrinho de bagagem', 'envelope']],
+    relogio: [['Colar um adesivo na coluna do relógio', 'sticker'], ['Esconder uma chave na coluna', 'key']],
+    sinal: [['Marcar o sinal com giz', 'mark'], ['Deixar uma moeda marcada junto ao sinal', 'coin']],
+    bau: [['Esconder um chip no carrinho de baús', 'chip'], ['Deixar um bilhete sobre o baú', 'note']],
+    jornal: [['Deixar uma moeda marcada na banca de jornais', 'coin'], ['Esquecer os óculos na banca', 'glasses']],
+    vapor: [['Esconder uma chave na lateral da locomotiva', 'key'], ['Marcar a locomotiva com giz', 'mark']],
+    painel: [['Colar um adesivo no chão do painel de partidas', 'sticker'], ['Esconder um pendrive junto ao painel', 'usb']],
+    abajur: [['Pôr algo na taça da mesa 3', 'glass'], ['Deixar um charuto na mesa 3', 'cigar']],
+    placa: [['Deixar uma rosa na passarela', 'rose'], ['Esquecer uma luva na passarela', 'glove']],
+  },
+};
+// where a small item left "on" an object of a scenario lands: the first surface between knee and chest height under the
+// object's look point (or a little toward the stand point), else the floor beside it. y is relative to the level.
+const surfRay = new T.Raycaster(), surfDown = new T.Vector3(0, -1, 0);
+function surfaceSpot(meshes, l, sp, lv) {
+  const y0 = LVY(lv), dx = sp[0] - l[0], dz = sp[1] - l[1], d = Math.hypot(dx, dz) || 1;
+  const nx = -dz / d, nz = dx / d; // sideways
+  for (const [f, w] of [[0, 0], [0.15, 0], [-0.15, 0], [0.3, 0], [0, 0.25], [0, -0.25], [-0.3, 0], [0.5, 0], [0.3, 0.3], [0.3, -0.3]]) {
+    const x = l[0] + dx / d * f + nx * w, z = l[1] + dz / d * f + nz * w;
+    surfRay.set(new T.Vector3(x, y0 + 1.5, z), surfDown); surfRay.far = 1.5;
+    const hit = surfRay.intersectObjects(meshes, false).find(h => h.object.visible && !h.object.userData.noCol);
+    if (hit && hit.point.y - y0 > 0.25) return [x, hit.point.y - y0 + 0.004, z];
+  }
+  return null;
+}
 function scenarioProps(sc) {
-  const list = [];
+  const list = [], own = SCEN_ACTS[sc.id] || {}, meshes = [];
+  // each mesh's bounding sphere in world space, once, so every object only tests what is around it
+  if (SCEN.root) { SCEN.root.updateMatrixWorld(true); SCEN.root.traverse(o => { if (!o.isMesh || o.isInstancedMesh || o.userData.noCol || !o.geometry) return; if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); const bs = o.geometry.boundingSphere, c = bs.center.clone().applyMatrix4(o.matrixWorld); meshes.push({ o, c, r: bs.radius * o.matrixWorld.getMaxScaleOnAxis() }); }); }
   (sc.missoes || []).forEach((m, i) => {
     const sp = m.s, l = m.l, lv = m.lv || 0, dx = l[0] - sp[0], dz = l[1] - sp[1], d = Math.hypot(dx, dz) || 1;
     const px = sp[0] + dx / d * 0.45, pz = sp[1] + dz / d * 0.45;
     const acts = [[m.label, { k: 'scen', key: m.k }]];
-    for (let j = 0; j < 3; j++) { const g = SCEN_GEN[(i * 3 + j) % SCEN_GEN.length], a = (i * 3 + j) * 2.1; acts.push([g[0], SP(g[1], [px + Math.cos(a) * 0.16, 0.01, pz + Math.sin(a) * 0.16], { ry: a })]); }
+    // the object's own acts first: the item goes on the object (or at its foot when it has no surface in reach)
+    const near = meshes.filter(q => Math.hypot(q.c.x - l[0], q.c.z - l[1]) < q.r + 1.2).map(q => q.o);
+    const surf = near.length ? surfaceSpot(near, l, sp, lv) : null;
+    (own[m.k] || []).slice(0, 2).forEach(([label, item], j) => {
+      const a = (i * 3 + j) * 2.1, r = surf ? 0.07 : 0.16, at = surf ? [surf[0] + Math.cos(a) * r, surf[1], surf[2] + Math.sin(a) * r] : [px + Math.cos(a) * r, 0.01, pz + Math.sin(a) * r];
+      acts.push([label, SP(item, at, { ry: a, face: item === 'mark' || item === 'sticker' ? 'up' : undefined })]);
+    });
+    for (let j = 0; acts.length < 4; j++) { const g = SCEN_GEN[(i * 3 + j) % SCEN_GEN.length], a = (i * 3 + j) * 2.1; acts.push([g[0], SP(g[1], [px + Math.cos(a) * 0.16, 0.01, pz + Math.sin(a) * 0.16], { ry: a })]); }
     defProp(list, m.k, m.where, lv, sp, l, acts);
   });
   return list;
@@ -12741,7 +12888,7 @@ Net.init().then(ok => {
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
-Object.assign(window.__mira, { makeChallenge, missionAtProp });
+Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply });
 })();
 </script>
 
