@@ -70,6 +70,11 @@ label{display:grid;gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04e
 .bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--brass)}
 #hints{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 14px;font-size:12px;color:var(--muted);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#mini{display:grid;gap:6px;justify-items:center}#mini[hidden]{display:none}
+#mini .seq{display:flex;gap:6px}#mini .seq b{font:600 18px/1 var(--f-mono);width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--paper);opacity:.55}
+#mini .seq b.ok{opacity:.25;border-color:transparent}#mini .seq b.cur{opacity:1;border-color:var(--brass);color:var(--brass)}#mini .seq.err b.cur{border-color:#e05a4a;color:#e05a4a}
+#mini .dial{position:relative;width:220px;height:14px;background:rgba(255,255,255,.12);border-radius:3px}#mini .dial s{position:absolute;top:0;bottom:0;background:rgba(201,162,90,.55);border-radius:3px}#mini .dial u{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1px;background:var(--paper)}
+#mini .dial.miss{box-shadow:0 0 0 1px #e05a4a}#mini .pads{display:flex;gap:6px}#mini .pads button{width:44px;height:40px;font-size:18px}#mini small{color:var(--muted,#9aa)}#mini small.warn{color:#e0a84a}
 kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--paper)}
 #touch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom,0px));display:grid;gap:8px}
 #touch button{width:96px;padding:12px 8px;pointer-events:auto}
@@ -192,7 +197,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 <div id="hud" class="layer" hidden>
   <div id="topbar" class="card"><span class="eyebrow" id="roundTag">Rodada 1</span><span id="timer">5:00</span></div>
   <aside id="roleCard" class="card"></aside>
-  <div id="prompt" class="card" hidden><div id="promptText"></div><div class="bar"><i id="promptBar"></i></div></div>
+  <div id="prompt" class="card" hidden><div id="promptText"></div><div id="mini" hidden></div><div class="bar"><i id="promptBar"></i></div></div>
   <div id="hints" class="card"></div>
   <div id="touch">
     <button id="actBtn" hidden>Interagir</button>
@@ -8518,6 +8523,33 @@ function gestureOf(label, fx) {
 const actDur = (o, u) => { const d = GESTURES[MISSIONS[o].g].d; return d[0] + (d[1] - d[0]) * u; };
 // the local player's span is fixed per round and mission, so it is never the same few seconds every time
 const playerActDur = (o, rd) => actDur(o, mulberry32(((rd || 1) * 7919 + o * 104729) >>> 0)());
+// The small challenge a player faces while doing an act (only they see it; guests of the computer just take the time):
+//   seq    press the arrows shown, in order; a wrong one undoes a step (combinations, swaps, wiring)
+//   ponto  press E when the needle crosses the band, twice; a miss costs a hit (locks, reels, a steady mark)
+//   calma  hold still: the bar only fills while the sniper's laser is away from you (a photo, a phone)
+//   segurar  just wait (quick drops, a toast, a word with someone)
+// The challenge is drawn per round and mission, so the same mission plays differently from one round to the next.
+const CHALLENGES = { mexer: ['seq', 'ponto'], foto: ['calma'], marcar: ['ponto', 'seq'], largar: ['segurar'], brinde: ['segurar'], conversa: ['segurar'], regar: ['segurar'] };
+const ARROWS = ['←', '↑', '→', '↓'], ARROW_KEYS = { arrowleft: 0, a: 0, arrowup: 1, w: 1, arrowright: 2, d: 2, arrowdown: 3, s: 3 };
+const LASER_NEAR = 3; // metres: the laser this close to you makes your hands shake
+function makeChallenge(o, rd) {
+  const r = mulberry32(((rd || 1) * 31337 + o * 7907) >>> 0), opts = CHALLENGES[MISSIONS[o].g] || ['segurar'];
+  const k = opts[Math.floor(r() * opts.length)];
+  if (k === 'seq') return { k, keys: Array.from({ length: 3 + (r() < 0.5 ? 1 : 0) }, () => Math.floor(r() * 4)), i: 0, err: 0 };
+  if (k === 'ponto') return { k, need: 2, hits: 0, ph: r() * 6.28, sp: 2.2 + r() * 1.4, c: 0.3 + r() * 0.4, w: 0.2, miss: 0 };
+  if (k === 'calma') return { k, p: 0, near: false };
+  return { k };
+}
+// where the needle of a `ponto` challenge is (0..1) after t seconds
+const needleAt = (ch, t) => 0.5 + 0.5 * Math.sin(ch.ph + t * ch.sp);
+// how far the challenge is (0..1); the act ends when it is complete and a minimum time has passed
+function challengeProgress(a) {
+  const ch = a.ch;
+  if (ch.k === 'seq') return ch.i / ch.keys.length;
+  if (ch.k === 'ponto') return ch.hits / ch.need;
+  if (ch.k === 'calma') return ch.p;
+  return Math.min(1, a.t / a.d);
+}
 // flatten props into the mission list (each act is a mission; `p` points back at its prop)
 function setMissions(props) {
   PROPS = props; MISSIONS = [];
@@ -11604,7 +11636,8 @@ addEventListener('keydown', e => {
     if (k === 'f') markUnderCrosshair();
     if (k === 'shift' && !e.repeat && snip.gasp <= 0 && snip.air > 0.15) snip.hold = true;
     if (k === 'escape') setScope(false);
-  } else if (k === 'e') tryAct();
+  } else if (ctrl.act && challengeKey(k)) e.preventDefault();
+  else if (k === 'e') tryAct();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', e => { keyDown.delete(e.key.toLowerCase()); if (e.key === 'Shift') snip.hold = false; });
@@ -11657,7 +11690,7 @@ $('#zoomBtn').onclick = () => { snip.zoom = snip.zoom >= 10 ? 4 : snip.zoom + 2;
 $('#markBtn').onclick = () => markUnderCrosshair();
 { const bb = $('#breathBtn'); const on = () => { if (snip.gasp <= 0 && snip.air > 0.15) snip.hold = true; }; const off = () => { snip.hold = false; }; bb.addEventListener('pointerdown', on); bb.addEventListener('pointerup', off); bb.addEventListener('pointercancel', off); bb.addEventListener('pointerleave', off); }
 $('#shootBtn').onclick = () => { if (!snip.scoped) setScope(true); else shoot(); };
-$('#actBtn').onclick = () => tryAct();
+$('#actBtn').onclick = () => { if (!(ctrl.act && challengeKey('e'))) tryAct(); };
 
 function clampAim() { snip.yaw = Math.max(-0.75, Math.min(0.75, snip.yaw)); snip.pitch = Math.max(-1.0, Math.min(0.25, snip.pitch)); }
 function aimFromPointer(px, py) {
@@ -11758,7 +11791,7 @@ function tryAct() {
   if (ctrl.pose) { ctrl.pose = null; ctrl.settle = null; return; }
   const it = nearInteraction(st); if (!it) return;
   ctrl.path = []; ctrl.goal = null;
-  if (it.k === 'mission') { ctrl.act = { o: it.o, t: 0, d: playerActDur(it.o, st.rd) }; const m = MISSIONS[it.o]; ctrl.settle = { rot: Math.atan2(m.l[0] - ctrl.x, m.l[1] - ctrl.z) }; return; }
+  if (it.k === 'mission') { ctrl.act = { o: it.o, t: 0, d: playerActDur(it.o, st.rd), ch: makeChallenge(it.o, st.rd) }; const m = MISSIONS[it.o]; ctrl.settle = { rot: Math.atan2(m.l[0] - ctrl.x, m.l[1] - ctrl.z) }; return; }
   if (it.k === 'stair') { startClimb(it.dir, it.li); return; }
   // seats and poses are eased into over a few frames instead of snapping
   if (it.k === 'seat') { ctrl.settle = { x: it.slot.x, z: it.slot.z, rot: it.slot.rot }; ctrl.pose = { anim: it.anim, nt: 0 }; return; }
@@ -11775,7 +11808,61 @@ function stepRipple(dt) {
   if (k < 1) { const sc = 0.5 + k * 1.6; rippleMesh.scale.set(sc, sc, 1); rippleMesh.material.opacity = 0.9 * (1 - k) * (1 - k); }
 }
 const sndStep = () => tone(150 + Math.random() * 30, 0.035, 0.012, 'triangle');
+// a key pressed while doing an act: true when the challenge used it
+function challengeKey(k) {
+  const a = ctrl.act, ch = a && a.ch; if (!ch) return false;
+  if (k === 'escape') { cancelAct(); return true; }
+  if (ch.k === 'seq' && k in ARROW_KEYS) {
+    if (ch.i >= ch.keys.length) return true;
+    if (ARROW_KEYS[k] === ch.keys[ch.i]) { ch.i++; ch.err = 0; tone(520 + ch.i * 90, 0.06, 0.03, 'triangle'); }
+    else { ch.i = Math.max(0, ch.i - 1); ch.err = 0.35; tone(140, 0.12, 0.04, 'square'); }
+    return true;
+  }
+  if (ch.k === 'ponto' && (k === 'e' || k === ' ' || k === 'enter')) {
+    if (ch.hits >= ch.need || ch.miss > 0) return true;
+    if (Math.abs(needleAt(ch, a.t) - ch.c) <= ch.w / 2) { ch.hits++; tone(660 + ch.hits * 120, 0.07, 0.03, 'triangle'); }
+    else { ch.hits = Math.max(0, ch.hits - 1); ch.miss = 0.45; tone(140, 0.12, 0.04, 'square'); }
+    return true;
+  }
+  return k === 'e'; // E again does not restart the act
+}
 function cancelAct() { if (ctrl.act) { ctrl.act = null; toast('Ação interrompida.'); } }
+function stepAct(dt, st) {
+  const a = ctrl.act, ch = a.ch; a.t += dt;
+  if (ch.err > 0) ch.err -= dt;
+  if (ch.miss > 0) ch.miss -= dt;
+  if (ch.k === 'calma') {
+    const L = laserFor(st); ch.near = !!L && Math.abs(L.y - ctrl.y) < 3 && Math.hypot(L.x - ctrl.x, L.z - ctrl.z) < LASER_NEAR;
+    ch.p = Math.max(0, Math.min(1, ch.p + (ch.near ? -0.3 : 1) * dt / a.d));
+  }
+  // never quicker than the short end of the gesture's span, so no one finishes in a blink
+  if (challengeProgress(a) >= 1 && a.t >= GESTURES[MISSIONS[a.o].g].d[0]) finishAct(st);
+}
+// the challenge drawn in the prompt (rebuilt only when what it shows changes)
+let miniKey = '';
+function drawMini() {
+  const box = $('#mini'), a = ctrl.act, ch = a && a.ch;
+  if (!ch || ch.k === 'segurar') { if (!box.hidden) { box.hidden = true; box.innerHTML = ''; miniKey = ''; } return; }
+  box.hidden = false;
+  const touch = matchMedia('(pointer:coarse)').matches;
+  if (ch.k === 'seq') {
+    const key = 'seq' + a.o + ':' + ch.i + ':' + (ch.err > 0);
+    if (key === miniKey) return; miniKey = key;
+    box.innerHTML = `<div class="seq${ch.err > 0 ? ' err' : ''}">${ch.keys.map((d, i) => `<b class="${i < ch.i ? 'ok' : i === ch.i ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
+      + (touch ? `<div class="pads">${ARROWS.map((s, d) => `<button data-d="${d}">${s}</button>`).join('')}</div>` : '<small>setas ou WASD · Esc sai</small>');
+    box.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => challengeKey(Object.keys(ARROW_KEYS)[[0, 2, 4, 6][+b.dataset.d]]));
+  } else if (ch.k === 'ponto') {
+    const key = 'ponto' + a.o;
+    if (key !== miniKey) { miniKey = key; box.innerHTML = `<div class="dial"><s style="left:${(ch.c - ch.w / 2) * 100}%;width:${ch.w * 100}%"></s><u></u></div><small></small>`; }
+    box.querySelector('u').style.left = (needleAt(ch, a.t) * 100).toFixed(1) + '%';
+    box.querySelector('.dial').classList.toggle('miss', ch.miss > 0);
+    const tx = `${touch ? 'Toque em Agora' : 'Aperte E'} com o ponteiro na faixa · ${ch.hits}/${ch.need}`; const sm = box.querySelector('small'); if (sm.textContent !== tx) sm.textContent = tx;
+  } else if (ch.k === 'calma') {
+    const key = 'calma' + ch.near;
+    if (key === miniKey) return; miniKey = key;
+    box.innerHTML = ch.near ? '<small class="warn">A mira está perto: sua mão treme</small>' : '<small>Mão firme: só avança com a mira longe</small>';
+  }
+}
 function finishAct(st) {
   const o = ctrl.act.o; ctrl.act = null; ctrl.actSeq++;
   const pending = st.ms.includes(o) && !st.dn.includes(o);
@@ -11802,10 +11889,14 @@ function updateLocal(dt, st) {
         const fwd = new T.Vector3(); iso.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
         const right = new T.Vector3(-fwd.z, 0, fwd.x);
         let ix = 0, iz = 0;
-        if (keyDown.has('w') || keyDown.has('arrowup')) { ix += fwd.x; iz += fwd.z; }
-        if (keyDown.has('s') || keyDown.has('arrowdown')) { ix -= fwd.x; iz -= fwd.z; }
-        if (keyDown.has('d') || keyDown.has('arrowright')) { ix += right.x; iz += right.z; }
-        if (keyDown.has('a') || keyDown.has('arrowleft')) { ix -= right.x; iz -= right.z; }
+        // while typing a sequence the arrows (and WASD) belong to the challenge; Esc or a click elsewhere walks away
+        const typing = ctrl.act && ctrl.act.ch && ctrl.act.ch.k === 'seq';
+        if (!typing) {
+          if (keyDown.has('w') || keyDown.has('arrowup')) { ix += fwd.x; iz += fwd.z; }
+          if (keyDown.has('s') || keyDown.has('arrowdown')) { ix -= fwd.x; iz -= fwd.z; }
+          if (keyDown.has('d') || keyDown.has('arrowright')) { ix += right.x; iz += right.z; }
+          if (keyDown.has('a') || keyDown.has('arrowleft')) { ix -= right.x; iz -= right.z; }
+        }
         if (ix || iz) { ctrl.path = []; ctrl.goal = null; const l = Math.hypot(ix, iz); vx = ix / l * P_SPEED; vz = iz / l * P_SPEED; }
         else if (ctrl.path.length) {
           const wp = ctrl.path[0];
@@ -11859,7 +11950,7 @@ function updateLocal(dt, st) {
           ctrl.rot = lerpAngle(ctrl.rot, s.rot, ks);
           if ((s.x === undefined || Math.hypot(s.x - ctrl.x, s.z - ctrl.z) < 0.01) && Math.abs(lerpAngle(ctrl.rot, s.rot, 1) - ctrl.rot) < 0.01) { if (s.x !== undefined) { ctrl.x = s.x; ctrl.z = s.z; } ctrl.rot = s.rot; ctrl.settle = null; }
         }
-        if (ctrl.act) { ctrl.act.t += dt; if (ctrl.act.t >= ctrl.act.d) finishAct(st); }
+        if (ctrl.act) stepAct(dt, st);
         if (ctrl.pose) {
           if (ctrl.pose.until && now > ctrl.pose.until) ctrl.pose = null;
           else if (ctrl.pose.anim === 9) { ctrl.pose.nt -= dt; if (ctrl.pose.nt <= 0) { ctrl.pose.nt = 0.26 + Math.random() * 0.1; ctrl.pose.ni = ((ctrl.pose.ni || 0) + 1) % PIANO_NOTES.length; tone(PIANO_NOTES[ctrl.pose.ni], 0.35, 0.035, 'triangle'); } }
@@ -11874,11 +11965,14 @@ function updateLocal(dt, st) {
     meRing.visible = !dead; meRing.position.set(ctrl.x, ctrl.y + 0.035, ctrl.z);
     // prompt
     const it = st.ph === 'play' && !dead && !ctrl.lk && !ctrl.act ? (ctrl.pose ? { k: 'up', label: ctrl.pose.anim === 3 ? 'Parar de dançar' : [7, 8, 9, 12, 15, 16, 17].includes(ctrl.pose.anim) ? 'Levantar' : 'Parar' } : nearInteraction(st)) : null;
-    if (ctrl.act) { show('#prompt', true); $('#promptText').textContent = MISSIONS[ctrl.act.o].label + '…'; $('#promptBar').style.width = (ctrl.act.t / ctrl.act.d * 100) + '%'; }
+    if (ctrl.act) { show('#prompt', true); $('#promptText').textContent = MISSIONS[ctrl.act.o].label + '…'; $('#promptBar').style.width = (challengeProgress(ctrl.act) * 100) + '%'; }
     else if (it) { show('#prompt', true); $('#promptText').innerHTML = `<kbd>E</kbd> ${esc(it.label)}`; $('#promptBar').style.width = '0%'; }
     else show('#prompt', false);
-    const ab = $('#actBtn'); ab.hidden = !(it && matchMedia('(pointer:coarse)').matches); if (it && ab.textContent !== it.label) ab.textContent = it.label;
-  } else show('#prompt', false);
+    drawMini();
+    // on touch screens the act button doubles as the "now" of a needle challenge
+    const pt = ctrl.act && ctrl.act.ch && ctrl.act.ch.k === 'ponto', bl = pt ? 'Agora' : it && it.label;
+    const ab = $('#actBtn'); ab.hidden = !(bl && matchMedia('(pointer:coarse)').matches); if (bl && ab.textContent !== bl) ab.textContent = bl;
+  } else { show('#prompt', false); if (ctrl.act) ctrl.act = null; drawMini(); }
 }
 
 // the radio only says roughly where something changed (level, side, front or back from the sniper's point of view);
@@ -12170,5 +12264,7 @@ Net.init().then(ok => {
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+// missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
+Object.assign(window.__mira, { makeChallenge, missionAtProp });
 })();
 </script>
