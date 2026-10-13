@@ -10244,14 +10244,17 @@ const MAP0K = (() => {
 const MAP0_OBJS = scene.children.slice(MAP0_FROM);
 const NEST = new T.Group(); NEST.position.copy(SNIPER_POS); NEST.userData.noCol = true; scene.add(NEST);
 const NEST_FX = { pigeons: [], flash: null, flashT: 0, scare: 0 };
+// the concrete lip and sandbag the kit rests on; a scenario with its own nest (sc.ninho) hides it and builds its own surface
+const NEST_BASE = new T.Group(); NEST.add(NEST_BASE);
 {
   const concrete = mat(0x8b8780, { roughness: 0.95 }), rubber = mat(0x101012, { roughness: 0.6 }), gun = mat(0x1d1f24, { metalness: 0.6, roughness: 0.35 });
   const n = (geo, m, x, y, z, o = {}) => { const me = new T.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = false; me.receiveShadow = false; NEST.add(me); if (o.rx) me.rotation.x = o.rx; if (o.ry) me.rotation.y = o.ry; if (o.rz) me.rotation.z = o.rz; return me; };
   // parapet lip the rifle rests on (just below the eye line)
-  n(new T.BoxGeometry(3.6, 0.5, 0.5), concrete, 0, -1.08, -1.0); n(new T.BoxGeometry(3.6, 0.04, 0.54), mat(0x6f6b64, { roughness: 1 }), 0, -0.81, -1.0);
-  n(new T.BoxGeometry(0.5, 0.16, 0.3), mat(0x4f5a3a, { roughness: 1 }), -1.0, -0.72, -1.0).rotation.y = 0.2; // sandbag
+  NEST_BASE.add(n(new T.BoxGeometry(3.6, 0.5, 0.5), concrete, 0, -1.08, -1.0), n(new T.BoxGeometry(3.6, 0.04, 0.54), mat(0x6f6b64, { roughness: 1 }), 0, -0.81, -1.0));
+  { const sb = n(new T.BoxGeometry(0.5, 0.16, 0.3), mat(0x4f5a3a, { roughness: 1 }), -1.0, -0.72, -1.0); sb.rotation.y = 0.2; NEST_BASE.add(sb); } // sandbag
   // the rifle: receiver by the eye, barrel out over the lip, scope on top, bipod feet on the concrete
-  const rifle = new T.Group(); rifle.position.set(0.42, -0.4, -0.55); rifle.rotation.x = 0.1; rifle.rotation.y = -0.1; NEST.add(rifle);
+  // low in the bottom-right corner so it frames the view without crossing the party; it turns a little toward the aim
+  const rifle = new T.Group(); rifle.position.set(0.55, -0.62, -0.4); rifle.rotation.x = -0.12; rifle.rotation.y = -0.06; NEST.add(rifle); NEST_FX.rifle = rifle;
   const rn = (geo, m, x, y, z, o = {}) => { const me = new T.Mesh(geo, m); me.position.set(x, y, z); rifle.add(me); if (o.rx) me.rotation.x = o.rx; if (o.rz) me.rotation.z = o.rz; return me; };
   rn(new T.BoxGeometry(0.09, 0.12, 0.5), gun, 0, 0, 0.05); rn(new T.BoxGeometry(0.07, 0.08, 0.3), rubber, 0, 0.02, 0.35);
   rn(new T.CylinderGeometry(0.022, 0.026, 1.25, 10), gun, 0, 0.03, -0.8, { rx: Math.PI / 2 }); rn(new T.CylinderGeometry(0.03, 0.03, 0.12, 10), gun, 0, 0.03, -1.4, { rx: Math.PI / 2 });
@@ -10261,7 +10264,7 @@ const NEST_FX = { pigeons: [], flash: null, flashT: 0, scare: 0 };
   rn(new T.BoxGeometry(0.03, 0.05, 0.16), gun, 0, -0.08, -0.1); // magazine
   NEST_FX.flash = rn(new T.SphereGeometry(0.09, 8, 6), glow(0xffd080, 6), 0, 0.03, -1.5); NEST_FX.flash.visible = false;
   // spotting scope on a little tripod, left of the rifle
-  const spot = new T.Group(); spot.position.set(-0.62, -0.79, -0.95); NEST.add(spot);
+  const spot = new T.Group(); spot.position.set(-0.95, -0.79, -0.88); NEST.add(spot);
   const sn = (geo, m, x, y, z, o = {}) => { const me = new T.Mesh(geo, m); me.position.set(x, y, z); spot.add(me); if (o.rx) me.rotation.x = o.rx; if (o.rz) me.rotation.z = o.rz; return me; };
   sn(new T.CylinderGeometry(0.04, 0.05, 0.3, 12), gun, 0, 0.14, -0.05, { rx: Math.PI / 2 + 0.1 }); sn(new T.CylinderGeometry(0.03, 0.03, 0.07, 10), gun, 0, 0.16, 0.14, { rx: Math.PI / 2 + 0.1 });
   for (const a of [0, 2.1, 4.2]) sn(new T.CylinderGeometry(0.006, 0.006, 0.2, 5), chrome, Math.cos(a) * 0.06, 0.02, Math.sin(a) * 0.06, { rx: Math.sin(a) * 0.5, rz: -Math.cos(a) * 0.5 });
@@ -10281,6 +10284,22 @@ const NEST_FX = { pigeons: [], flash: null, flashT: 0, scare: 0 };
     const wings = []; for (const sx of [-1, 1]) { const w = new T.Mesh(new T.BoxGeometry(0.07, 0.006, 0.08), featherD); w.position.set(sx * 0.045, 0.07, 0); pg.add(w); wings.push(w); }
     NEST_FX.pigeons.push({ g: pg, wings, vx: (Math.random() - 0.5) * 2, t: 0, home: pg.position.clone(), ph: Math.random() * 6 });
   }
+}
+// A scenario can theme the sniper's nest with sc.ninho(K, g): it builds into g, a group at the sniper's eye
+// (origin = eye, -z toward the party, +x to the right, +y up, metres, no rotation). The game's kit (rifle, spotting scope,
+// thermos, radio, notebook, pigeons) stays and rests on a surface whose top must be at y = -0.79 over x -1.8..1.8,
+// z -1.25..-0.75. To keep the view clear: nothing above y = -0.79 between x -1.8 and 1.8, nothing in front of
+// z = -1.3 above y = -0.85; side pieces beyond |x| 1.8 may rise to y = 1.5 at z >= -1.3. The nest is not a scope
+// target, does not collide and is disposed when the map changes.
+let NINHO = null;
+function buildNinho(sc) {
+  if (NINHO) { scene.remove(NINHO); disposeTree(NINHO); NINHO = null; }
+  NEST_BASE.visible = true;
+  if (!sc || typeof sc.ninho !== 'function' || !SCEN.K) return;
+  const g = new T.Group(); g.position.copy(SNIPER_POS); g.userData.noCol = true;
+  try { sc.ninho(SCEN.K, g); } catch (e) { console.error('ninho', sc.id, e); disposeTree(g); return; }
+  g.traverse(o => { o.userData.noCol = true; if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+  scene.add(g); NINHO = g; NEST_BASE.visible = false;
 }
 function stepNest(dt, t) {
   NEST_FX.led.material.emissiveIntensity = Math.sin(t * 2.2) > 0.7 ? 4 : 0.3;
@@ -10844,6 +10863,7 @@ function loadMap(id) {
     applyAmbient(sc.ambiente || {}); SCEN.tBuild = Math.round(performance.now() - tb);
   }
   NEST.position.copy(SNIPER_POS);
+  buildNinho(id ? SCEN.sc : null);
   { const p = laserGeo.attributes.position; p.setXYZ(0, SNIPER_POS.x, SNIPER_POS.y, SNIPER_POS.z); p.needsUpdate = true; }
   NAV.auto = 0; NAV.tris = 0;
   if (!id && NAV0) { NAV.lv = NAV0.lv; NAV.ready = true; buildRings(); }
@@ -11864,10 +11884,15 @@ function updateLocal(dt, st) {
 // the radio only says roughly where something changed (level, side, front or back from the sniper's point of view);
 // what changed is identified when the sniper frames that spot in the scope, zoomed in, for a moment
 function lvLabel(lv) { const L = LEVELS[lv] || LEVELS[0]; return SCEN.id ? L.name : lv === 0 ? 'festa' : lv === 1 ? 'terraço' : L.name + ' (' + lv + 'º)'; }
-function areaOf(o) {
+function areaBins(o) {
   const m = MISSIONS[o], L = LEVELS[m.lv || 0] || LEVELS[0], q = m.l || m.s;
   const fx = (q[0] - L.x0) / ((L.x1 - L.x0) || 1), fz = (q[1] - L.z0) / ((L.z1 - L.z0) || 1);
-  const side = fx < 0.36 ? 'à esquerda' : fx > 0.64 ? 'à direita' : 'no centro', depth = fz > 0.5 ? 'perto da frente' : 'mais ao fundo';
+  return [m.lv || 0, fx < 0.36 ? 0 : fx > 0.64 ? 2 : 1, fz > 0.5 ? 1 : 0];
+}
+const areaKey = o => areaBins(o).join(':');
+function areaOf(o) {
+  const m = MISSIONS[o], b = areaBins(o);
+  const side = ['à esquerda', 'no centro', 'à direita'][b[1]], depth = b[2] ? 'perto da frente' : 'mais ao fundo';
   return (LV_N > 1 ? 'em ' + lvLabel(m.lv || 0) + ', ' : '') + side + ', ' + depth;
 }
 const idV = new T.Vector3();
@@ -11921,6 +11946,9 @@ function updateSniper(dt, st) {
   const hit = ray.intersectObjects(occTargets().concat(FLOORS), true)[0];
   snip.aim.copy(hit ? hit.point : SNIPER_POS.clone().addScaledVector(dir, 45));
   stepNest(dt, snip.breath);
+  { const r = NEST_FX.rifle, kr = 1 - Math.exp(-dt * 5);
+    r.rotation.y += (-0.06 - snip.yaw * 0.25 - r.rotation.y) * kr; r.rotation.x += (-0.12 + (snip.pitch - WIDE_ELEV) * 0.25 - r.rotation.x) * kr;
+    r.position.z = -0.4 + snip.kick * 0.09; }
   if (NEST_FX.flashT > 0) NEST_FX.flash.visible = snip.scoped ? false : NEST_FX.flash.visible;
   // scope readouts: range, who is under the crosshair and what they are doing, wind, breath
   if (snip.scoped) {
@@ -12141,6 +12169,6 @@ Net.init().then(ok => {
   $('#multiBox').hidden = !ok; $('#multiOff').hidden = ok;
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
-window.__mira = { spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 })();
 </script>
