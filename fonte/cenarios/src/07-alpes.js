@@ -711,4 +711,22 @@ MIRA_CENARIOS.push({
     [[3.6, -5.0], [5.0, -1.6], [-2.6, -5.6], [-0.2, -6.8], [8.2, 0.4], [6.6, 6.8], [-3.6, 0.6], [11.0, 4.0], [-9.0, -0.4], [-9.4, 1.1]].forEach(([x, z]) => K.slot(x, z, x + (R() - 0.5), z + (R() - 0.5) * 2, 'talk'));
     K.slot(10.2, -3.2, 7.8, -5.6, 'talk'); K.slot(5.4, -3.2, 7.8, -5.6, 'talk');
   },
+  // ninho do sniper: janela da cabine do teleférico. Peitoril de madeira coberto de neve fofa (sombras azuladas, pegadas
+  // de passarinho, agulhas de pinheiro), pingentes de gelo na frente e a plaquinha esmaltada da estação no batente
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.9 }), wood = 0x6a4a30;
+    N.tampo(0xeef3f8, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 71, draw: (c, w, h, R) => {
+      c.fillStyle = '#eef2f7'; c.fillRect(0, 0, w, h); K.manchas(c, w, h, R, 160, ['150,175,210', '255,255,255'], 10, 60, 0.35);
+      c.fillStyle = 'rgba(110,80,50,.9)'; c.fillRect(0, h - 10, w, 10); K.manchas(c, w, 22, R, 40, ['238,242,247'], 6, 24, 1);
+      c.strokeStyle = 'rgba(120,140,170,.7)'; c.lineWidth = 1.5; for (let k = 0; k < 9; k++) { const x = w * 0.08 + k * 26, y = h * 0.45 + Math.sin(k) * 14; for (const a of [-0.5, 0, 0.5]) { c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.sin(a + 0.3) * 9, y - Math.cos(a + 0.3) * 9); c.stroke(); } }
+      c.strokeStyle = 'rgba(40,70,40,.7)'; c.lineWidth = 1.2; for (let k = 0; k < 24; k++) { const x = R() * w, y = R() * h, a = R() * 3; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 12, y + Math.sin(a) * 12); c.stroke(); }
+      c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(0, 0, w, 6); K.grain(c, w, h, 6);
+    } });
+    N.box(5.6, 0.12, 1.0, wood, 0, -0.98, -1.1).box(5.62, 0.04, 0.4, 0xf4f7fb, 0, -0.9, -1.4).box(5.4, 3.2, 0.9, 0x5a3e28, 0, -2.66, -0.95);
+    const R = K.rng(73); for (let x = -2.6; x <= 2.61; x += 0.16 + R() * 0.12) { const l = 0.08 + R() * 0.3; N.geo(new T.ConeGeometry(0.025 + R() * 0.015, l, 6), 0xd8ecf8, x, -1.04 - l / 2, -1.58, 0, Math.PI); }
+    for (const sx of [-1, 1]) N.box(0.5, 2.2, 0.6, wood, sx * 2.1, 0.31, -0.98).box(0.56, 0.1, 0.64, 0xf4f7fb, sx * 2.1, 1.45, -0.98);
+    N.fim();
+    const tex = K.canvasTex(256, 160, (c, w, h) => { c.fillStyle = '#c8102a'; c.fillRect(0, 0, w, h); c.strokeStyle = '#fff'; c.lineWidth = 6; c.strokeRect(8, 8, w - 16, h - 16); c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = '700 34px Arial, sans-serif'; c.fillText('SEILBAHN', w / 2, 66); c.font = '700 40px Arial, sans-serif'; c.fillText('2 214 m', w / 2, 120); });
+    K.add(new T.PlaneGeometry(0.4, 0.25), K.texMat(tex, { roughness: 0.3 }), 2.1, 0.5, -1.285, { parent: g, cast: false });
+  },
 });

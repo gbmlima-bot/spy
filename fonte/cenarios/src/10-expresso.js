@@ -807,4 +807,27 @@ MIRA_CENARIOS.push({
     K.plight(-7.5, 4.2, 1.5, 0xffd0a0, 1.0, 12); K.plight(7.5, 4.2, 0.0, 0xffd0a0, 1.0, 12);
     K.pool(-4, 0, 6, 0xffb070, 0.12); K.pool(5, -2, 6, 0xffb070, 0.12);
   },
+  // ninho do sniper: atrás do relógio da torre da estação. Granito com fuligem, chapa de ferro rebitada na borda, a
+  // plaqueta de latão da companhia e, nas laterais, as engrenagens do mecanismo do relógio girando devagar
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.8 }), gran = 0x6a6660;
+    N.tampo(gran, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 101, draw: (c, w, h, R) => {
+      c.fillStyle = '#6e6a64'; c.fillRect(0, 0, w, h); for (let k = 0; k < 3000; k++) { c.fillStyle = `rgba(${R() < 0.5 ? '30,30,32' : '200,196,188'},.5)`; c.fillRect(R() * w, R() * h, 1 + R() * 2, 1 + R() * 2); }
+      K.manchas(c, w, h, R, 60, ['20,20,22'], 10, 50, 0.3);
+      c.fillStyle = '#3a3a3e'; c.fillRect(0, 0, w, 34); c.fillStyle = '#5a5a60'; for (let x = 12; x < w; x += 28) { c.beginPath(); c.arc(x, 17, 4, 0, 7); c.fill(); }
+      c.fillStyle = '#2a2a2e'; for (const x of [w * 0.25, w * 0.5, w * 0.75]) c.fillRect(x, 34, 2, h);
+      c.save(); c.translate(w * 0.2, h * 0.62); c.fillStyle = '#b8893a'; c.fillRect(-70, -22, 140, 44); c.strokeStyle = '#6a4a1a'; c.lineWidth = 3; c.strokeRect(-66, -18, 132, 36);
+      c.fillStyle = '#4a3010'; c.font = '700 15px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('C.I.W.L. · 1883', 0, 1); c.restore();
+      K.grain(c, w, h, 10);
+    } });
+    N.box(5.6, 0.12, 1.0, 0x2e2e32, 0, -0.97, -1.1); for (let x = -2.7; x <= 2.71; x += 0.15) N.cyl(0.018, 0.018, 0.02, 0x4a4a50, x, -0.91, -1.55, 6);
+    N.box(5.4, 3.2, 0.9, 0x8a7a68, 0, -2.6, -0.95);
+    for (const sx of [-1, 1]) N.box(0.5, 2.2, 0.7, 0x8a7a68, sx * 2.05, 0.31, -0.95);
+    N.fim();
+    const gear = (x, y, z, r, n, sp) => { const gg = K.group(x, y, z, 0, g), parts = [[new T.CylinderGeometry(r, r, 0.05, 32).rotateX(Math.PI / 2), 0xb8893a], [new T.CylinderGeometry(r * 0.25, r * 0.25, 0.08, 16).rotateX(Math.PI / 2), 0x6a4a1a]];
+      for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; parts.push([K.at(new T.BoxGeometry(0.06, r * 0.16, 0.05), Math.cos(a) * r * 1.05, Math.sin(a) * r * 1.05, 0, 0, 0, a - Math.PI / 2), 0xb8893a]); }
+      for (let k = 0; k < 4; k++) parts.push([K.at(new T.BoxGeometry(r * 1.6, 0.05, 0.06), 0, 0, 0.01, 0, 0, k * Math.PI / 4), 0x6a4a1a]);
+      K.merge(parts, K.vcol({ metalness: 0.7, roughness: 0.35 }), { parent: gg, cast: false }); K.tick((dt) => { gg.rotation.z += dt * sp; }); };
+    gear(2.75, 0.45, -0.75, 0.75, 28, 0.08); gear(2.5, 1.2, -0.95, 0.22, 10, -0.27); gear(-2.6, 0.7, -0.85, 0.5, 20, -0.12);
+  },
 });

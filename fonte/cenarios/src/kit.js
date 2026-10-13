@@ -279,6 +279,28 @@ function MIRA_KIT(T, root, seed) {
     K.box(0.12, 2.6, 0.12, wm, -1.15, 0.4, 0.66, { parent: g }); K.box(0.12, 2.6, 0.12, wm, 1.15, 0.4, 0.66, { parent: g });
     return g;
   };
+
+  // ---------------------------------------------------------------- ninho temático do sniper (sc.ninho(K, g))
+  // peças fixas do ninho juntadas num só draw call (cor por vértice): N.box/cyl/geo(..., cor) e N.fim(); o resto (texturas,
+  // coisas que mexem) vai direto com { parent: g }. Referência: olho na origem, -z para a festa, superfície em y = -0,79.
+  // manchas para texturas pintadas: n elipses de cores sorteadas em cols ('r,g,b'), raio entre r0 e r1, alfa até al
+  K.manchas = (c, w, h, R, n, cols, r0 = 3, r1 = 24, al = 0.15) => { for (let k = 0; k < n; k++) { c.fillStyle = `rgba(${cols[(R() * cols.length) | 0]},${al * (0.3 + R() * 0.7)})`; c.beginPath(); c.ellipse(R() * w, R() * h, r0 + R() * (r1 - r0), (r0 + R() * (r1 - r0)) * 0.4, R() * 3, 0, 7); c.fill(); } };
+  K.ninhoPecas = (g, mo = {}) => {
+    const parts = [], N = {
+      geo: (geo, c, x, y, z, ry = 0, rx = 0, rz = 0) => { parts.push([K.at(geo, x, y, z, ry, rx, rz), c]); return N; },
+      box: (w, h, d, c, x, y, z, ry, rx, rz) => N.geo(new T.BoxGeometry(w, h, d), c, x, y, z, ry, rx, rz),
+      cyl: (rt, rb, h, c, x, y, z, seg = 10, ry, rx, rz) => N.geo(new T.CylinderGeometry(rt, rb, h, seg), c, x, y, z, ry, rx, rz),
+      // tampo do ninho: topo exato em -0,79, com uma borda à frente que desce
+      // o tampo é o que mais aparece do ninho (uma faixa no rodapé da tela): draw(ctx, w, h) pinta o topo, 1 px ≈ 5 mm
+      tampo: (c, o = {}) => { const x0 = o.x0 || -2.4, x1 = o.x1 || 2.4, z0 = o.z0 || -1.3, z1 = o.z1 || -0.45, h = o.h || 0.22, top = o.draw ? -0.7915 : -0.79;
+        N.box(x1 - x0, h, z1 - z0, c, (x0 + x1) / 2, top - h / 2, (z0 + z1) / 2);
+        if (o.draw) { const w = Math.round((x1 - x0) * 200), d = Math.round((z1 - z0) * 200), tex = K.canvasTex(w, d, (ctx) => o.draw(ctx, w, d, K.rng(o.seed || 7)));
+          K.add(new T.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), K.texMat(tex, Object.assign({ roughness: 0.8 }, o.mat)), (x0 + x1) / 2, -0.79, (z0 + z1) / 2, { parent: g, cast: false }); }
+        return N; },
+      fim: () => parts.length ? K.merge(parts, K.vcol(mo), { parent: g, cast: false }) : null,
+    };
+    return N;
+  };
   return K;
 }
 window.MIRA_KIT = MIRA_KIT;

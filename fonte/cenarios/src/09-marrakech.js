@@ -843,4 +843,25 @@ MIRA_CENARIOS.push({
     // ------------------------------------------------------------ ambiente vivo: mariposas rodeando a grande lanterna perfurada
     K.particles({ modo: 'paira', x0: -0.9, x1: 0.9, z0: -8.9, z1: -7.6, y0: 1.9, y1: 3.0, n: 14, cor: [0xffe0a0], tam: 0.04, vel: 2.2, balanco: 0.35, add: true, pisca: 3 });
   },
+  // ninho do sniper: varanda do minarete. Zellige verde, branco e ocre com estrelas de oito pontas, poeira de areia,
+  // a fiada de ameias escalonadas da torre na frente, pilares de azulejo e uma lanterna de latão vazada balançando
+  ninho(K, g) {
+    const T = K.T, N = K.ninhoPecas(g, { roughness: 0.4 }), plaster = 0xe2d2b2;
+    N.tampo(0x1f7a5a, { x0: -2.7, x1: 2.7, z0: -1.3, z1: -0.4, seed: 91, mat: { roughness: 0.3 }, draw: (c, w, h, R) => {
+      c.fillStyle = '#e8dcc0'; c.fillRect(0, 0, w, h); const s = 30;
+      for (let y = 0; y < h + s; y += s) for (let x = 0; x < w + s; x += s) { const i = ((x / s) + (y / s)) % 2;
+        c.fillStyle = i ? '#1f7a5a' : '#ece4d0'; c.fillRect(x + 1, y + 1, s - 2, s - 2);
+        if (!i) { c.fillStyle = ((x / s) % 4) < 2 ? '#c8902a' : '#1f4a8a'; c.save(); c.translate(x + s / 2, y + s / 2); for (let r = 0; r < 2; r++) { c.rotate(Math.PI / 4); c.fillRect(-7, -7, 14, 14); } c.restore(); } }
+      c.fillStyle = 'rgba(200,170,120,.25)'; K.manchas(c, w, h, R, 120, ['210,180,130'], 10, 50, 0.35); c.fillStyle = '#d8c4a0'; c.fillRect(0, 0, w, 10); c.fillRect(0, h - 10, w, 10); K.grain(c, w, h, 10);
+    } });
+    N.box(5.6, 0.12, 1.0, plaster, 0, -0.98, -1.1).box(5.4, 3.2, 0.9, 0xd8b888, 0, -2.7, -0.95);
+    for (let x = -2.6; x <= 2.61; x += 0.4) N.box(0.22, 0.08, 0.18, plaster, x, -0.89, -1.5).box(0.12, 0.06, 0.16, plaster, x, -0.89, -1.5);
+    for (const sx of [-1, 1]) N.box(0.6, 2.2, 0.6, 0x1f7a5a, sx * 2.15, 0.31, -0.95).box(0.7, 0.1, 0.7, plaster, sx * 2.15, 1.45, -0.95).box(0.62, 0.06, 0.62, 0xc8902a, sx * 2.15, 0.6, -0.95);
+    N.fim();
+    const lan = K.group(2.15, 1.38, -0.62, 0, g), brass = K.brass;
+    K.cyl(0.005, 0.005, 0.3, K.iron, 0, -0.15, 0, { parent: lan, cast: false }, 4);
+    K.cyl(0.04, 0.14, 0.14, brass, 0, -0.36, 0, { parent: lan, cast: false }, 8); K.cyl(0.13, 0.13, 0.26, K.mat(0x8a6a3a, { metalness: 0.7, roughness: 0.4, wireframe: true }), 0, -0.56, 0, { parent: lan, cast: false }, 8);
+    K.sphere(0.07, K.glow(0xffb060, 2.4), 0, -0.56, 0, { parent: lan, cast: false }, 10, 8); K.cone(0.14, 0.1, brass, 0, -0.74, 0, { parent: lan, rx: Math.PI, cast: false }, 8);
+    K.tick((dt, t) => { lan.rotation.z = Math.sin(t * 0.9) * 0.06; lan.rotation.x = Math.sin(t * 0.7 + 1) * 0.04; });
+  },
 });
