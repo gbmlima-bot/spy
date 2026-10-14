@@ -11356,6 +11356,8 @@ CG.cocktail = lathe([[13.4, 10], [14.6, 4], [16.2, -10], [19, -25], [25, -40], [
 CG.shoe = (() => { const g = new T.SphereGeometry(1, 10, 7); g.scale(5, 3.6, 12.5); g.translate(0, -4.3, 4.5); return g; })();
 CG.sole = new T.BoxGeometry(9.6, 1.2, 24).translate(0, -7.4, 4.5);
 CG.sclera = (() => { const g = new T.SphereGeometry(1.75, 8, 6); g.scale(1.25, 1, 0.55); return g; })(); CG.pupil = new T.SphereGeometry(0.95, 6, 5);
+// an eyelid: a skin-coloured cap hanging from its top edge, so scaling it in y opens and closes the eye
+CG.lid = (() => { const g = new T.SphereGeometry(2.0, 7, 4); g.scale(1.25, 1, 0.75); g.translate(0, -2.0, 0); return g; })();
 CG.collar = new T.BoxGeometry(5, 3.2, 1); CG.neckband = new T.TorusGeometry(5.2, 1.0, 5, 14);
 CG.lens = new T.BoxGeometry(4.4, 2.7, 1.0); CG.bridge = new T.BoxGeometry(1.6, 0.6, 0.6); CG.temple = new T.BoxGeometry(0.5, 0.6, 11);
 CG.watchBand = new T.TorusGeometry(4.9, 0.7, 5, 14); CG.watchFace = new T.CylinderGeometry(2.3, 2.3, 1.1, 10); CG.bracelet = new T.TorusGeometry(4.3, 0.6, 5, 14);
@@ -11444,6 +11446,10 @@ function makeChar(o, id) {
     const b = m(CG.brow, hair, s * 4, 4.2, 10.9, headG); b.rotation.z = s * -0.12;
     if (o.earring) m(CG.earring, mat(0xe2c26a, { metalness: 0.9, roughness: 0.2 }), s * 10.6, -4, 0, headG);
   }
+  // eyelids hang from a little bone of their own, so they still blink once the character's meshes are batched
+  // (built closed, which is the bind pose; animChar opens them)
+  const lids = new T.Object3D(); lids.name = 'Lids'; lids.position.set(0, 9.5 + 3.2, 1.5); B.Head.add(lids); B.Lids = lids;
+  for (const s of [-1, 1]) m(CG.lid, skin, s * 3.8, 0, 10.6, lids);
   m(CG.nose, skin, 0, -1.2, 11.9, headG);
   m(CG.lip, mat(o.dress ? 0x9b3a3a : 0x8a5a4a), 0, -5.8, 10.4, headG);
   if (o.sunglasses) {
@@ -11590,6 +11596,8 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   let hy = sampleHipsY(cl, u.ct, CLIP_PP[u.clip]);
   if (u.blend < 1 && pc) hy = hy * u.blend + sampleHipsY(pc, u.pt, CLIP_PP[u.prev]) * (1 - u.blend);
   B.Hips.position.y = hy;
+  // blinking: every few seconds the lids close for a moment; closed when lying dead
+  if (B.Lids) { u.blink = (u.blink ?? 1 + Math.random() * 4) - dt; if (u.blink < -0.13) u.blink = 2 + Math.random() * 4.5; B.Lids.scale.y = anim === 5 || u.blink < 0 ? 1 : 0.08; }
   // procedural overrides eased in and out
   const want = overridesFor(anim, u, t), seen = {};
   const k = 1 - Math.exp(-dt * 9);
@@ -12062,7 +12070,7 @@ function batchStatic(roots, holder, skip) {
 function batchChar(root, B, keep) {
   if (window.__noBatch) return;
   root.updateMatrixWorld(true);
-  const boneList = RIG.bones.map(b => B[b.n]).filter(Boolean), boneIx = new Map(boneList.map((b, i) => [b, i])), skip = new Set();
+  const boneList = RIG.bones.map(b => B[b.n]).concat(B.Lids ? [B.Lids] : []).filter(Boolean), boneIx = new Map(boneList.map((b, i) => [b, i])), skip = new Set();
   for (const k of keep) if (k) k.traverse(o => skip.add(o));
   const groups = new Map();
   root.traverse(o => {
