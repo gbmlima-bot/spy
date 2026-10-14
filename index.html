@@ -84,6 +84,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 #breathBtn{touch-action:none}
 /* the agent's one button: the main action, so it reads as one over a bright party */
 #actBtn{background:var(--brass);color:#17130a;border-color:var(--brass)}
+#lureBtn.on,#lureCardBtn{border-color:var(--brass)}#lureBtn.on{background:rgba(217,164,65,.25);color:var(--brass)}#lure button{margin-top:6px;width:100%;pointer-events:auto}#lure p{margin:2px 0}
 @media (orientation:portrait) and (max-width:700px){#touch #actBtn{font-size:13px}}
 /* phone upright: the buttons make one row along the bottom instead of a column over the scope's right edge */
 @media (orientation:portrait) and (max-width:700px){#touch{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}#touch button{width:auto;min-width:0;padding:12px 2px;font-size:11px;line-height:1.15}}
@@ -148,7 +149,8 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
    screen (where your own character stands) and over the prompt; a tap folds it down to its title */
 @media (orientation:portrait) and (max-width:700px){
   #roleCard.play{top:calc(56px + env(safe-area-inset-top,0px));bottom:auto;max-height:28vh;width:min(270px,calc(100% - 32px))}
-  #roleCard.play .eyebrow::after{content:" ▾";color:var(--muted)}#roleCard.play.min .eyebrow::after{content:" ▸"}
+  #roleCard.play > .eyebrow::after{content:" ▾";color:var(--muted)}#roleCard.play.min > .eyebrow::after{content:" ▸"}
+  #lure button,#lure small{display:none}
 }
 #roleCard.min > :not(.eyebrow):not(h2){display:none}
 #hud{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -240,6 +242,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
   <div id="hints" class="card"></div>
   <div id="touch">
     <button id="actBtn" hidden>Interagir</button>
+    <button id="lureBtn" hidden>Despiste</button>
     <button id="scopeBtn" hidden>Luneta</button>
     <button id="zoomBtn" hidden>Zoom</button>
     <button id="markBtn" hidden>Marcar</button>
@@ -9701,6 +9704,12 @@ const playerActDur = (o, rd) => actDur(o, mulberry32(((rd || 1) * 7919 + o * 104
 const CHALLENGES = { mexer: ['seq', 'ponto', 'girar'], foto: ['calma', 'ponto'], marcar: ['ponto', 'seq', 'pulso'], largar: ['segurar', 'calma'], agachar: ['segurar', 'calma'], brinde: ['segurar', 'pulso'], conversa: ['segurar', 'pulso'], regar: ['segurar', 'girar'] };
 const ARROWS = ['←', '↑', '→', '↓'], ARROW_KEYS = { arrowleft: 0, a: 0, arrowup: 1, w: 1, arrowright: 2, d: 2, arrowdown: 3, s: 3 };
 const LASER_NEAR = 3; // metres: the laser this close to you makes your hands shake
+// accomplices score on their own for drawing the sniper: a point per `laser` seconds with the laser on them (within `near`
+// metres, at body height) and per `mark` seconds in the sniper's notebook, up to `max` a round; and once a round they can
+// turn a fake mission into a distraction the sniper's radio hears like a real one. Robot accomplices use theirs on a fake
+// fake mission after `botAfter` seconds of play (with chance `botP` at each, 1 = the first one)
+const LURE = { near: 1.2, laser: 10, mark: 20, max: 2, botAfter: 25, botP: 1 };
+const lurePts = u => u ? Math.min(LURE.max, Math.floor(u[0] / LURE.laser) + Math.floor(u[1] / LURE.mark)) : 0;
 // the challenges with the face of each place: in the extra scenarios, an act whose label matches asks (most rounds)
 // for that place's version of one of the five kinds, with its own title and pace; the other rounds keep the gesture's
 // usual challenge, so the same act still varies. p: len = arrows in a sequence, n = turns, need/per = beats and their
@@ -10230,6 +10239,7 @@ class Sim {
       if (e.kind === 'player') { s.busy = -1; e.slot = -1; e.anim = 0; }
     }
     this.dn = []; this.tells = []; this.tq = []; this.sh = null; this.w = null; this.why = null; this.mk = []; this.ot = 0;
+    this.lu = {}; this.dz = []; this.laser = null; // accomplices: seconds under the laser and in the notebook, who used the distraction
     this.sc = o.sc || {};
     this.near = PROPS.map(() => new Map());
     // the object spot of each prop, so a guest standing there can make way for a player who comes close
@@ -10384,12 +10394,29 @@ class Sim {
     const e = this.ents[id]; if (!e || e.dead || e.kind !== 'player') return;
     e.x = x; e.z = z; e.y = y; e.lv = lvOfY(y); e.rot = rot; e.anim = anim;
   }
-  logAct(e, obj, real, fetch) {
-    if (this.lg.length < 40 && (e.kind === 'player' || e.kind === 'bot') && MISSIONS[obj]) this.lg.push([Math.round(ROUND_T - this.t), e.id, obj, real ? 1 : fetch ? 2 : 0]);
+  logAct(e, obj, real, fetch, fake) {
+    if (this.lg.length < 40 && (e.kind === 'player' || e.kind === 'bot') && MISSIONS[obj]) this.lg.push([Math.round(ROUND_T - this.t), e.id, obj, real ? 1 : fetch ? 2 : fake ? 3 : 0]);
   }
-  completeAct(id, obj) {
+  // an accomplice's distraction: the radio hears another change at the same object, a moment later, like a real mission
+  // (a change no mission of the agent's makes, and not one already heard). Once a round per accomplice
+  distract(e, obj) {
+    if (this.dz.includes(e.id)) return -1;
+    const heard = o => this.ms.includes(o) || this.tells.includes(o) || this.tq.some(q => q.obj === o);
+    const pool = PROPS[MISSIONS[obj].p].ms.filter(o => !heard(o)); if (!pool.length) return -1;
+    const o = pool.includes(obj) ? obj : pool[Math.floor(this.rng() * pool.length)];
+    this.dz.push(e.id); this.tq.push({ obj: o, at: this.time + 0.8 + this.rng() * 4.5 }); this._st = null;
+    return o;
+  }
+  completeAct(id, obj, d) {
     const e = this.ents[id];
-    if (e && !e.dead && this.ph === 'play' && e.role === 'acc' && MISSIONS[obj]) { const m = MISSIONS[obj]; if (Math.hypot(e.x - m.s[0], e.z - m.s[1]) <= IR + 0.8 && Math.abs(e.y - LVY(m.lv)) <= 0.5) this.logAct(e, obj, false); }
+    if (e && !e.dead && this.ph === 'play' && e.role === 'acc' && MISSIONS[obj]) {
+      const m = MISSIONS[obj];
+      if (Math.hypot(e.x - m.s[0], e.z - m.s[1]) <= IR + 0.8 && Math.abs(e.y - LVY(m.lv)) <= 0.5) {
+        const want = d || (e.kind === 'bot' && ROUND_T - this.t > LURE.botAfter && !this.dz.includes(id) && this.rng() < LURE.botP);
+        const o = want ? this.distract(e, obj) : -1;
+        this.logAct(e, o >= 0 ? o : obj, false, false, o >= 0);
+      }
+    }
     if (!e || e.dead || this.ph !== 'play' || e.role !== 'agent') return;
     const m = MISSIONS[obj]; if (!m || Math.hypot(e.x - m.s[0], e.z - m.s[1]) > IR + 0.8 || Math.abs(e.y - LVY(m.lv)) > 0.5) return;
     if (this.ts && !this.got && m.p === this.ts[1]) { this.got = true; this.logAct(e, obj, false, true); return; }
@@ -10419,6 +10446,7 @@ class Sim {
     this.ph = 'reveal'; this.w = w; this.why = why; this.t = 0;
     for (const [peer, r] of Object.entries(this.rl)) {
       if ((w === 's' && r === 's') || (w === 'g' && r !== 's')) this.sc[peer] = (this.sc[peer] || 0) + (why === 'npc' ? 2 : 1);
+      if (r === 'c') { const n = lurePts(this.lu[this.pm[peer]]); if (n) this.sc[peer] = (this.sc[peer] || 0) + n; }
     }
   }
   tick(dt) {
@@ -10454,6 +10482,14 @@ class Sim {
         }
       }
       if (this.ai) this.ai.update(dt);
+      // accomplices drawing the sniper: time with the laser on them and time in the notebook
+      const L = this.ai ? this.ai.aim : this.laser;
+      for (const e of E) {
+        if (e.role !== 'acc' || e.dead) continue;
+        const u = this.lu[e.id] || (this.lu[e.id] = [0, 0]);
+        if (L && Math.abs(L.y - (e.y + 1.1)) < 1.4 && Math.hypot(L.x - e.x, L.z - e.z) < LURE.near) u[0] += dt;
+        if (this.mk.includes(e.id)) u[1] += dt;
+      }
     }
   }
   state() {
@@ -10464,6 +10500,7 @@ class Sim {
       pm: this.pm, rl: this.rl, nm: this.nm, ms: this.ms, dn: this.dn, tells: this.tells,
       sh: this.sh, w: this.w, why: this.why, sc: this.sc, mk: this.mk, bm: this.bm, ho: this.ho, ot: this.ot,
       ag: this.agentId, aim: this.ai ? this.ai.aim : null, sx: this.sx, mp: this.map, nt: this.night ? 1 : 0, lg: this.lg, ts: this.ts, tg: this.got ? 1 : 0,
+      lu: Object.fromEntries(Object.entries(this.lu).map(([k, u]) => [k, [Math.floor(u[0]), Math.floor(u[1])]])), dz: this.dz,
     });
   }
 }
@@ -13075,7 +13112,7 @@ function encodeState(st) {
   for (const x of st.ents) e.push(x.id, Math.round(x.x * 50), Math.round(x.z * 50), Math.round(x.rot * 100), x.anim, Math.round((x.y || 0) * 50));
   const g = { ph: st.ph, rd: st.rd, sd: st.sd, mp: st.mp || 0, nt: st.nt ? 1 : 0, tl: Math.round(st.tl * 10) / 10, e, pm: st.pm, rl: st.rl, nm: st.nm, ms: st.ms, dn: st.dn, te: st.tells, sh: st.sh, w: st.w, why: st.why, sc: st.sc, mk: st.mk, bm: st.bm, ho: st.ho, ot: st.ot ? 1 : 0 };
   if (st.ph === 'reveal') { g.ag = st.ag; g.lg = st.lg; }
-  g.sx = st.sx; g.ts = st.ts; g.tg = st.tg;
+  g.sx = st.sx; g.ts = st.ts; g.tg = st.tg; g.lu = st.lu; g.dz = st.dz;
   return g;
 }
 function decodeState(g) {
@@ -13083,7 +13120,7 @@ function decodeState(g) {
   const ents = [];
   for (let i = 0; i + 5 < g.e.length; i += 6) ents.push({ id: g.e[i], x: g.e[i + 1] / 50, z: g.e[i + 2] / 50, rot: g.e[i + 3] / 100, anim: g.e[i + 4], y: g.e[i + 5] / 50 });
   ents.sort((a, b) => a.id - b.id);
-  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ot: g.ot ? 1 : 0, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0 };
+  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ot: g.ot ? 1 : 0, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0, lu: g.lu || {}, dz: g.dz || [] };
 }
 
 const hostSeen = { seq: {}, shot: false, at: {}, raw: {} };
@@ -13116,6 +13153,7 @@ function hostReadPeers() {
     if (!r) continue;
     if (r === 's') {
       if (Array.isArray(pr.mk)) sim.mk = pr.mk.slice(0, 3).filter(n => Number.isInteger(n));
+      if (Array.isArray(pr.aim) && pr.aim.length === 3) sim.laser = { x: pr.aim[0] / 20, y: pr.aim[1] / 20, z: pr.aim[2] / 20 };
       if (pr.shot && pr.shot.rd === sim.round && Number.isInteger(pr.shot.e) && sim.ph === 'play' && hostSeen.shot !== sim.round + ':' + pr.shot.e) { hostSeen.shot = sim.round + ':' + pr.shot.e; if (hostShotOk(pr, pr.shot.e)) sim.shoot(pr.shot.e); else console.warn('shot rejected', pr.shot.e); }
     } else {
       const id = sim.pm[p.peer];
@@ -13133,7 +13171,7 @@ function hostReadPeers() {
         }
       }
       if (pr.act && pr.act.rd === sim.round && Number.isInteger(pr.act.s) && pr.act.s > (hostSeen.seq[p.peer] || 0)) {
-        hostSeen.seq[p.peer] = pr.act.s; sim.completeAct(id, pr.act.o | 0);
+        hostSeen.seq[p.peer] = pr.act.s; sim.completeAct(id, pr.act.o | 0, pr.act.d === 1);
       }
     }
   }
@@ -13216,6 +13254,7 @@ function adoptSim(st) {
   // missions done whose tell had not shown yet still show, a moment later
   sim.tq = sim.dn.filter(o => !sim.tells.includes(o)).map(o => ({ obj: o, at: 1 + rng() * 3 }));
   sim.ts = st.ts || null; sim.got = !!st.tg;
+  sim.lu = Object.fromEntries(Object.entries(st.lu || {}).map(([k, u]) => [k, u.slice()])); sim.dz = (st.dz || []).slice();
   return sim;
 }
 function becomeHost() {
@@ -13271,7 +13310,7 @@ function syncRound(st) {
     G.seed = st.sd; loadMap(st.mp || 0); setNight(!!st.nt && !(st.mp || 0)); buildChars(st); resetProps(); G.tellsApplied = 0; G.dnSeen = 0; G.lastPh = null;
     G.role = undefined; G.myEid = -2;
     snip.marks = []; snip.shotSent = false; snip.yaw = 0; snip.pitch = WIDE_ELEV; setScope(false); snip.air = 1; snip.gasp = 0; snip.hold = false; snip.nbKey = ''; snip.radioSeen = 0; snip.tellAt = {}; snip.idd = {}; snip.idT = {}; snip.killcam = false; snip.firedAt = 0; NEST_FX.scare = 0; NEST_FX.case = null;
-    ctrl.path = []; ctrl.act = null; ctrl.actDone = null; ctrl.pose = null; ctrl.lk = null;
+    ctrl.path = []; ctrl.act = null; ctrl.actDone = null; ctrl.pose = null; ctrl.lk = null; ctrl.dzArm = false;
     isoState.tx = 0; isoState.tz = 0; isoState.ty = 0; isoState.az = -0.55; isoState.zoom = G.screen === 'game' ? 8.5 : 11; placeIso(0, true); resize();
   }
   {
@@ -13325,7 +13364,7 @@ function renderBrief(st) {
   const whereTxt = SCEN.id ? `<p class="muted"><b>${esc(SCEN.sc.nome)}</b> · ${esc(SCEN.sc.lugar)}. Você está ${esc(SCEN.sc.sniper.desc || 'no prédio em frente')}.</p>` : '';
   if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. O rádio avisa onde algo mudou; enquadre o lugar com zoom para descobrir o quê. Você tem um único tiro. Se o tempo acabar, você vence; com o agente a uma missão, há ${OT_T} s de prorrogação.</p>`;
   else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <small class="muted">· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small class="muted">↳ antes, pegue a encomenda: ${esc(PROPS[st.ts[1]].where)}</small>` : ''}</li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando. Se o tempo acabar, o sniper vence; com 3 de 4 missões feitas, você ganha ${OT_T} s de prorrogação.</p>`;
-  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Se o sniper atirar em você, os convidados vencem. Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
+  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Você ganha pontos de isca com o laser em você e quando entra no caderno do sniper. Uma vez por rodada, arme o despiste: sua próxima missão falsa faz o rádio do sniper ouvir algo mudar. Se o sniper atirar em você, os convidados vencem. Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
   else body = `<p>A rodada já começou. Você entra na próxima.</p>`;
   $('#brief').innerHTML = `<div class="eyebrow">Rodada ${st.rd} · começa em instantes</div><h2>${roleTitle(r)}</h2>${body}`;
 }
@@ -13336,10 +13375,10 @@ function fetchNote(st) { return st.tg ? '✓ encomenda na mão' : '↳ antes, pe
 function renderRoleCard(st) {
   const r = G.role; let h = `<div class="eyebrow">${r === 's' ? 'Sniper' : r === 'a' ? 'Agente infiltrado' : r === 'c' ? 'Cúmplice' : 'Espectador'}</div>`;
   if (r === 'a') h += `<h2><span id="dnCount">${st.dn.length}</span>/${NEED} missões</h2><ol id="msList">${st.ms.map(o => `<li data-o="${o}">${esc(MISSIONS[o].label)} <small>· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small id="tsNote">${fetchNote(st)}</small>` : ''}</li>`).join('')}</ol>`;
-  else if (r === 'c') h += `<h2>Atraia a mira</h2><p class="muted">Faça missões falsas em qualquer objeto marcado no chão, em qualquer andar.</p>${missionsByLevel()}`;
+  else if (r === 'c') h += `<h2>Atraia a mira</h2><p class="muted">Faça missões falsas em qualquer objeto marcado no chão, em qualquer andar. ${matchMedia('(pointer:coarse)').matches ? '' : '<kbd>G</kbd> arma o despiste.'}</p><div id="lure"></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
   else if (r === 's') h += `<h2>Encontre o agente</h2><div id="notebook"><div class="eyebrow">Caderno de suspeitos</div><ul id="suspectList"></ul><div class="eyebrow">Rádio · o que mudou na festa</div><ul id="radioLog"></ul></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
   else h += `<p class="muted">Você entra na próxima rodada.</p>`;
-  $('#roleCard').innerHTML = h; $('#roleCard').classList.toggle('play', r === 'a' || r === 'c');
+  $('#roleCard').innerHTML = h; $('#roleCard').classList.toggle('play', r === 'a' || r === 'c'); G.lureKey = ''; $('#lureBtn').hidden = true;
 }
 function setupControls() {
   const touch = matchMedia('(pointer:coarse)').matches;
@@ -13364,7 +13403,7 @@ function renderReveal(st) {
   const shotTxt = st.sh && st.why !== 'agent' && st.ents.find(e => e.id === st.sh.e) ? ` O tiro acertou ${st.why === 'acc' ? 'um cúmplice' : 'um convidado'} de ${outfitFor(st.sd, st.sh.e, st).name}, marcado com o anel vermelho.` : '';
   $('#revealAgent').textContent = ag >= 0 ? `O agente ${agentName ? 'era ' + agentName + ' e ' : ''}estava de ${desc}. Cumpriu ${st.dn.length} de ${NEED} missões.${shotTxt}` : '';
   const sc = $('#scores'); sc.innerHTML = '';
-  if (G.multi) for (const [peer, n] of Object.entries(st.nm || {})) { const li = document.createElement('li'); const a = document.createElement('span'); a.textContent = n + (st.rl[peer] === 's' ? ' · sniper' : st.pm[peer] === ag ? ' · agente' : ' · cúmplice'); const b = document.createElement('span'); b.textContent = (st.sc[peer] || 0) + ' pts'; li.append(a, b); sc.appendChild(li); }
+  if (G.multi) for (const [peer, n] of Object.entries(st.nm || {})) { const li = document.createElement('li'); const a = document.createElement('span'); a.textContent = n + (st.rl[peer] === 's' ? ' · sniper' : st.pm[peer] === ag ? ' · agente' : ' · cúmplice'); const b = document.createElement('span'); const lp = st.rl[peer] === 'c' ? lurePts((st.lu || {})[st.pm[peer]]) : 0; b.textContent = (st.sc[peer] || 0) + ' pts' + (lp ? ` (+${lp} de isca)` : ''); li.append(a, b); sc.appendChild(li); }
   $('#btnNext').hidden = G.multi && !G.isHost;
   $('#btnNext').textContent = G.multi ? 'Próxima rodada' : 'Jogar de novo';
   $('#btnMenu').textContent = G.multi && G.isHost ? 'Voltar à sala' : 'Voltar ao menu';
@@ -13376,7 +13415,7 @@ function renderReveal(st) {
 function renderMoments(st) {
   let box = $('#moments'); if (!box) { box = document.createElement('div'); box.id = 'moments'; $('#scores').before(box); }
   const who = id => { for (const [peer, eid] of Object.entries(st.pm || {})) if (eid === id) return (st.nm || {})[peer] || 'Jogador'; return id === st.ag ? 'Robô agente' : 'Robô cúmplice'; };
-  const rows = (st.lg || []).map(([t, id, o, real]) => { const m = MISSIONS[o]; if (!m) return ''; return `<li><b>${fmt(t)}</b> ${esc(who(id))} · ${real === 2 ? 'pegou a encomenda' : real ? 'missão real' : 'missão falsa'}${real === 2 ? '' : ': ' + esc(m.label.toLowerCase())} <small>${esc(m.where)}</small></li>`; });
+  const rows = (st.lg || []).map(([t, id, o, real]) => { const m = MISSIONS[o]; if (!m) return ''; return `<li><b>${fmt(t)}</b> ${esc(who(id))} · ${real === 2 ? 'pegou a encomenda' : real === 3 ? 'despiste' : real ? 'missão real' : 'missão falsa'}${real === 2 ? '' : ': ' + esc(m.label.toLowerCase())} <small>${esc(m.where)}</small></li>`; });
   if (st.sh && st.sh.t !== undefined) { const o = outfitFor(st.sd, st.sh.e, st); rows.push(`<li class="shot"><b>${fmt(st.sh.t)}</b> Tiro em quem estava de ${esc(o.name)}</li>`); }
   box.innerHTML = rows.length ? `<div class="eyebrow">Momentos da rodada</div><ol>${rows.join('')}</ol>` : '';
   box.hidden = !rows.length;
@@ -13395,6 +13434,7 @@ addEventListener('keydown', e => {
     if (k === 'escape') setScope(false);
   } else if (ctrl.act && challengeKey(k)) e.preventDefault();
   else if (k === 'e') tryAct();
+  else if (k === 'g') toggleLure();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', e => { keyDown.delete(e.key.toLowerCase()); if (e.key === 'Shift') snip.hold = false; });
@@ -13474,6 +13514,7 @@ $('#shootBtn').onclick = () => { if (!snip.scoped) setScope(true); else shoot();
 // the mission card folds down to its title with a tap (on a phone it would otherwise cover part of the party)
 $('#roleCard').addEventListener('click', e => { if (e.target.closest('details,summary,a,button')) return; $('#roleCard').classList.toggle('min'); });
 $('#actBtn').onclick = () => { if (!(ctrl.act && challengeKey('e'))) tryAct(); };
+$('#lureBtn').onclick = () => toggleLure();
 
 function clampAim() { snip.yaw = Math.max(-0.75, Math.min(0.75, snip.yaw)); snip.pitch = Math.max(-1.0, Math.min(0.25, snip.pitch)); }
 function aimFromPointer(px, py) {
@@ -13633,6 +13674,22 @@ function challengeKey(k) {
   }
   return k === 'e'; // E again does not restart the act
 }
+// the accomplice's distraction is armed first and goes off with the next fake mission they finish
+function toggleLure() {
+  const st = currentState(); if (G.role !== 'c' || !st || st.ph !== 'play' || (st.dz || []).includes(G.myEid)) return;
+  ctrl.dzArm = !ctrl.dzArm; G.lureKey = '';
+  toast(ctrl.dzArm ? 'Despiste armado: a próxima missão falsa faz o rádio do sniper ouvir algo mudar.' : 'Despiste guardado para depois.');
+}
+// the accomplice's own tally, kept up to date on the role card and the touch button
+function updateLure(st) {
+  if (G.role !== 'c' || st.ph !== 'play') return;
+  const u = (st.lu || {})[G.myEid] || [0, 0], used = (st.dz || []).includes(G.myEid), n = lurePts(u);
+  const key = u.join(',') + used + !!ctrl.dzArm; if (key === G.lureKey) return; G.lureKey = key;
+  const box = $('#lure'); if (box) box.innerHTML = `<div class="eyebrow">Seus pontos de isca · ${n}/${LURE.max}</div><p class="muted">${u[0]} s com o laser em você · ${u[1]} s no caderno do sniper<br><small>1 ponto a cada ${LURE.laser} s na mira ou ${LURE.mark} s no caderno</small></p>`
+    + `<button id="lureCardBtn"${used ? ' disabled' : ''}>${used ? 'Despiste usado' : ctrl.dzArm ? 'Despiste armado · desarmar' : 'Armar despiste (1 por rodada)'}</button>`;
+  const b = $('#lureCardBtn'); if (b) b.onclick = e => { e.stopPropagation(); toggleLure(); };
+  const tb = $('#lureBtn'); tb.hidden = used || !matchMedia('(pointer:coarse)').matches; tb.textContent = ctrl.dzArm ? 'Desarmar' : 'Despiste'; tb.classList.toggle('on', !!ctrl.dzArm);
+}
 function cancelAct() { if (ctrl.act) { ctrl.act = null; toast('Ação interrompida.'); } }
 function stepAct(dt, st) {
   const a = ctrl.act, ch = a.ch; a.t += dt;
@@ -13687,9 +13744,11 @@ function drawMini() {
 function finishAct(st) {
   const o = ctrl.act.o, fetch = ctrl.act.fetch; ctrl.act = null; ctrl.actSeq++;
   const early = !!st.ts && !st.tg && o === st.ts[0], pending = !early && st.ms.includes(o) && !st.dn.includes(o);
-  if (G.sim) G.sim.completeAct(G.myEid, o);
-  else ctrl.actDone = { o, s: ctrl.actSeq, rd: st.rd };
-  if (G.role === 'c') toast('Missão falsa feita. Se o sniper estiver olhando, ótimo.');
+  const d = G.role === 'c' && ctrl.dzArm && !(st.dz || []).includes(G.myEid); ctrl.dzArm = false;
+  if (G.sim) G.sim.completeAct(G.myEid, o, d);
+  else ctrl.actDone = d ? { o, s: ctrl.actSeq, rd: st.rd, d: 1 } : { o, s: ctrl.actSeq, rd: st.rd };
+  if (d) toast('Despiste feito: daqui a pouco o rádio do sniper ouve algo mudar aqui.', 'good');
+  else if (G.role === 'c') toast('Missão falsa feita. Se o sniper estiver olhando, ótimo.');
   else if (fetch) toast('Encomenda na mão. Agora entregue: ' + MISSIONS[st.ts[0]].label.toLowerCase() + '.');
   else if (G.role === 'a' && !pending) toast(early || (st.ts && !st.tg && MISSIONS[st.ts[0]].p === MISSIONS[o].p) ? 'Pegue a encomenda antes: ' + PROPS[st.ts[1]].where + '.' : 'Essa não é uma das suas missões pendentes.');
 }
@@ -13797,6 +13856,7 @@ function updateLocal(dt, st) {
     // on touch screens the act button doubles as the "now" of a needle challenge
     const pt = ctrl.act && ctrl.act.ch && (ctrl.act.ch.k === 'ponto' || ctrl.act.ch.k === 'pulso'), bl = pt ? 'Agora' : it && it.label;
     const ab = $('#actBtn'); ab.hidden = !(bl && matchMedia('(pointer:coarse)').matches); if (bl && ab.textContent !== bl) ab.textContent = bl;
+    updateLure(st);
   } else { show('#prompt', false); if (ctrl.act) ctrl.act = null; drawMini(); }
 }
 
@@ -14183,6 +14243,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   try {
     if (G.multi) { readHost(); if (G.isHost && G.sim) hostReadPeers(); }
+    if (G.sim && G.role === 's' && !G.sim.ai) G.sim.laser = snip.aim; // the host is the sniper
     if (G.sim) G.sim.tick(dt);
     if (G.backdrop && G.screen !== 'game') G.backdrop.tick(dt);
     const st = currentState();
@@ -14254,6 +14315,7 @@ Net.init().then(ok => {
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, get composer() { return composer; }, rebuildPost, get postMS() { return postMS; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
+Object.assign(window.__mira, { LURE, lurePts, decodeState, adoptSim, toggleLure });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO, CRESC });
 // characters: what the tests of the character area read

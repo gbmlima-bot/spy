@@ -58,6 +58,9 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Minidesafios de cada cenário: `THEMES` no `fonte/mira.html` dá a cada cenário extra versões com a cara do lugar
   (título, tipo e ritmo próprios) para os atos cujo rótulo casa com a expressão. `node fonte/testes/t18.js <url>`
   confere que todo tema acha atos no seu mapa, que vale em cerca de 3 de 4 rodadas e que os parâmetros seguem jogáveis.
+- Cúmplices: `LURE` no `fonte/mira.html` dá pontos de isca (laser em cima e tempo no caderno do sniper, até 2 por rodada)
+  e um despiste por rodada (a próxima missão falsa vira uma mudança que o rádio ouve). `node fonte/testes/t19.js <url>`
+  confere as regras, o estado de rede, a troca de anfitrião, o uso pelos robôs e o jogador armando com G.
 - Qualidade de imagem: `node fonte/testes/qualidade.js <url> <pasta> [mapas] [rotulo]` captura cada mapa na vista larga,
   na luneta e de perto (agente), em 1280×720 com densidade 1, o pior caso para serrilhado (`DPR=2` para tela de alta
   densidade). Com `AB=1` grava o mesmo quadro sem e com o antialias do pós-processamento. O jogo desenha a cena num alvo
