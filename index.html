@@ -13214,7 +13214,9 @@ function nearestProp(x, z, lv) {
 function missionAtProp(p, st) {
   // the delivery waits for the parcel: until then its object only offers a decoy
   if (G.role === 'a') { const o = st.ms.find(o => MISSIONS[o].p === p && !st.dn.includes(o) && !(st.ts && o === st.ts[0] && !st.tg)); if (o !== undefined) return o; }
-  const ms = PROPS[p].ms; return ms[((st.rd || 1) * 7 + p * 3) % ms.length];
+  const ms = PROPS[p].ms, i = ((st.rd || 1) * 7 + p * 3) % ms.length;
+  // the decoy must not be the delivery itself (it would look like the real one and then not count)
+  return G.role === 'a' && st.ts && !st.tg && ms[i] === st.ts[0] && ms.length > 1 ? ms[(i + 1) % ms.length] : ms[i];
 }
 const FIRE_AT = [-10.2, -16.6];
 // the agent fetching the parcel of the two-step mission
@@ -13368,12 +13370,12 @@ function drawMini() {
 }
 function finishAct(st) {
   const o = ctrl.act.o, fetch = ctrl.act.fetch; ctrl.act = null; ctrl.actSeq++;
-  const pending = st.ms.includes(o) && !st.dn.includes(o);
+  const early = !!st.ts && !st.tg && o === st.ts[0], pending = !early && st.ms.includes(o) && !st.dn.includes(o);
   if (G.sim) G.sim.completeAct(G.myEid, o);
   else ctrl.actDone = { o, s: ctrl.actSeq, rd: st.rd };
   if (G.role === 'c') toast('Missão falsa feita. Se o sniper estiver olhando, ótimo.');
   else if (fetch) toast('Encomenda na mão. Agora entregue: ' + MISSIONS[st.ts[0]].label.toLowerCase() + '.');
-  else if (G.role === 'a' && !pending) toast(st.ts && !st.tg && MISSIONS[st.ts[0]].p === MISSIONS[o].p ? 'Pegue a encomenda antes: ' + PROPS[st.ts[1]].where + '.' : 'Essa não é uma das suas missões pendentes.');
+  else if (G.role === 'a' && !pending) toast(early || (st.ts && !st.tg && MISSIONS[st.ts[0]].p === MISSIONS[o].p) ? 'Pegue a encomenda antes: ' + PROPS[st.ts[1]].where + '.' : 'Essa não é uma das suas missões pendentes.');
 }
 const PIANO_NOTES = [392, 440, 494, 587, 659, 784, 659, 587, 494, 440, 523, 587, 659, 523, 440, 392];
 
@@ -13908,7 +13910,7 @@ Net.init().then(ok => {
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
-Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime });
+Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO });
 // characters: what the tests of the character area read
