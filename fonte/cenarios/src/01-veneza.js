@@ -11,9 +11,10 @@ MIRA_CENARIOS.push({
   niveis: [{ nome: 'terraço do palazzo', y: 0, x0: -14.5, x1: 14.5, z0: -10, z1: 13.4 }],
   convidados: 28,
   inicio: [1.5, 7.5, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte): lua azulada por trás do palazzo (a fachada fica na sombra), sombra quase preta, poças quentes dos lampiões
   ambiente: {
-    ceu: ['#070b1e', '#16224a', '#34305a', '#7a4a52'], neblina: [0x1a1f36, 55, 170], hemi: [0x8ea4d6, 0x3a2c22, 0.22],
-    sol: [0x9fb4ff, 0.6, -18, 24, 20], preenche: [0xffa860, 0.22], exposicao: 0.92, bloom: 0.75,
+    ceu: ['#070b1e', '#16224a', '#34305a', '#7a4a52'], neblina: [0x0a0a1e, 50, 175], hemi: [0x203083, 0x050302, 0.45],
+    sol: [0x6783ff, 0.6, -14, 20, -24], preenche: [0xff6720, 0.18], exposicao: 1.0, bloom: 0.75,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [22, 22, 23, 0] },
@@ -99,7 +100,7 @@ MIRA_CENARIOS.push({
     let ox = -46;
     opp.forEach(([c, hgt], k) => {
       const w = 9 + R() * 3, tex = palTex(c, k);
-      K.add(new T.BoxGeometry(w, hgt, 9), new T.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.9 }), ox + w / 2, hgt / 2 - 0.6, 50, { cast: false });
+      K.add(new T.BoxGeometry(w, hgt, 9), new T.MeshStandardMaterial({ map: tex, emissiveMap: K.luzesDe(tex), emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.9 }), ox + w / 2, hgt / 2 - 0.6, 50, { cast: false });
       K.box(w + 0.4, 0.4, 9.4, K.mat(0x8a4a3a), ox + w / 2, hgt - 0.4, 50, { cast: false });
       ox += w + 0.3;
     });
@@ -114,7 +115,7 @@ MIRA_CENARIOS.push({
     const sideTex = (c) => palTex(c, 0);
     // perto da festa só construções baixas (a câmera gira e não pode ser tapada); os palazzi altos ficam mais longe
     [[-1, 0x9a5a4a, '#b87a5a', 13], [1, 0x8a5a3a, '#d9b48a', 11]].forEach(([sd, roof, c, hgt]) => {
-      const t = sideTex(c), fm = new T.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.9 });
+      const t = sideTex(c), fm = new T.MeshStandardMaterial({ map: t, emissiveMap: K.luzesDe(t), emissive: 0xffffff, emissiveIntensity: 0.8, roughness: 0.9 });
       K.add(new T.BoxGeometry(12, hgt, 24), fm, sd * 32, hgt / 2 - 0.6, -2, { cast: false }); K.box(12.4, 0.4, 24.4, K.mat(roof), sd * 32, hgt - 0.4, -2, { cast: false });
       // casa de barcos baixa com telhado de telha, colada no terraço
       const bt = K.canvasTex(256, 64, (g, w, h) => { g.fillStyle = c; g.fillRect(0, 0, w, h); for (let k = 0; k < 4; k++) { g.fillStyle = '#2a1e18'; g.beginPath(); g.moveTo(14 + k * 62, h); g.lineTo(14 + k * 62, 26); g.quadraticCurveTo(14 + k * 62, 8, 34 + k * 62, 8); g.quadraticCurveTo(54 + k * 62, 8, 54 + k * 62, 26); g.lineTo(54 + k * 62, h); g.fill(); } });
@@ -164,7 +165,7 @@ MIRA_CENARIOS.push({
       for (let k = 0; k < 9; k++) win(52 + k * 108, 300, 30, 80, R() < 0.5);
       g.fillStyle = '#efe6d4'; g.fillRect(0, 222, w, 10); g.fillRect(0, 440, w, 14);
     });
-    const facM = new T.MeshStandardMaterial({ map: facTex, emissiveMap: facTex, emissive: 0xffffff, emissiveIntensity: 0.05, roughness: 0.9 });
+    const facM = new T.MeshStandardMaterial({ map: facTex, emissiveMap: K.luzesDe(facTex), emissive: 0xffffff, emissiveIntensity: 0.8, roughness: 0.9 });
     K.add(new T.BoxGeometry(31, 8.2, 0.6), facM, 0, 4.5 + 4.1, -10.3, { cast: false });
     K.box(31, 4.6, 0.6, plaster, 0, 2.3, -10.3, { cast: false });
     // balcão do piano nobile com balaústres
@@ -437,6 +438,8 @@ MIRA_CENARIOS.push({
     // ------------------------------------------------------------ ambiente vivo: fogos sobre a laguna, atrás do palazzo, e brilho das lanternas no canal
     K.fireworks({ x0: -24, x1: 24, y: 12.5, dy: 4, z: -44, dz: 10, raio: 4.5, tam: 0.6, cada: 2.4, n: 3, cores: [0xffc860, 0xff4a6a, 0x7ad8ff, 0xf6f1e8] });
     K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });
+    // menos reflexo da sala neutra: à noite o palazzo fica no azul da lua e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: janela do campanário de San Vidal. Peitoril de pedra da Ístria gasto (musgo, iniciais riscadas,
   // marcas de pombo), pilares de tijolo com capitel, a corda do sino e gerânios espiando por cima da borda

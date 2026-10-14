@@ -197,12 +197,20 @@ function MIRA_KIT(T, root, seed) {
   // piso com textura em canvas (xadrez, tábuas, pedras etc.)
   K.floor = (x0, z0, x1, z1, tex, o = {}) => K.add(new T.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), tex.isTexture ? K.texMat(tex, o.m || {}) : tex, (x0 + x1) / 2, o.y || 0, (z0 + z1) / 2, { parent: o.parent, cast: false });
   // prédio de fundo com janelas acesas (para cidade/horizonte)
+  // só as luzes de uma textura pintada (janelas acesas, lampiões: pixels claros e quentes), o resto preto. Serve de emissiveMap:
+  // a parede passa a pegar a luz da cena e só a janela brilha (com a textura inteira como emissiveMap a fachada brilhava por igual)
+  K.luzesDe = (tex) => {
+    const src = tex.image, c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const g = c.getContext('2d');
+    const d = src.getContext('2d').getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) { const r = a[i], gg = a[i + 1], b = a[i + 2]; if (!(r > 200 && gg > 120 && r - b > 50)) { a[i] = a[i + 1] = a[i + 2] = 0; } }
+    g.putImageData(d, 0, 0); const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT; t.repeat.copy(tex.repeat); t.offset.copy(tex.offset); return t;
+  };
   K.facade = (w, h, d, x, z, o = {}) => {
     const tex = K.canvasTex(256, 512, (g, W, H) => {
       g.fillStyle = o.wall || '#2a2f3a'; g.fillRect(0, 0, W, H); const bx = o.bays || 6, fl = o.floors || 14;
       for (let i = 0; i < bx; i++) for (let j = 0; j < fl; j++) { const lit = R() < (o.lit ?? 0.45); g.fillStyle = lit ? (R() < 0.3 ? '#ffd9a0' : '#ffc070') : (o.dark || '#141821'); g.fillRect(i * W / bx + 5, j * H / fl + 6, W / bx - 10, H / fl - 12); }
     });
-    const m = new T.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: o.glow ?? 0.55, roughness: 0.8 });
+    const m = new T.MeshStandardMaterial({ map: tex, emissiveMap: K.luzesDe(tex), emissive: 0xffffff, emissiveIntensity: (o.glow ?? 0.55) * 1.6, roughness: 0.8 });
     return K.add(new T.BoxGeometry(w, h, d), m, x, (o.y || 0) + h / 2, z, { cast: false, parent: o.parent });
   };
   // ---------------------------------------------------------------- ambiente vivo (partículas, fogos, pássaros, brilhos na água)
