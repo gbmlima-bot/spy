@@ -309,6 +309,7 @@ MIRA_CENARIOS.push({
       const fl = []; for (let k = 0; k < 26; k++) fl.push([x + 0.51, 0.52, -7.5 + k * 0.21]); K.inst(new T.CylinderGeometry(0.05, 0.05, 1.0, 8), goldLine, fl, { cast: false });
       K.box(1.25, 0.08, 5.8, marble, x, 1.09, -4.8);
       K.add(new T.CylinderGeometry(0.025, 0.025, 5.4, 8).rotateX(Math.PI / 2), goldLine, x + 0.75, 0.22, -4.8, { cast: false });
+      for (let k = 0; k < 4; k++) K.box(0.26, 0.03, 0.03, goldLine, x + 0.62, 0.22, -7.2 + k * 1.6, { cast: false });
       K.box(0.4, 0.95, 5.6, K.mat(0x1b1b20, { roughness: 0.3 }), -12.4, 0.48, -4.8);
       K.box(0.42, 0.05, 5.6, marble, -12.4, 0.97, -4.8);
       // prateleira iluminada de garrafas (baixa, para não tapar a lateral)
@@ -325,7 +326,7 @@ MIRA_CENARIOS.push({
       K.inst(new T.CylinderGeometry(0.004, 0.004, 0.1, 4).translate(0, 0.05, 0), K.glass, cl, { cast: false });
       for (let k = 0; k < 6; k++) K.sphere(0.035, K.mat(k % 2 ? 0xf2d23e : 0x7ac142), x - 0.25 + (k % 3) * 0.07, 1.16, -3.1 + Math.floor(k / 3) * 0.07, { cast: false }, 8, 6);
       K.cyl(0.12, 0.1, 0.08, K.mat(0xf6f3ec), x - 0.25, 1.17, -3.05, { cast: false }, 12);
-      K.sign('LUNA BAR', 1.8, 0.4, -12.25, 2.15, -4.8, { ry: Math.PI / 2, neon: true, color: '#ffd8a0', font: 'Didot, Georgia, serif', size: 84, k: 2.0 });
+      K.sign('LUNA BAR', 1.8, 0.4, -12.29, 2.1, -4.8, { ry: Math.PI / 2, neon: true, color: '#ffd8a0', font: 'Didot, Georgia, serif', size: 84, k: 2.0 });
       K.col(-12.6, -7.65, -10.8, -1.95);
       // banquetas cromadas com assento branco
       [-7.0, -6.0, -5.0, -4.0, -3.0].forEach(z => { K.cyl(0.2, 0.2, 0.06, leatherW, -10.45, 0.76, z, {}, 14); K.cyl(0.025, 0.06, 0.74, chrome, -10.45, 0.37, z, {}, 8); K.cyl(0.18, 0.18, 0.02, chrome, -10.45, 0.01, z, { cast: false }, 14); });
@@ -590,7 +591,7 @@ MIRA_CENARIOS.push({
     { const g = K.group(-6.0, Y1 + 1.0, -8.2);
       K.cyl(0.08, 0.1, 0.1, chrome, 0, 0.05, 0, { parent: g }, 10);
       const yoke = K.group(0, 0.1, 0, 0, g);
-      for (const s of [-1, 1]) K.box(0.03, 0.3, 0.06, chrome, s * 0.17, 0.15, 0, { parent: yoke });
+      for (const s of [-1, 1]) K.box(0.03, 0.3, 0.06, chrome, s * 0.17, 0.15, 0, { parent: yoke }); K.box(0.37, 0.03, 0.06, chrome, 0, 0.015, 0, { parent: yoke });
       const head = K.group(0, 0.25, 0, 0, yoke);
       K.add(new T.CylinderGeometry(0.15, 0.12, 0.38, 14).rotateX(Math.PI / 2), K.mat(0xf6f3ec, { roughness: 0.3 }), 0, 0, 0, { parent: head });
       const lens = K.add(new T.CircleGeometry(0.14, 14), K.mat(0xc8d8e8, { roughness: 0.1, metalness: 0.5 }), 0, 0, 0.195, { parent: head, cast: false });
@@ -615,7 +616,7 @@ MIRA_CENARIOS.push({
       for (const x of [-3.2, 3.2]) { K.cyl(0.15, 0.2, 0.4, gel, x, top + 3.8, z, {}, 10); K.add(new T.SphereGeometry(0.62, 16, 12), gel, x, top + 4.35, z); }
       // antenas de chicote e buzina
       for (const [x, h] of [[-4.6, 3.0], [-4.2, 2.2], [4.3, 2.6], [4.7, 3.4]]) K.cyl(0.015, 0.03, h, K.mat(0xf6f3ec), x, top + 3.6 + h / 2, z + 0.2, { cast: false }, 5);
-      K.cone(0.1, 0.4, chrome, 1.5, top + 3.75, z + 0.4, { rx: Math.PI / 2 });
+      K.cone(0.1, 0.4, chrome, 1.5, top + 3.7, z + 0.4, { rx: Math.PI / 2 });
       // radar de barra girando
       const radar = K.group(0, top + 3.75, z);
       K.cyl(0.25, 0.3, 0.35, gel, 0, 0, 0, { parent: radar }, 12);
@@ -660,9 +661,10 @@ MIRA_CENARIOS.push({
       for (let k = 0; k < 3; k++) K.add(K.rbox(1.0, 0.25, 0.9, 0.06), K.mat(o.acc ?? 0x2ec4b6, { roughness: 0.9 }), -1.2 + k * 1.2, dy + 0.15, -len * 0.08, { parent: g, cast: false });
       // sofá em U, mesa e espreguiçadeiras na popa; corrimão cromado nas bordas
       K.add(K.rbox(beam * 0.6, 0.4, 0.7, 0.08), K.mat(0xf6f3ec, { roughness: 0.9 }), 0, dy + 0.2, -len * 0.08 - 1.4, { parent: g, cast: false });
-      K.cyl(0.5, 0.5, 0.06, teakDark, 0, dy + 0.5, -len * 0.08 - 0.4, { parent: g, cast: false }, 14);
+      K.cyl(0.5, 0.5, 0.06, teakDark, 0, dy + 0.5, -len * 0.08 - 0.4, { parent: g, cast: false }, 14); K.cyl(0.06, 0.12, 0.47, chrome, 0, dy + 0.235, -len * 0.08 - 0.4, { parent: g, cast: false }, 8);
       for (const sx of [-1, 1]) { K.add(K.rbox(0.7, 0.18, 1.8, 0.05), K.mat(0xf6f3ec, { roughness: 0.9 }), sx * hb * 0.55, dy + 0.12, -1.3, { parent: g, cast: false }); K.add(new T.CylinderGeometry(0.03, 0.03, len * 0.55, 6).rotateX(Math.PI / 2), chrome, sx * (hb - 0.1), dy + 0.9, -len * 0.27, { parent: g, cast: false }); }
       K.add(new T.CylinderGeometry(0.03, 0.03, beam - 0.2, 6).rotateZ(Math.PI / 2), chrome, 0, dy + 0.9, -0.1, { parent: g, cast: false });
+      { const ps = []; for (const sx of [-1, 1]) for (let k = 0; k <= 4; k++) ps.push([sx * (hb - 0.1), dy + 0.45, -0.1 - k * len * 0.1375]); for (const x of [-beam / 4, 0, beam / 4]) ps.push([x, dy + 0.45, -0.1]); K.inst(new T.CylinderGeometry(0.018, 0.018, 0.9, 5), chrome, ps, { parent: g, cast: false }); }
       if (o.name) K.sign(o.name, beam * 0.5, 0.45, 0, WY + fb * 0.55, 0.02, { parent: g, color: '#14213d', font: 'Georgia, serif', size: 70 });
       // luzes de cortesia
       K.halo(0, dy + 1.0, -0.2, 0.6, 0xffd8a0, 0.35, g);

@@ -121,7 +121,8 @@ MIRA_CENARIOS.push({
     K.box(60, 1.1, 4.2, K.mat(0x7a7266, { roughness: 0.9 }), 0, -0.55, 15.2, { cast: false });
     K.floor(-30, 13.1, 30, 17.3, platTex, { m: { roughness: 0.8 } });
     for (let x = -24; x <= 24; x += 8) { K.cyl(0.05, 0.07, 2.6, ironG, x, 1.3, 15.2, { cast: false }, 8); K.sphere(0.2, K.glow(0xffd9a0, 1.8), x, 2.75, 15.2, { cast: false }); K.pool(x, 15.2, 1.6, 0xffb060, 0.3); }
-    for (let x = -20; x <= 20; x += 8) { K.box(1.8, 0.08, 0.45, teak, x + 4, 0.45, 15.6, { cast: false }); K.box(1.8, 0.4, 0.06, teak, x + 4, 0.7, 15.85, { cast: false }); }
+    { const lg = []; for (let x = -20; x <= 20; x += 8) { K.box(1.8, 0.08, 0.45, teak, x + 4, 0.45, 15.6, { cast: false }); K.box(1.8, 0.4, 0.06, teak, x + 4, 0.7, 15.85, { cast: false }); for (const a of [-0.75, 0.75]) lg.push([x + 4 + a, 0.43, 15.72]); }
+      K.inst(new T.BoxGeometry(0.06, 0.86, 0.5), ironG, lg, { cast: false }); }
     // ------------------------------------------------------------ manobra no trilho de trás: uma locomotiva-tanque chega pela direita
     // (o trecho de trilho que o sniper vê à direita da gare), freia soltando faíscas nas rodas, encosta no vagão-dormitório,
     // fica bufando e volta. Tudo atrás dos vagões e à direita da festa. Ciclo de 80 s
@@ -166,7 +167,7 @@ MIRA_CENARIOS.push({
       });
     }
     // vagões de carga parados ao longe (baixos)
-    for (const [x, c] of [[-22, 0x4a2a1e], [-10, 0x3a3a34], [8, 0x4a2a1e], [20, 0x2a3a4a]]) { K.box(9, 1.6, 2.6, K.mat(c, { roughness: 0.9 }), x, -0.1 + 0.3, 30.5, { cast: false }); K.box(9.2, 0.12, 2.8, K.mat(0x1a1a1a), x, 1.15, 30.5, { cast: false }); }
+    for (const [x, c] of [[-22, 0x4a2a1e], [-10, 0x3a3a34], [8, 0x4a2a1e], [20, 0x2a3a4a]]) { K.box(9, 1.6, 2.6, K.mat(c, { roughness: 0.9 }), x, -0.1 + 0.3, 30.5, { cast: false }); K.box(9.2, 0.12, 2.8, K.mat(0x1a1a1a), x, 1.06, 30.5, { cast: false }); }
 
     // ------------------------------------------------------------ fachada da estação do outro lado (+z) e torre do relógio (sniper)
     { const fac = K.canvasTex(1024, 256, (g, w, h) => {
@@ -325,7 +326,7 @@ MIRA_CENARIOS.push({
         // degrau, folha da porta aberta para dentro e corrimãos de latão
         K.box(d1 - d0, 0.05, 0.3, gilt, (d0 + d1) / 2, 0.025, ZF + 0.1, { cast: false });
         const dg = K.group(d0, 0, ZF, 1.35); K.box(0.06, 2.05, 0.75 * 0 + 0.06, navy, 0, 1.02, 0, { parent: dg }); K.box(0.6, 2.05, 0.05, navy, 0.3, 1.02, 0, { parent: dg }); K.box(0.42, 0.6, 0.06, K.mat(0x22305a, { emissive: 0x0a1020, roughness: 0.1 }), 0.3, 1.55, 0, { parent: dg, cast: false });
-        for (const x of [d0 + 0.05, d1 - 0.05]) K.cyl(0.018, 0.018, 1.0, brass, x, 1.2, ZF + 0.08, { cast: false }, 6);
+        for (const x of [d0 + 0.05, d1 - 0.05]) { K.cyl(0.018, 0.018, 1.0, brass, x, 1.2, ZF + 0.08, { cast: false }, 6); for (const y of [0.78, 1.62]) K.box(0.02, 0.02, 0.08, brass, x, y, ZF + 0.04, { cast: false }); }
       });
       // letreiro em letras douradas no painel
       const big = segs.reduce((b, s) => (s[1] - s[0] > b[1] - b[0] ? s : b), segs[0]);
@@ -451,7 +452,7 @@ MIRA_CENARIOS.push({
 
     // ===== tênder e locomotiva (direita)
     { // tênder
-      K.box(3.0, 2.5, 2.55, navyD, 4.85, 1.0, -10.8); K.box(3.1, 0.08, 2.65, gilt, 4.85, 2.27, -10.8, { cast: false }); K.box(3.0, 0.06, 0.05, gilt, 4.85, 0.6, ZF + 0.05, { cast: false });
+      K.box(3.0, 2.5, 2.7, navyD, 4.85, 1.0, -10.8); K.box(3.1, 0.08, 2.8, gilt, 4.85, 2.27, -10.8, { cast: false }); K.box(3.0, 0.06, 0.05, gilt, 4.85, 0.6, ZF + 0.05, { cast: false });
       const coal = []; for (let k = 0; k < 420; k++) coal.push([3.5 + R() * 2.7, 2.28 + R() * 0.3 + Math.sin((k % 37) / 37 * PI) * 0.15, -11.9 + R() * 2.2, R() * 3, 0.04 + R() * 0.045]);
       K.inst(new T.DodecahedronGeometry(1, 0), K.mat(0x141416, { roughness: 0.4, metalness: 0.2 }), coal, { cast: false });
       K.sign('EXPRESSO ORIENTE', 2.4, 0.3, 4.85, 1.35, ZF + 0.06, { color: '#e2b65a', size: 84, w: 1024, h: 128 });
@@ -635,6 +636,13 @@ MIRA_CENARIOS.push({
       K.add(new T.PlaneGeometry(3.0, 1.5), new T.MeshBasicMaterial({ map: tex, color: new T.Color(0xffffff).multiplyScalar(1.05) }), 0, 2.45, 0.105, { parent: gu, cast: false });
       const rowM = new T.MeshBasicMaterial({ map: rowA, color: new T.Color(0xffffff).multiplyScalar(1.15), toneMapped: false });
       const row = K.add(new T.PlaneGeometry(3.0, 1.5 * 78 / 512), rowM, 0, 2.45 + 0.75 - (120 + 39) / 512 * 1.5, 0.11, { parent: gu, cast: false });
+      // verso do painel: cartaz art déco da companhia dos vagões-leito em moldura com rebites
+      const ad = K.canvasTex(512, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f2a64a'); gr.addColorStop(0.55, '#c8402a'); gr.addColorStop(1, '#3a1a2a'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#f6e6b0'; g.beginPath(); g.arc(w * 0.72, h * 0.42, 46, 0, 7); g.fill(); g.fillStyle = '#2a1424'; for (const [x, ww, hh] of [[40, 30, 120], [80, 18, 150], [110, 40, 90], [170, 26, 135], [205, 50, 70], [300, 22, 160], [330, 60, 80], [400, 34, 110], [450, 50, 60]]) g.fillRect(x, h - 60 - hh, ww, hh + 60);
+        g.beginPath(); g.arc(186, h - 175, 26, Math.PI, 0); g.fill(); g.fillRect(310, h - 250, 4, 40); g.fillStyle = '#152447'; g.fillRect(0, h - 58, w, 58);
+        g.fillStyle = '#e2b65a'; g.font = '700 30px Georgia, serif'; g.textAlign = 'center'; g.fillText('SIMPLON-ORIENT-EXPRESS', w / 2, h - 30); g.font = '600 18px Georgia, serif'; g.fillText('PARIS · VENEZA · ISTAMBUL', w / 2, 30); });
+      K.add(new T.PlaneGeometry(3.0, 1.5), K.texMat(ad, { roughness: 0.8 }), 0, 2.45, -0.105, { parent: gu, ry: Math.PI, cast: false });
+      { const rv = []; for (let k = 0; k < 13; k++) for (const y of [1.66, 3.24]) rv.push([-1.5 + k * 0.25, y, -0.11]); K.inst(new T.SphereGeometry(0.018, 5, 4), gilt, rv, { parent: gu, cast: false }); }
       K.box(0.5, 0.5, 0.25, K.mat(0x152447), 0, 3.6, 0, { parent: gu }); K.sign('1', 0.3, 0.3, 0, 3.6, 0.13, { parent: gu, color: '#e2b65a', size: 100, w: 128, h: 128 });
       K.halo(bx, 2.5 + U, bz + 0.6, 1.4, 0xffe0a0, 0.18);
       const cosR = Math.cos(-0.2), sinR = Math.sin(-0.2); for (const s of [-1.45, 1.45]) K.colR(bx + s * cosR, bz - s * sinR, 0.12);
@@ -691,7 +699,7 @@ MIRA_CENARIOS.push({
       K.add(new T.PlaneGeometry(2.3, 1.15), K.texMat(mags, { emissiveMap: mags, emissive: 0xffffff, emissiveIntensity: 0.12 }), -0.54, 1.75, 0, { parent: g, ry: PI / 2, cast: false });
       for (let k = 0; k < 6; k++) { K.box(0.4, 0.04 + R() * 0.04, 0.3, K.mat(0xeee6d0, { roughness: 0.9 }), 0.25, 1.06 + k * 0.0, -0.9 + k * 0.36, { parent: g, ry: (R() - 0.5) * 0.3 }); }
       risePaper = K.box(0.36, 0.5, 0.01, K.mat(0xeee6d0), 0.25, 1.1, 0.5, { parent: g, cast: false, ry: PI / 2 });
-      const lampG = K.group(0.6, 2.35, 0, 0, g); K.cone(0.15, 0.12, K.mat(0x2c5a46), 0, 0, 0, { parent: lampG }, 10); standLampM = K.sphere(0.06, K.glow(0xffd9a0, 2.4), 0, -0.07, 0, { parent: lampG, cast: false }, 8, 6);
+      K.cyl(0.006, 0.006, 0.1, K.mat(0x16161a), 0.6, 2.45, 0, { parent: g, cast: false }, 4); const lampG = K.group(0.6, 2.35, 0, 0, g); K.cone(0.15, 0.12, K.mat(0x2c5a46), 0, 0, 0, { parent: lampG }, 10); standLampM = K.sphere(0.06, K.glow(0xffd9a0, 2.4), 0, -0.07, 0, { parent: lampG, cast: false }, 8, 6);
       K.plight(nx + 1.0, 2.2, nz, 0xffd9a0, 0.9, 5);
       K.col(nx - 0.7, nz - 1.25, nx + 0.7, nz + 1.25);
       // cavalete com a manchete

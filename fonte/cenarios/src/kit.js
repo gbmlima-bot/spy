@@ -87,6 +87,8 @@ function MIRA_KIT(T, root, seed) {
     return out;
   };
   K.merge = (parts, m, o = {}) => K.add(K.juntar(parts), m || K.vcol(), 0, 0, 0, o);
+  // normais lisas de elipsoide (sx, sy, sz) numa esfera deformada não indexada: copa de folhas sem facetas de pedra preciosa
+  K.normaisLisas = (g, sx = 1, sy = 1, sz = 1) => { const q = g.attributes.position, n = new Float32Array(q.count * 3), v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.set(q.getX(i) / (sx * sx), q.getY(i) / (sy * sy), q.getZ(i) / (sz * sz)).normalize(); n[i * 3] = v.x; n[i * 3 + 1] = v.y; n[i * 3 + 2] = v.z; } g.setAttribute('normal', new T.BufferAttribute(n, 3)); return g; };
   K.at = (geo, x, y, z, ry = 0, rx = 0, rz = 0) => { geo.rotateX(rx); geo.rotateZ(rz); geo.rotateY(ry); geo.translate(x, y, z); return geo; };
 
   // ---------------------------------------------------------------- luz e brilho
@@ -147,7 +149,7 @@ function MIRA_KIT(T, root, seed) {
   K.table = (x, z, o = {}) => {
     const r = o.r || 0.55, h = o.h || 0.76, g = K.group(x, o.y || 0, z, 0, o.parent);
     K.cyl(r, r, 0.04, o.top || M.linen, 0, h, 0, { parent: g }, 24);
-    if (o.cloth !== false) K.add(new T.CylinderGeometry(r + 0.02, r + 0.14, h - 0.05, 24, 1, true), o.cloth || M.linen, 0, (h - 0.05) / 2, 0, { parent: g });
+    if (o.cloth !== false) K.add(new T.CylinderGeometry(r + 0.02, r + 0.14, h - 0.02, 24, 1, true), o.cloth || M.linen, 0, (h - 0.02) / 2, 0, { parent: g });
     else K.cyl(0.05, 0.05, h, o.leg || M.walnut, 0, h / 2, 0, { parent: g });
     if (o.candle !== false) { K.cyl(0.025, 0.025, 0.14, M.candle, 0.1, h + 0.09, 0, { parent: g, cast: false }); K.flame(x + 0.1, h + 0.165 + (o.y || 0), z, 0.016, 0xffb040, root); }
     if (o.flower) { K.cyl(0.05, 0.035, 0.12, K.glass, -0.08, h + 0.08, 0.05, { parent: g }); for (let i = 0; i < 5; i++) K.sphere(0.035, K.mat(o.flower), -0.08 + Math.cos(i * 1.3) * 0.04, h + 0.17 + (i % 2) * 0.03, 0.05 + Math.sin(i * 1.3) * 0.04, { parent: g, cast: false }, 6, 4); }
@@ -167,6 +169,7 @@ function MIRA_KIT(T, root, seed) {
     const g = K.group(x, o.y || 0, z, ry, o.parent), cm = o.cloth || K.mat(0x2f4a3a, { roughness: 0.85 });
     K.add(K.rbox(len, 0.22, 0.8, 0.06), cm, 0, 0.3, 0, { parent: g }); K.add(K.rbox(len, 0.5, 0.2, 0.07), cm, 0, 0.55, -0.32, { parent: g });
     for (const s of [-1, 1]) K.add(K.rbox(0.18, 0.36, 0.8, 0.06), cm, s * (len / 2 - 0.06), 0.42, 0, { parent: g });
+    for (const s of [-1, 1]) for (const t of [-1, 1]) K.cyl(0.035, 0.025, 0.2, o.feet || M.walnut, s * (len / 2 - 0.1), 0.1, t * 0.3, { parent: g }, 8);
     for (let i = 0; i < Math.round(len / 0.7); i++) K.add(K.rbox(0.36, 0.3, 0.1, 0.05), K.mat(o.pillow || 0xd9a441, { roughness: 0.9 }), -len / 2 + 0.45 + i * 0.7, 0.58, -0.18, { parent: g, rx: -0.2 });
     return g;
   };

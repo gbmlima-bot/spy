@@ -232,7 +232,12 @@ MIRA_CENARIOS.push({
     K.tell('grafite', (live) => { sprayCan.visible = true; if (live) K.anim(2.2, e => { tag.material.opacity = e; tag.scale.set(0.6 + e * 0.4, 0.6 + e * 0.4, 1); }); else { tag.material.opacity = 1; tag.scale.set(1, 1, 1); } }, () => { tag.material.opacity = 0; sprayCan.visible = false; });
     // primavera (buganvília) caindo pelo muro
     { const pinks = [[], []]; for (const [cx, n] of [[-8.7, 26], [-6.2, 14], [2.4, 22], [6.6, 18], [9.0, 20]]) for (let k = 0; k < n; k++) { const x = cx + (R() - 0.5) * 1.6, y = L1 + 0.95 - Math.pow(R(), 1.6) * 1.9, z = -6.5 + R() * 0.25; pinks[k % 2].push([x, y, z, R() * 6, 0.09 + R() * 0.08]); }
-      K.inst(new T.IcosahedronGeometry(1, 0), K.mat(0xe0358a, { roughness: 0.8, flatShading: true }), pinks[0], { cast: false }); K.inst(new T.IcosahedronGeometry(1, 0), K.mat(0x3f7a34, { roughness: 0.85, flatShading: true }), pinks[1], { cast: false }); }
+      // cada ponto vira um cacho: brácteas pink miúdas e folhinhas soltas, em volta de galhos lenhosos que descem do alto do muro
+      const cacho = (l, n, r) => { const o = []; l.forEach(([x, y, z, a, s], i) => { for (let j = 0; j < n; j++) { const t = a + j * 2.4 + i, d = s * r * (0.4 + 0.6 * ((j * 7 + i) % 5) / 4); o.push([x + Math.cos(t) * d, y + Math.sin(t * 1.3) * d * 0.8, z + Math.abs(Math.sin(t)) * 0.06, t, 1, t * 0.7, t * 1.1]); } }); return o; };
+      K.inst(new T.SphereGeometry(0.035, 6, 4).scale(1, 0.45, 1), K.mat(0xe0358a, { roughness: 0.8 }), cacho(pinks[0], 9, 1.6), { cast: false });
+      K.inst(new T.PlaneGeometry(0.07, 0.045), K.mat(0x3f7a34, { roughness: 0.85, side: T.DoubleSide }), cacho(pinks[1], 7, 1.5), { cast: false });
+      const galhos = []; for (const [cx] of [[-8.7], [-6.2], [2.4], [6.6], [9.0]]) for (const [dx, len, rz] of [[-0.45, 1.5, 0.25], [0.05, 1.9, -0.1], [0.5, 1.3, -0.3]]) galhos.push([cx + dx, L1 + 0.95 - len / 2, -6.49, 0, [1, len, 1], 0, rz]);
+      K.inst(new T.CylinderGeometry(0.018, 0.012, 1, 5), K.mat(0x5a3a24, { roughness: 0.9 }), galhos, { cast: false }); }
 
     // ------------------------------------------------------------ casarões coloniais (fundo, nos cantos) e casas térreas (laterais, baixas)
     const sacadaBars = [], urns = [];
@@ -292,6 +297,8 @@ MIRA_CENARIOS.push({
     K.inst(new T.CylinderGeometry(0.012, 0.012, 0.86, 4), K.iron, sacadaBars, { cast: false });
     K.inst(new T.LatheGeometry([[0, 0], [0.1, 0], [0.12, 0.08], [0.06, 0.14], [0.13, 0.24], [0.1, 0.36], [0.02, 0.44], [0, 0.5]].map(p => new T.Vector2(p[0], p[1])), 10), K.mat(0xf3ecdc, { roughness: 0.6 }), urns);
     K.col(-14.5, -6.4, -9.4, -6.3); K.col(9.4, -6.4, 14.5, -6.3);
+    // placa de rua esmaltada (azul e branco, como as do Rio) na quina do casarão azul; a da Almirante Alexandrino fica no poste
+    for (const [x, t] of [[9.95, 'LARGO DOS GUIMARÃES']]) { K.box(1.16, 0.3, 0.02, M.white, x, 2.55, -6.6, { cast: false }); K.sign(t, 1.1, 0.24, x, 2.55, -6.585, { bg: '#1f3f8a', color: '#ffffff', size: 40, w: 512, h: 112, font: 'Arial, sans-serif' }); }
     // lampiões de parede nos casarões (brilho barato)
     for (const [x, y] of [[-12.2, 3.6], [12.2, 3.6], [-18.9, 2.6], [18.9, 2.6]]) { K.box(0.05, 0.05, 0.45, K.iron, x, y, -6.4); K.box(0.22, 0.3, 0.22, K.glow(0xffc070, 1.8), x, y - 0.12, -6.18, { cast: false }); K.cone(0.2, 0.16, K.iron, x, y + 0.1, -6.18, {}, 4); K.halo(x, y - 0.1, -6.1, 0.55, 0xffb060, 0.5); }
     // samambaias penduradas e gato na sacada
@@ -516,7 +523,10 @@ MIRA_CENARIOS.push({
     // vira-lata caramelo deitado na calçada
     { const d = K.group(13.6, 0, 9.3, -0.5), cm = K.mat(0xc8843a, { roughness: 0.9 }); K.add(new T.SphereGeometry(0.2, 10, 8).scale(1.7, 0.75, 1), cm, 0, 0.14, 0, { parent: d }); K.sphere(0.12, cm, 0.36, 0.17, 0.05, { parent: d }, 10, 8); K.add(new T.SphereGeometry(0.06, 8, 6).scale(1.4, 0.8, 1), K.mat(0xd8a060), 0.47, 0.14, 0.07, { parent: d }); K.sphere(0.02, M.black, 0.54, 0.15, 0.07, { parent: d }, 6, 4); for (const s of [-1, 1]) K.add(new T.ConeGeometry(0.05, 0.1, 4), K.mat(0xa8642a), 0.34, 0.27, 0.05 + s * 0.07, { parent: d, rz: -0.4 }); K.cyl(0.03, 0.02, 0.3, cm, -0.42, 0.1, -0.05, { parent: d, rz: 1.2, ry: 0.6 }, 6); for (const s of [-1, 1]) K.cyl(0.03, 0.03, 0.26, cm, 0.22, 0.05, s * 0.12, { parent: d, rz: Math.PI / 2 }, 6); K.colR(13.6, 9.3, 0.35); }
     // carrinho de gari laranja com vassoura
-    { const g = K.group(9.3, 0, -4.35, -0.2), om = K.mat(0xff6a1a, { roughness: 0.5 }); K.box(0.7, 0.75, 0.55, om, 0, 0.55, 0, { parent: g }); for (const s of [-1, 1]) K.cyl(0.14, 0.14, 0.05, K.mat(0x1a1a1a), s * 0.3, 0.14, 0.3, { parent: g, rx: Math.PI / 2 }, 12); K.cyl(0.015, 0.015, 0.8, steel, -0.35, 1.0, -0.3, { parent: g, rz: 0.7 }, 5); K.cyl(0.015, 0.015, 1.4, wood, 0.25, 1.0, -0.2, { parent: g, rz: -0.25 }, 5); K.box(0.35, 0.1, 0.06, K.mat(0x2a2a2a), 0.42, 1.68, -0.2, { parent: g, rz: -0.25 }); K.box(0.66, 0.04, 0.5, K.mat(0x2a2a2e, { roughness: 0.4 }), 0, 0.92, 0.04, { parent: g }); K.col(8.85, -4.75, 9.75, -3.95); }
+    { const g = K.group(9.3, 0, -4.35, -0.2), om = K.mat(0xff6a1a, { roughness: 0.5 }); K.cyl(0.33, 0.27, 0.75, om, 0, 0.55, 0, { parent: g }, 16); K.torus(0.33, 0.02, om, 0, 0.92, 0, { parent: g, rx: Math.PI / 2 }, 5, 18);
+      K.sign('COMLURB', 0.32, 0.08, 0, 0.62, 0.322, { parent: g, color: '#ffffff', bg: '#ff6a1a', size: 50, w: 256, h: 64 });
+      for (const s of [-1, 1]) { K.cyl(0.14, 0.14, 0.05, K.mat(0x1a1a1a), s * 0.34, 0.14, 0, { parent: g, rz: Math.PI / 2 }, 12); K.cyl(0.05, 0.05, 0.06, steel, s * 0.34, 0.14, 0, { parent: g, rz: Math.PI / 2 }, 8); K.box(0.03, 0.55, 0.03, steel, s * 0.22, 0.95, -0.42, { parent: g, rx: -0.5 }); }
+      K.cyl(0.012, 0.012, 0.7, steel, 0, 0.16, 0, { parent: g, rz: Math.PI / 2 }, 4); K.cyl(0.02, 0.02, 0.5, K.mat(0x1a1a1a), 0, 1.18, -0.55, { parent: g, rz: Math.PI / 2 }, 6); K.cyl(0.015, 0.015, 0.8, steel, -0.35, 1.0, -0.3, { parent: g, rz: 0.7 }, 5); K.cyl(0.015, 0.015, 1.4, wood, 0.25, 1.0, -0.2, { parent: g, rz: -0.25 }, 5); K.box(0.35, 0.1, 0.06, K.mat(0x2a2a2a), 0.42, 1.68, -0.2, { parent: g, rz: -0.25 }); K.cyl(0.34, 0.34, 0.04, K.mat(0x2a2a2e, { roughness: 0.4 }), 0, 0.95, 0.04, { parent: g, rx: -0.12 }, 16); K.col(8.85, -4.75, 9.75, -3.95); }
     // sacos de lixo e latinhas
     for (const [x, z] of [[14.1, -5.9], [13.6, -6.0], [-14.1, -5.9]]) K.add(new T.SphereGeometry(0.28, 8, 6).scale(1, 1.1, 0.9), K.mat(0x1a1a1e, { roughness: 0.3, metalness: 0.2 }), x, 0.28, z);
     K.colR(13.85, -5.95, 0.42); K.colR(-14.1, -5.9, 0.3);
