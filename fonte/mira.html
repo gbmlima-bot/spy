@@ -9246,7 +9246,7 @@ class Sim {
     const ids = shuffle([...Array(total).keys()], rng);
     this.ents = new Array(total);
     let k = 0;
-    const mk = (id, extra) => (this.ents[id] = Object.assign({ id, x: 0, z: 0, y: 0, lv: 0, lk: null, rot: 0, anim: 0, dead: false, kind: 'npc', role: 'npc', peer: null, speed: 1.1 + rng() * 0.4, st: 'idle', timer: rng() * 4, path: [], slot: -1, obj: -1, ov: 0, prog: 0, stuck: 0, lastD: 1e9, todo: [], waitFor: -1 }, extra));
+    const mk = (id, extra) => (this.ents[id] = Object.assign({ id, x: 0, z: 0, y: 0, lv: 0, lk: null, rot: 0, anim: 0, dead: false, kind: 'npc', role: 'npc', peer: null, speed: 1.25 + rng() * 0.3, st: 'idle', timer: rng() * 4, path: [], slot: -1, obj: -1, ov: 0, prog: 0, stuck: 0, lastD: 1e9, todo: [], waitFor: -1 }, extra));
     this.bm = ids[k++]; this.ho = ids[k++];
     if (SCEN.id) {
       // in the extra scenarios the barman and the host stand at two talk spots of the ground level
@@ -9267,7 +9267,7 @@ class Sim {
     this.agentId = -1;
     for (const g of guests) {
       const id = ids[k++];
-      mk(id, { kind: g.bot ? 'bot' : 'player', role: g.role === 'a' ? 'agent' : 'acc', peer: g.peer || null, speed: g.bot ? 1.2 + rng() * 0.25 : P_SPEED });
+      mk(id, { kind: g.bot ? 'bot' : 'player', role: g.role === 'a' ? 'agent' : 'acc', peer: g.peer || null, speed: g.bot ? 1.3 + rng() * 0.25 : P_SPEED });
       if (g.role === 'a') this.agentId = id;
       if (g.peer) { this.pm[g.peer] = id; this.rl[g.peer] = g.role; this.nm[g.peer] = g.name || 'Jogador'; }
       if (g.bot) this.ents[id].todo = g.role === 'a' ? shuffle(this.ms.slice(), rng) : [];
@@ -12013,7 +12013,7 @@ function hostReadPeers() {
         if (Number.isFinite(x) && Number.isFinite(z) && ent && raw !== hostSeen.raw[p.peer]) {
           hostSeen.raw[p.peer] = raw;
           const [lx, lz, ly] = hostLimitMove(sim, p.peer, ent, Math.max(XB[0], Math.min(XB[1], x / 50)), Math.max(zmin, Math.min(zmax, z / 50)), y);
-          sim.setPlayer(id, lx, lz, r2 / 100, [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 20].includes(a) ? a : 0, ly);
+          sim.setPlayer(id, lx, lz, r2 / 100, [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 20, 21].includes(a) ? a : 0, ly);
         }
       }
       if (pr.act && pr.act.rd === sim.round && Number.isInteger(pr.act.s) && pr.act.s > (hostSeen.seq[p.peer] || 0)) {
@@ -12593,7 +12593,9 @@ function updateLocal(dt, st) {
       }
       ctrl.y = ctrl.lk ? ctrl.y : LVY(ctrl.lv);
     }
-    ctrl.anim = dead ? 5 : moving ? 1 : ctrl.act ? MISSIONS[ctrl.act.o].ga : ctrl.pose ? ctrl.pose.anim : 0;
+    // a player left standing slips into the same chatting stance the guests keep, so standing stock-still is not a tell
+    ctrl.stillT = dead || moving || ctrl.act || ctrl.pose ? 0 : (ctrl.stillT || 0) + dt;
+    ctrl.anim = dead ? 5 : moving ? 1 : ctrl.act ? MISSIONS[ctrl.act.o].ga : ctrl.pose ? ctrl.pose.anim : ctrl.stillT > 3.5 ? 4 : 0;
     if (G.sim && !dead) G.sim.setPlayer(G.myEid, ctrl.x, ctrl.z, ctrl.rot, ctrl.anim, ctrl.y);
     isoState.tx = ctrl.x; isoState.tz = ctrl.z; isoState.ty = ctrl.y;
     stepRipple(dt);
