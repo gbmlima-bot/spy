@@ -26,7 +26,9 @@ MIRA_CENARIOS.push({
     vestidoChance: 0.48, longo: 0.12, taca: 0.55, tacas: ['tumbler', 'tumbler', 'tumbler', 'wine'], drinks: [0xf2c14e, 0xf2c14e, 0xc8e070, 0xffd9a0, 0xff7a2a],
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)], q = r();
-      if (q < 0.12) { o.main = 0xf6f3ec; o.pants = o.dress ? o.pants : 0xf6f3ec; if (!o.dress) o.stripes = 0x1f3a8a; o.hat = 'cap'; o.hatColor = 0xf6f3ec; o.hatBand = 0x1f3a8a; o.name = o.dress ? 'fantasia de marinheira, quepe branco' : 'fantasia de marinheiro, camisa listrada'; }
+      // a bloco is T-shirts (abadás), shorts or jeans and sneakers, not suits; the costumes below go on top
+      if (!o.dress) { o.tee = true; const k = Math.floor(q * 997) % 5; o.shorts = k < 3; o.pants = [0x2a4a7a, 0xd8c8a0, 0x1b1b1f, 0x3a5a8a, 0xf6f3ec][k]; o.shoe = [0xf2f2ee, 0x1b1b1f, 0xc8322f][k % 3]; o.bow = false; o.pocket = 0; o.vest = 0; o.watch = k === 4 ? 'steel' : false; }
+      if (q < 0.12) { o.main = 0xf6f3ec; o.pants = o.dress ? o.pants : 0xf6f3ec; if (!o.dress) o.stripes = 0x1f3a8a; o.hat = 'cap'; o.hatColor = 0xf6f3ec; o.hatBand = 0x1f3a8a; o.name = o.dress ? 'fantasia de marinheira, quepe branco' : 'fantasia de marinheiro, camisa listrada'; if (!o.dress) o.shorts = false; }
       else if (q < 0.21) { o.hat = 'tricorn'; o.hatColor = 0x16161a; o.mask = 'domino'; o.maskColor = 0x16161a; o.sash = 0xc8322f; if (!o.dress) { o.main = 0x1b1b1f; o.stripes = 0xf6f3ec; } o.name = o.dress ? 'fantasia de pirata, faixa vermelha' : 'fantasia de pirata, tapa-olho e tricórnio'; }
       else if (q < 0.33) { o.lei = pk([0xff5d8f, 0xffd23f, 0xff7a2a, 0xf6f3ec, 0x9b5de5]); o.hat = 'boater'; o.hatColor = 0xe9d79a; o.hatBand = pk([0xc8322f, 0x1f9a6a, 0xff5d8f]); o.name += ', fantasia de havaiano, colar de flores'; }
       else if (q < 0.43) { o.hat = 'feathers'; o.hatColor = pk([0xff3d7f, 0x2ec4b6, 0xffd23f, 0x9b5de5]); o.name += ', cocar de plumas'; }
