@@ -88,11 +88,13 @@ MIRA_CENARIOS.push({
       const g = new T.ExtrudeGeometry(s, { depth: w, bevelEnabled: false, curveSegments: 8 }); g.translate(0, 0, -w / 2); g.rotateY(Math.PI / 2); return g;
     };
     // telhado curvo japonês com cumeeira e empenas (cumeeira ao longo de x; ry gira)
+    // copa de árvore: icosaedro subdividido e amassado (facetado, mas com volume de folhagem em vez de um poliedro liso)
+    let copaN = 0; const copaG = (r, ph = (copaN++ * 2.39) % 9) => { const g = new T.IcosahedronGeometry(1, 2), q = g.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = r * (1 + 0.18 * Math.sin(v.x * 4.1 + ph) * Math.cos(v.z * 3.7 - ph) + 0.1 * Math.sin(v.y * 6.3 + ph * 2)); q.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k); } K.normaisLisas(g, 1, 0.85, 1); return g; };
     const roof = (w, d, h, x, y, z, o = {}) => {
       const g = K.group(x, y, z, o.ry || 0, o.parent);
       K.add(roofGeo(w, d, h, o.t, o.up), o.mat || tileM, 0, 0, 0, { parent: g, cast: o.cast });
       K.box(w + 0.1, 0.16, 0.22, tileEdge, 0, h + 0.02, 0, { parent: g, cast: false });
-      for (const s of [-1, 1]) { K.box(0.2, 0.34, 0.3, tileEdge, s * (w / 2 + 0.02), h + 0.12, 0, { parent: g, cast: false });
+      for (const s of [-1, 1]) { K.box(0.16, 0.16, 0.3, tileEdge, s * (w / 2 + 0.02), h + 0.06, 0, { parent: g, cast: false }); K.add(new T.CylinderGeometry(0.2, 0.2, 0.1, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), tileEdge, s * (w / 2 + 0.05), h + 0.13, 0, { parent: g, cast: false });
         const sh = new T.Shape(), hd = d / 2 - 0.35; sh.moveTo(-hd, 0.2); sh.quadraticCurveTo(-hd * 0.4, h * 0.22, 0, h - 0.18); sh.quadraticCurveTo(hd * 0.4, h * 0.22, hd, 0.2); sh.lineTo(-hd, 0.2);
         K.add(new T.ShapeGeometry(sh).rotateY(Math.PI / 2), o.gable || K.mat(0x4a3424, { side: T.DoubleSide, roughness: 0.8 }), s * (w / 2 - 0.3), 0, 0, { parent: g, cast: false }); }
       return g;
@@ -150,7 +152,7 @@ MIRA_CENARIOS.push({
       K.halo(16, 10, -42, 9, 0xff7a30, 0.12);
       // bosque escuro em volta do templo (fecha o fundo)
       const fo = [], tr = []; for (let k = 0; k < 240; k++) { const x = -48 + R() * 96, z = -13 - R() * 28; if (Math.abs(x) < 14.5 && z > -27) continue; if (Math.abs(x) < 6 && z > -32) continue; const s = 1.2 + R() * 1.4; fo.push([x, 3.2 * s + R(), z, R() * 6, s * 1.6]); fo.push([x + (R() - 0.5) * 2, 4.4 * s, z + (R() - 0.5) * 2, R() * 6, s * 1.2]); tr.push([x, 0, z, 0, [s, s * 3, s]]); }
-      K.inst(new T.IcosahedronGeometry(1, 0), K.mat(0x16261c, { roughness: 1, flatShading: true }), fo, { cast: false });
+      K.inst(copaG(1), K.mat(0x16261c, { roughness: 1 }), fo, { cast: false });
       K.inst(new T.CylinderGeometry(0.15, 0.22, 1, 5).translate(0, 0.5, 0), K.mat(0x2a1e16), tr, { cast: false });
       // pátio do salão (plataforma de pedra) e caminho de lanternas de pedra
       K.box(26, 1.05, 15, K.mat(0x3a3630, { roughness: 0.95 }), 0, 0.52, -20.4, { cast: false });
@@ -178,10 +180,17 @@ MIRA_CENARIOS.push({
       for (const x of [-3.6, -1.2, 1.2, 3.6]) for (const z of [-1.3, 1.3]) { K.cyl(0.24, 0.26, 4.2, verm, x, 2.1, z, { parent: gate, cast: false }, 12); K.cyl(0.32, 0.36, 0.3, stoneL, x, 0.15, z, { parent: gate, cast: false }, 10); }
       for (const z of [-1.3, 1.3]) { K.box(7.8, 0.36, 0.3, verm, 0, 3.7, z, { parent: gate, cast: false }); K.box(7.8, 0.2, 0.26, vermD, 0, 2.9, z, { parent: gate, cast: false }); }
       // paredes brancas nos vãos laterais com janelas de treliça
-      for (const s of [-1, 1]) { K.box(2.2, 2.6, 0.2, plaster, s * 2.4, 1.6, 0, { parent: gate, cast: false });
+      for (const s of [-1, 1]) { K.box(2.2, 2.9, 0.2, plaster, s * 2.4, 1.45, 0, { parent: gate, cast: false });
         K.add(new T.PlaneGeometry(1.2, 1.0), K.texMat(K.canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#ffcf86'; g.fillRect(0, 0, w, h); g.strokeStyle = '#5a2010'; g.lineWidth = 4; for (let k = 0; k <= 4; k++) { g.beginPath(); g.moveTo(k * 16, 0); g.lineTo(k * 16, h); g.stroke(); g.beginPath(); g.moveTo(0, k * 16); g.lineTo(w, k * 16); g.stroke(); } }), { emissive: 0xffa040, emissiveIntensity: 0.5 }), s * 2.4, 2.0, 0.11, { parent: gate, cast: false });
         // guardiões Niō sugeridos: estátuas vermelhas nas grades
-        K.box(0.6, 1.6, 0.4, K.mat(0x9a2a1a), s * 2.4, 0.9, 0.35, { parent: gate, cast: false }); K.sphere(0.24, K.mat(0x9a2a1a), s * 2.4, 1.9, 0.35, { parent: gate, cast: false }); }
+        K.box(0.7, 0.2, 0.5, stoneL, s * 2.4, 0.1, 0.35, { parent: gate, cast: false }); 
+        { const ni = K.group(s * 2.4, 0.2, 0.35, 0, gate), nm = K.mat(0x9a2a1a, { roughness: 0.6 }), ng = K.mat(0x3a2a1a, { roughness: 0.7 }), o = { parent: ni, cast: false };
+          for (const e of [-1, 1]) { K.cyl(0.07, 0.09, 0.6, nm, e * 0.15, 0.3, 0, { ...o, rz: e * 0.12 }, 8); K.box(0.14, 0.06, 0.22, nm, e * 0.19, 0.03, 0.04, o); }
+          K.cyl(0.2, 0.3, 0.38, ng, 0, 0.62, 0, o, 10); K.cyl(0.27, 0.17, 0.55, nm, 0, 1.06, 0, o, 10); K.add(new T.SphereGeometry(0.29, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.35, 0.75), nm, 0, 1.32, 0, o);
+          K.cyl(0.06, 0.05, 0.42, nm, -s * 0.3, 1.18, 0.08, { ...o, rz: s * 0.25, rx: -0.3 }); K.sphere(0.07, nm, -s * 0.36, 0.98, 0.15, o, 8, 6);
+          K.cyl(0.06, 0.05, 0.4, nm, s * 0.33, 1.42, 0.05, { ...o, rz: -s * 0.9 }); K.sphere(0.075, nm, s * 0.47, 1.58, 0.06, o, 8, 6);
+          K.sphere(0.15, nm, 0, 1.5, 0.02, o, 10, 8); K.sphere(0.07, ng, 0, 1.66, -0.04, o, 8, 6); for (const e of [-1, 1]) K.sphere(0.022, K.mat(0xf6e0c8), e * 0.055, 1.53, 0.14, o, 6, 4);
+          K.add(new T.TorusGeometry(0.55, 0.025, 4, 16, Math.PI), ng, 0, 1.15, -0.08, o); } }
       // vão central iluminado
       K.add(new T.PlaneGeometry(2.3, 3.4), K.glow(0xffa860, 0.55), 0, 1.75, -1.32, { parent: gate, cast: false });
       roof(10, 4.8, 1.3, 0, 4.0, 0, { parent: gate, cast: false, up: 0.35 });
@@ -230,8 +239,13 @@ MIRA_CENARIOS.push({
       // komainu (cães-leão) nos pedestais
       for (const s of [-1, 1]) { const g = K.group(s * 2.6, TY, -6.75, s * -0.3);
         K.box(0.8, 0.7, 0.8, stoneD, 0, 0.35, 0, { parent: g }); K.box(0.9, 0.08, 0.9, stoneL, 0, 0.74, 0, { parent: g });
-        K.add(new T.SphereGeometry(0.26, 10, 8).scale(1, 0.9, 1.3), stoneL, 0, 1.0, -0.05, { parent: g }); K.sphere(0.2, stoneL, 0, 1.38, 0.12, { parent: g }, 10, 8);
-        K.add(new T.SphereGeometry(0.22, 10, 8).scale(1.2, 1, 0.6), stoneG, 0, 1.38, 0.04, { parent: g }); for (const e of [-1, 1]) K.sphere(0.03, K.mat(0x2a2010), e * 0.08, 1.42, 0.3, { parent: g, cast: false }, 6, 4);
+        // sentado nas patas de trás: anca, peito inclinado, patas da frente, juba, focinho, orelhas e cauda enrolada
+        K.add(new T.SphereGeometry(0.24, 10, 8).scale(1, 0.75, 1.15), stoneL, 0, 0.94, -0.12, { parent: g }); K.add(new T.CylinderGeometry(0.16, 0.21, 0.5, 10), stoneL, 0, 1.13, 0.02, { parent: g, rx: 0.35 });
+        for (const e of [-1, 1]) { K.cyl(0.055, 0.065, 0.36, stoneL, e * 0.11, 0.97, 0.2, { parent: g }, 8); K.add(new T.SphereGeometry(0.07, 8, 6).scale(1, 0.6, 1.3), stoneL, e * 0.11, 0.8, 0.24, { parent: g }); K.add(new T.SphereGeometry(0.1, 8, 6).scale(1, 0.7, 1.2), stoneL, e * 0.16, 0.86, -0.05, { parent: g }); }
+        K.add(new T.SphereGeometry(0.24, 10, 8).scale(1.15, 1.05, 0.65), stoneG, 0, 1.42, 0.02, { parent: g }); K.sphere(0.16, stoneL, 0, 1.45, 0.14, { parent: g }, 10, 8);
+        K.add(new T.SphereGeometry(0.085, 8, 6).scale(1.3, 0.8, 1), stoneL, 0, 1.39, 0.29, { parent: g }); K.sphere(0.025, K.mat(0x2a2010), 0, 1.42, 0.37, { parent: g, cast: false }, 6, 4);
+        for (const e of [-1, 1]) { K.sphere(0.028, K.mat(0x2a2010), e * 0.065, 1.5, 0.28, { parent: g, cast: false }, 6, 4); K.add(new T.ConeGeometry(0.05, 0.1, 5), stoneG, e * 0.13, 1.6, 0.08, { parent: g, rz: -e * 0.5 }); }
+        K.add(new T.TorusGeometry(0.09, 0.035, 6, 10, Math.PI * 1.5), stoneG, 0, 1.08, -0.36, { parent: g, ry: Math.PI / 2 });
         K.colR(s * 2.6, -6.75, 0.45, 1); }
       // caixa de oferendas, sinos suzu
       { K.box(2.0, 0.7, 0.75, woodD, 0, TY + 0.35, -9.05); for (let k = 0; k < 12; k++) K.box(0.06, 0.06, 0.7, woodL, -0.9 + k * 0.165, TY + 0.73, -9.05, { cast: false, rx: 0.4 });
@@ -239,7 +253,8 @@ MIRA_CENARIOS.push({
         K.col(-1.05, -9.45, 1.05, -8.65, 1);
         for (const s of [-1, 1]) { const tw = K.add(new T.CylinderGeometry(0.045, 0.045, 2.4, 6), K.texMat(K.canvasTex(16, 64, (g, w, h) => { const c = ['#c8322f', '#f6f3ec', '#6b3f8c']; for (let k = 0; k < 16; k++) { g.fillStyle = c[k % 3]; g.save(); g.translate(0, k * 4); g.transform(1, 0.5, 0, 1, 0, 0); g.fillRect(0, 0, w, 4); g.restore(); } }, [1, 6])), s * 0.55, TY + 1.95, -9.6, { cast: false }); K.sphere(0.14, brass, s * 0.55, TY + 3.2, -9.6, {}, 10, 8); } }
       // queimador de incenso de bronze (fumaça)
-      { const ix = -3.9, iz = -8.8; // atrás, perto do muro: entre ele e o komainu fica a passagem para o balcão de amuletos K.lathe([[0, 0], [0.4, 0], [0.5, 0.15], [0.55, 0.55], [0.6, 0.62], [0, 0.62]], bronze, ix, TY + 0.3, iz, {}, 14); for (let k = 0; k < 3; k++) { const a = k * 2.1; K.cyl(0.05, 0.07, 0.35, bronze, ix + Math.cos(a) * 0.35, TY + 0.17, iz + Math.sin(a) * 0.35, {}, 6); }
+      // atrás, perto do muro: entre ele e o komainu fica a passagem para o balcão de amuletos
+      { const ix = -3.9, iz = -8.8; K.lathe([[0, 0], [0.4, 0], [0.5, 0.15], [0.55, 0.55], [0.6, 0.62], [0, 0.62]], bronze, ix, TY + 0.3, iz, {}, 14); for (let k = 0; k < 3; k++) { const a = k * 2.1; K.cyl(0.05, 0.07, 0.35, bronze, ix + Math.cos(a) * 0.35, TY + 0.17, iz + Math.sin(a) * 0.35, {}, 6); }
         K.box(0.9, 0.06, 0.9, bronze, ix, TY + 1.4, iz); K.cone(0.7, 0.45, bronze, ix, TY + 1.65, iz, {}, 6); K.sphere(0.08, brass, ix, TY + 1.95, iz); for (const [a, b] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) K.cyl(0.03, 0.03, 0.5, bronze, ix + a * 0.38, TY + 1.15, iz + b * 0.38, {}, 4);
         K.pool(ix, iz, 0.8, 0xff7030, 0.3, TY + 0.02); K.halo(ix, TY + 0.95, iz, 0.4, 0xff6020, 0.6); K.colR(ix, iz, 0.55, 1); }
       // lanternas de pedra do terraço
@@ -325,7 +340,7 @@ MIRA_CENARIOS.push({
       const nt = K.canvasTex(512, 96, (gg, w, h) => { gg.fillStyle = o.noren; gg.fillRect(0, 0, w, h); gg.fillStyle = 'rgba(0,0,0,.35)'; for (let k = 1; k < 4; k++) gg.fillRect(k * w / 4 - 2, 30, 4, h); gg.fillStyle = '#ffffff'; gg.font = `700 64px ${JP}`; gg.textAlign = 'center'; gg.textBaseline = 'middle'; gg.fillText(o.txt, w / 2, h / 2 + 3); });
       K.add(new T.PlaneGeometry(2.8, 0.5), K.texMat(nt, { side: T.DoubleSide, emissive: 0x201010, emissiveIntensity: 0.3 }), 0, 2.2, 0.96, { parent: g, cast: false });
       // lâmpada nua e lanterninhas
-      K.sphere(0.06, K.glow(0xffe0a0, 3), 0, 2.15, 0.1, { parent: g, cast: false }, 8, 6);
+      K.sphere(0.06, K.glow(0xffe0a0, 3), 0, 2.15, 0.1, { parent: g, cast: false }, 8, 6); K.cyl(0.006, 0.006, 0.36, lac, 0, 2.38, 0.1, { parent: g, cast: false }, 4);
       for (const lx of [-1.2, 1.2]) { K.add(chochinGeo, lx < 0 ? redLT : whiteLT, lx, 1.9, 0.98, { parent: g, cast: false }); K.cyl(0.08, 0.08, 0.04, lac, lx, 2.1, 0.98, { parent: g, cast: false }, 8); }
       colL(X, Z, ry, -1.33, -1.05, 1.33, 0.8);
       // fregueses diante do balcão
@@ -385,6 +400,7 @@ MIRA_CENARIOS.push({
       K.box(0.14, 0.03, 0.02, K.mat(0xf6f3ec), 0, -0.08, 0.13, { parent: og, cast: false });
       // máscaras no balcão e cata-ventos
       for (let k = 0; k < 4; k++) K.add(face, K.mat(kinds[(k * 3) % kinds.length]), -0.9 + k * 0.5, 0.95, 0.5, { parent: g, cast: false, rx: -Math.PI / 2 });
+      K.cyl(0.09, 0.07, 0.75, K.mat(0xc8a860, { roughness: 1 }), 1.05, 1.27, 0.41, { parent: g }, 8); for (const y of [1.05, 1.5]) K.torus(0.085, 0.012, K.mat(0x7a5a2a), 1.05, y, 0.41, { parent: g, rx: Math.PI / 2, cast: false }, 4, 10);
       for (let k = 0; k < 5; k++) { const pw = K.group(1.05, 1.2 + k * 0.12, 0.35 + (k % 2) * 0.12, 0, g); K.cyl(0.006, 0.006, 0.3, woodL, 0, -0.15, 0, { parent: pw, cast: false }, 3); for (let b = 0; b < 4; b++) K.add(new T.PlaneGeometry(0.08, 0.08).translate(0.04, 0.04, 0), K.mat([0xff3d7f, 0xffd23f, 0x2ec4b6, 0xff6b2c][b], { side: T.DoubleSide }), 0, 0, 0, { parent: pw, cast: false, rz: b * Math.PI / 2 });
         swayers.push({ sw: pw, ph: k, a: 0, f: 0, spin: true }); }
       return { og, m };
@@ -458,8 +474,9 @@ MIRA_CENARIOS.push({
       K.inst(new T.SphereGeometry(0.055, 10, 8), K.mat(0xd8101a, { roughness: 0.08, metalness: 0.1, emissive: 0x500000, emissiveIntensity: 0.5 }), ap, { parent: g, cast: false });
       K.inst(new T.CylinderGeometry(0.005, 0.005, 0.2, 4), woodL, st, { parent: g, cast: false });
       const bags = []; for (let k = 0; k < 10; k++) bags.push([-1.1 + k * 0.24, 1.75 + (k % 2) * 0.12, -0.6]);
+      K.box(2.5, 0.04, 0.04, woodL, -0.0, 2.45, -0.6, { parent: g, cast: false }); K.inst(new T.CylinderGeometry(0.004, 0.004, 1, 3), lac, bags.map(b => [b[0], (b[1] + 0.1 + 2.45) / 2, b[2], 0, [1, 2.45 - b[1] - 0.1, 1]]), { parent: g, cast: false });
       ['#ff5d8f', '#2ec4b6', '#ffd23f', '#9b5de5', '#ff6b2c'].forEach((c, ci) => K.inst(new T.SphereGeometry(0.1, 10, 8).scale(0.8, 1.2, 0.5), K.mat(c, { roughness: 0.3, emissive: c, emissiveIntensity: 0.25 }), bags.filter((_, k) => k % 5 === ci), { parent: g, cast: false }));
-      K.cyl(0.25, 0.18, 0.3, K.silver, 0.95, 1.05, 0.45, { parent: g }, 16); K.sphere(0.16, K.mat(0xffc0d8, { roughness: 1, emissive: 0xff80b0, emissiveIntensity: 0.3 }), 0.95, 1.4, 0.45, { parent: g, cast: false }, 10, 8);
+      K.cyl(0.25, 0.18, 0.3, K.silver, 0.95, 1.05, 0.45, { parent: g }, 16); K.sphere(0.16, K.mat(0xffc0d8, { roughness: 1, emissive: 0xff80b0, emissiveIntensity: 0.3 }), 0.95, 1.34, 0.45, { parent: g, cast: false }, 10, 8);
     }
 
     // ------------------------------------------------------------ cordões de lanternas sobre a rua
@@ -544,7 +561,7 @@ MIRA_CENARIOS.push({
       for (const [a, b] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) K.box(0.16, 2.9, 0.16, verm, x + a * 1.1, 1.6, z + b * 1.0, { rz: -a * 0.04 });
       K.box(2.6, 0.16, 0.2, verm, x, 2.95, z); K.box(2.6, 0.12, 0.16, verm, x, 2.4, z - 1.0); K.box(2.6, 0.12, 0.16, verm, x, 2.4, z + 1.0);
       roof(3.0, 2.8, 0.5, x, 3.0, z, { t: 0.08, up: 0.12 });
-      const bg = K.group(x, 2.85, z);
+      const bg = K.group(x, 2.85, z); K.cyl(0.035, 0.035, 0.1, K.iron, 0, 0.03, 0, { parent: bg, cast: false }, 6);
       K.lathe([[0, -0.02], [0.08, -0.02], [0.12, -0.12], [0.38, -0.2], [0.42, -0.5], [0.44, -1.2], [0.48, -1.32], [0.4, -1.32], [0, -1.32]], bronze, 0, 0, 0, { parent: bg }, 20);
       const band = K.torus(0.445, 0.025, K.metal(0x6a7a4a, 0.4), 0, -0.85, 0, { parent: bg, rx: Math.PI / 2, cast: false }, 6, 24);
       for (let r = 0; r < 3; r++) for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; K.sphere(0.025, bronze, Math.cos(a) * 0.4, -0.35 - r * 0.1, Math.sin(a) * 0.4, { parent: bg, cast: false }, 4, 3); }
@@ -567,7 +584,7 @@ MIRA_CENARIOS.push({
       const g = K.group(x, o.y || 0, z, R() * 6);
       K.cyl(0.07 * s, 0.12 * s, 1.5 * s, K.mat(0x3a2a1e, { roughness: 0.9 }), 0, 0.75 * s, 0, { parent: g }, 7);
       for (let k = 0; k < 3; k++) K.cyl(0.03 * s, 0.05 * s, 0.8 * s, K.mat(0x3a2a1e), Math.cos(k * 2.1) * 0.25 * s, 1.5 * s, Math.sin(k * 2.1) * 0.25 * s, { parent: g, rz: Math.cos(k * 2.1) * 0.6, rx: -Math.sin(k * 2.1) * 0.6 }, 5);
-      const n = o.n || 7; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, r = (0.35 + R() * 0.4) * s; K.add(new T.IcosahedronGeometry((0.45 + R() * 0.25) * s, 0), K.mat(cols[k % cols.length], { roughness: 0.85, flatShading: true }), Math.cos(a) * r, (1.9 + R() * 0.7) * s, Math.sin(a) * r, { parent: g }); }
+      const n = o.n || 7; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, r = (0.35 + R() * 0.4) * s; K.add(copaG((0.45 + R() * 0.25) * s), K.mat(cols[k % cols.length], { roughness: 0.85 }), Math.cos(a) * r, (1.9 + R() * 0.7) * s, Math.sin(a) * r, { parent: g }); }
       if (o.col !== false) K.colR(x, z, 0.25 * s, o.lv || 0);
       return g;
     };
@@ -734,9 +751,12 @@ MIRA_CENARIOS.push({
     }
     { // hortênsias (ajisai) e bambus baixos ao longo da margem
       const cols = [0x5a7ad8, 0x8a6ad8, 0xd88ac8, 0x6a9ae8];
+      // cabeça de flor: bola cheia de florzinhas (calombos miúdos), não um poliedro
+      const bola = new T.IcosahedronGeometry(0.2, 2); { const q = bola.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = 1 + 0.09 * Math.sin(v.x * 60) * Math.sin(v.y * 55) * Math.sin(v.z * 58); q.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k); } K.normaisLisas(bola, 1, 0.85, 1); }
       cols.forEach((c, ci) => { const l = []; for (let k = 0; k < 26; k++) { const x = -14 + R() * 28; if (Math.abs(x) < 1.8 || Math.abs(x - 6.5) < 0.8 || Math.abs(x + 4.2) < 0.7 || Math.abs(x - 4.2) < 0.7 || Math.abs(x + 10) < 0.8) continue; if (k % 4 !== ci) continue; l.push([x, 0.32, 10.85 + R() * 0.25, R() * 6, 0.9 + R() * 0.4]); }
-        K.inst(new T.IcosahedronGeometry(0.2, 0), K.mat(c, { roughness: 0.9, flatShading: true, emissive: c, emissiveIntensity: 0.12 }), l); });
-      const lv = []; for (let k = 0; k < 60; k++) lv.push([-14 + R() * 28, 0.18, 10.8 + R() * 0.35, R() * 6, 0.8 + R() * 0.5]); K.inst(new T.IcosahedronGeometry(0.2, 0), K.mat(0x2f5a2a, { flatShading: true }), lv);
+        K.inst(new T.SphereGeometry(0.26, 7, 5).scale(1, 0.55, 1), K.mat(0x2f5a2a, { roughness: 0.9, flatShading: true }), l.map(p => [p[0], 0.13, p[2], p[3], p[4]]), { cast: false });
+        K.inst(bola, K.mat(c, { roughness: 0.9, emissive: c, emissiveIntensity: 0.12 }), l); });
+      const lv = []; for (let k = 0; k < 60; k++) lv.push([-14 + R() * 28, 0.18, 10.8 + R() * 0.35, R() * 6, 0.8 + R() * 0.5]); K.inst(new T.SphereGeometry(0.2, 8, 5).scale(1.2, 0.6, 1), K.mat(0x2f5a2a, { roughness: 0.9 }), lv);
       K.col(-14.5, 10.75, 14.5, 11.2);
     }
     [[-12.2, 9.4], [-8.0, 9.4], [-6.4, 9.4], [-2.4, 9.4], [3.2, 9.3], [8.8, 9.4], [10.6, 9.4], [12.6, 9.4]].forEach(([x, z]) => K.slot(x, z, x + (R() - 0.5), 7.8, 'view'));
@@ -815,7 +835,7 @@ MIRA_CENARIOS.push({
     for (const s of [-1, 1]) for (let k = 0; k < 5; k++) { const z = -12 + k * 5.2, h = 5 + R() * 2; K.facade(7, h, 4.8, s * 28, z, { wall: '#2a1e18', dark: '#120c0a', lit: 0.35, bays: 4, floors: 3, glow: 0.45 }); roof(5.2, 8, 1.3, s * 28, h - 0.1, z, { ry: Math.PI / 2, cast: false }); }
     // bambuzal alto atrás das laterais
     { const bb = []; for (let k = 0; k < 160; k++) { const s = R() < 0.5 ? -1 : 1; bb.push([s * (23 + R() * 3), 4, -16 + R() * 10, 0, [1, 0.8 + R() * 0.5, 1], (R() - 0.5) * 0.1, (R() - 0.5) * 0.1]); }
-      K.inst(new T.CylinderGeometry(0.06, 0.07, 10, 5), bamboo, bb, { cast: false }); const lf = bb.map(p => [p[0], 8 + R() * 2, p[2], R() * 6, 1.2]); K.inst(new T.IcosahedronGeometry(0.8, 0), K.mat(0x2f4a2a, { flatShading: true }), lf, { cast: false }); }
+      K.inst(new T.CylinderGeometry(0.06, 0.07, 10, 5), bamboo, bb, { cast: false }); const lf = bb.map(p => [p[0], 8 + R() * 2, p[2], R() * 6, 1.2]); K.inst(copaG(0.8), K.mat(0x2f4a2a), lf, { cast: false }); }
 
     // ------------------------------------------------------------ frente: margem do rio Kamo e o pagode do sniper
     K.add(new T.PlaneGeometry(140, 3).rotateX(-Math.PI / 2), K.mat(0x2e2b26, { roughness: 0.95 }), 0, 0, 12.9, { cast: false });
@@ -826,7 +846,8 @@ MIRA_CENARIOS.push({
     for (let k = 0; k < 22; k++) K.pool(-30 + k * 2.8 + R() * 2, 18 + R() * 24, 0.6 + R() * 1.2, k % 4 ? 0xffa850 : 0xff4030, 0.2, -0.97);
     // margem oposta: casas baixas iluminadas e kawadoko (terraços sobre o rio)
     K.add(new T.PlaneGeometry(240, 30).rotateX(-Math.PI / 2), K.mat(0x1c1a18, { roughness: 1 }), 0, 0, 69.5, { cast: false });
-    for (let k = 0; k < 14; k++) { const x = -50 + k * 7.4, h = 3 + R() * 3; K.facade(6.6, h, 6, x, 60 + R() * 4, { wall: '#2a201a', dark: '#100c0a', lit: 0.5, bays: 4, floors: 2, glow: 0.5 }); roof(6.8, 7, 1.0, x, h, 62, { cast: false }); K.box(6.4, 0.15, 3.0, woodD, x, 0.9, 55.6, { cast: false }); for (let j = 0; j < 4; j++) K.halo(x - 2.4 + j * 1.6, 1.5, 54.4, 0.3, 0xffb050, 0.9); }
+    const kp = []; for (let k = 0; k < 14; k++) { const x = -50 + k * 7.4, h = 3 + R() * 3; K.facade(6.6, h, 6, x, 60 + R() * 4, { wall: '#2a201a', dark: '#100c0a', lit: 0.5, bays: 4, floors: 2, glow: 0.5 }); roof(6.8, 7, 1.0, x, h, 62, { cast: false }); K.box(6.4, 0.15, 3.0, woodD, x, 0.9, 55.6, { cast: false }); for (let j = 0; j < 4; j++) K.halo(x - 2.4 + j * 1.6, 1.5, 54.4, 0.3, 0xffb050, 0.9); for (const a of [-1, 1]) for (const b of [-1, 1]) kp.push([x + a * 3.0, -0.07, 55.6 + b * 1.35]); }
+    K.inst(new T.BoxGeometry(0.14, 1.8, 0.14), woodD, kp, { cast: false });
     // pagode de cinco andares (sniper no último andar)
     { const px = -6, pz = 52.5, base = 0.8, pg = K.group(px, 0, pz);
       K.box(7.6, base, 7.6, stoneG, 0, base / 2, 0, { parent: pg, cast: false });

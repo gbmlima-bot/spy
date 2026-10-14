@@ -170,9 +170,9 @@ MIRA_CENARIOS.push({
     K.box(31, 4.6, 0.6, plaster, 0, 2.3, -10.3, { cast: false });
     // balcão do piano nobile com balaústres
     K.box(29.4, 0.3, 3.8, istria, 0, 4.55, -8.5);
-    const bal = []; for (let x = -14.2; x <= 14.2; x += 0.32) bal.push([x, 4.95, -6.68]);
+    const bal = []; for (let x = -14.2; x <= 14.2; x += 0.32) bal.push([x, 4.7, -6.68]);
     K.inst(new T.LatheGeometry([[0, 0], [0.06, 0], [0.06, 0.05], [0.035, 0.12], [0.075, 0.3], [0.035, 0.46], [0.06, 0.52], [0, 0.52]].map(p => new T.Vector2(p[0], p[1])), 8), istria, bal);
-    K.box(29.4, 0.1, 0.24, istria, 0, 5.52, -6.68);
+    K.box(29.4, 0.1, 0.24, istria, 0, 5.27, -6.68);
     // arcada da loggia (parede com arcos vazados)
     { const sh = new T.Shape(); sh.moveTo(-14.7, 0); sh.lineTo(14.7, 0); sh.lineTo(14.7, 4.4); sh.lineTo(-14.7, 4.4); sh.lineTo(-14.7, 0);
       for (let k = 0; k < 9; k++) { const cx = -12.8 + k * 3.2, hw = 1.25, hp = new T.Path(); hp.moveTo(cx - hw, 0); hp.lineTo(cx + hw, 0); hp.lineTo(cx + hw, 2.7); hp.quadraticCurveTo(cx + hw, 3.6, cx, 3.95); hp.quadraticCurveTo(cx - hw, 3.6, cx - hw, 2.7); hp.lineTo(cx - hw, 0); sh.holes.push(hp); }
@@ -188,7 +188,7 @@ MIRA_CENARIOS.push({
     const portrait = (x, hue) => { K.box(1.3, 1.7, 0.08, gilt, x, 2.4, -9.94); const t = K.canvasTex(128, 168, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, `hsl(${hue},30%,22%)`); gr.addColorStop(1, '#100c08'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#e0b090'; g.beginPath(); g.ellipse(64, 66, 22, 28, 0, 0, 7); g.fill(); g.fillStyle = `hsl(${hue},45%,30%)`; g.beginPath(); g.ellipse(64, 160, 52, 60, 0, 0, 7); g.fill(); g.fillStyle = '#2a1a10'; g.beginPath(); g.ellipse(64, 46, 25, 16, 0, Math.PI, 0); g.fill(); }); K.add(new T.PlaneGeometry(1.1, 1.5), K.texMat(t), x, 2.4, -9.89, { cast: false }); K.box(0.06, 0.4, 0.06, gilt, x, 3.4, -9.92); };
     [-11.2, -4.8, 1.6, 8.0, 12.8].forEach((x, k) => portrait(x, k * 60 + 10));
     // candelabros de parede com velas
-    for (const x of [-8, -1.6, 4.8, 11.2]) { K.box(0.08, 0.3, 0.12, gilt, x, 2.6, -9.92); for (const s of [-0.15, 0, 0.15]) { K.cyl(0.02, 0.02, 0.12, M.candle, x + s, 2.82, -9.78, { cast: false }); K.flame(x + s, 2.88, -9.78, 0.014); } }
+    for (const x of [-8, -1.6, 4.8, 11.2]) { K.box(0.08, 0.3, 0.12, gilt, x, 2.6, -9.92); K.box(0.36, 0.03, 0.1, gilt, x, 2.745, -9.82, { cast: false }); for (const s of [-0.15, 0, 0.15]) { K.cyl(0.03, 0.02, 0.03, gilt, x + s, 2.775, -9.78, { cast: false }, 8); K.cyl(0.02, 0.02, 0.12, M.candle, x + s, 2.85, -9.78, { cast: false }); K.flame(x + s, 2.91, -9.78, 0.014); } }
     // sofás de veludo, mesa de cartas e o trono da contessa
     K.sofa(-6.0, -9.2, 2.4, 0, { cloth: velvet, pillow: 0xd9a441 }); K.col(-7.2, -9.65, -4.8, -8.8);
     [-6.7, -5.3].forEach(x => K.slot(x, -9.05, x, -7, 'sit'));
@@ -202,7 +202,7 @@ MIRA_CENARIOS.push({
       for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + 0.4; K.chair(cx + Math.cos(a) * 0.95, cz + Math.sin(a) * 0.95, Math.atan2(-Math.cos(a), -Math.sin(a)) + 0, { seat: velvet, frame: gilt }); K.slot(cx + Math.cos(a) * 0.9, cz + Math.sin(a) * 0.9, cx, cz, 'cards'); }
     }
     { // trono da contessa
-      const g = K.group(4.6, 0, -8.75, 0.15); K.add(K.rbox(0.9, 0.2, 0.75, 0.05), velvet, 0, 0.45, 0, { parent: g }); K.add(K.rbox(0.95, 1.5, 0.15, 0.06), gilt, 0, 1.0, -0.4, { parent: g }); K.add(K.rbox(0.8, 1.2, 0.08, 0.04), velvet, 0, 1.05, -0.32, { parent: g }); K.sphere(0.09, gilt, 0, 1.8, -0.4, { parent: g });
+      const g = K.group(4.6, 0, -8.75, 0.15); K.add(K.rbox(0.9, 0.2, 0.75, 0.05), velvet, 0, 0.45, 0, { parent: g }); K.add(K.rbox(0.95, 1.5, 0.15, 0.06), gilt, 0, 1.0, -0.4, { parent: g }); K.add(K.rbox(0.8, 1.2, 0.08, 0.04), velvet, 0, 1.05, -0.32, { parent: g }); K.sphere(0.09, gilt, 0, 1.8, -0.4, { parent: g }); for (const [a, b] of [[-0.4, 0.3], [0.4, 0.3], [-0.4, -0.3], [0.4, -0.3]]) K.cyl(0.035, 0.025, 0.36, gilt, a, 0.18, b, { parent: g }, 8);
       for (const s of [-1, 1]) K.box(0.1, 0.3, 0.7, gilt, s * 0.45, 0.62, 0, { parent: g }); K.col(4.1, -9.2, 5.1, -8.3);
       K.plant(3.2, -9.4, 'topiary', { pot: K.mat(0x1f3a5a, { roughness: 0.3 }) }); K.plant(6.0, -9.4, 'topiary', { pot: K.mat(0x1f3a5a, { roughness: 0.3 }) });
     }
@@ -229,14 +229,15 @@ MIRA_CENARIOS.push({
       // estante de garrafas na parede
       K.box(0.4, 2.6, 4.6, oakDark, -14.3, 1.3, -2.9); for (const y of [1.25, 1.75, 2.25]) { K.box(0.4, 0.04, 4.4, K.mat(0x2a1a10), -14.1, y, -2.9); K.bottles(-14.05, y + 0.02, -5.0, 0, 0); }
       for (const y of [1.27, 1.77, 2.27]) for (let k = 0; k < 18; k++) { const c = [0xff7a2a, 0x2c6e49, 0x7a1f2a, 0xe8e0c8, 0xc9a227][k % 5]; K.lathe([[0, 0], [0.035, 0], [0.04, 0.02], [0.04, 0.16], [0.014, 0.22], [0.012, 0.28], [0, 0.28]], K.mat(c, { roughness: 0.15, transparent: true, opacity: 0.85, emissive: c, emissiveIntensity: 0.2 }), -14.05, y, -5.0 + k * 0.24, { cast: false }, 8); }
-      K.box(0.05, 0.05, 4.4, K.glow(0xffb060, 2.5), -13.92, 2.55, -2.9, { cast: false });
+      K.box(0.32, 0.08, 4.6, oakDark, -13.96, 2.64, -2.9); K.box(0.05, 0.05, 4.4, K.glow(0xffb060, 2.5), -13.88, 2.575, -2.9, { cast: false });
+      K.box(0.1, 0.9, 2.6, oakDark, -14.2, 3.05, -2.9); K.box(0.02, 0.96, 2.66, gilt, -14.26, 3.05, -2.9, { cast: false });
       // garrafa de Aperol (missão): grande, laranja, no balcão
       const ap = K.lathe([[0, 0], [0.06, 0], [0.065, 0.02], [0.065, 0.22], [0.025, 0.3], [0.02, 0.38], [0, 0.38]], K.mat(0xff6a1a, { roughness: 0.1, transparent: true, opacity: 0.9, emissive: 0xff5a10, emissiveIntensity: 0.3 }), cx + 0.85, 1.16, -2.2, { cast: false }, 12);
       K.box(0.1, 0.07, 0.005, K.mat(0xf6f1e8), cx + 0.85, 1.28, -2.135, { cast: false });
       // cicchetti e taças de spritz
       for (let k = 0; k < 5; k++) { K.cyl(0.11, 0.11, 0.015, M.white, cx + 0.9, 1.17, -4.6 + k * 0.33, { cast: false }, 14); for (let j = 0; j < 3; j++) K.box(0.05, 0.03, 0.05, K.mat([0xd9a060, 0x8a3a22, 0xf3e0b0][j]), cx + 0.88 + j * 0.03, 1.19, -4.62 + k * 0.33 + j * 0.03, { cast: false }); }
       for (let k = 0; k < 4; k++) { K.cyl(0.035, 0.03, 0.09, K.mat(0xff7a2a, { transparent: true, opacity: 0.85, emissive: 0xff6a1a, emissiveIntensity: 0.35 }), cx + 1.3, 1.21, -3.9 + k * 0.5, { cast: false }, 8); K.sphere(0.012, K.mat(0x3a7a2a), cx + 1.32, 1.27, -3.9 + k * 0.5, { cast: false }, 6, 4); }
-      K.sign('BACARO', 2.2, 0.55, -14.08, 3.2, -2.9, { ry: Math.PI / 2, neon: true, color: '#ffcf86', font: 'Georgia, serif', size: 92, k: 2.0 });
+      K.sign('BACARO', 2.2, 0.55, -14.14, 3.15, -2.9, { ry: Math.PI / 2, neon: true, color: '#ffcf86', font: 'Georgia, serif', size: 92, k: 2.0 });
       K.plight(-12.5, 2.4, -2.9, 0xffad5c, 2.0, 7);
       const apLight = K.plight(cx + 0.85, 1.5, -2.2, 0xff5a10, 0, 2.5);
       K.tell('aperol', (live) => { ap.material = K.glow(0xff7a2a, 2.4); apLight.intensity = 0.9; if (live) K.anim(1, e => { ap.scale.setScalar(1 + Math.sin(e * 18) * 0.06); }); }, () => { ap.material = K.mat(0xff6a1a, { roughness: 0.1, transparent: true, opacity: 0.9, emissive: 0xff5a10, emissiveIntensity: 0.3 }); apLight.intensity = 0; ap.scale.setScalar(1); });
@@ -254,11 +255,19 @@ MIRA_CENARIOS.push({
       const stand = (x, z, ry) => { const g = K.group(x, 0.3, z, ry); K.cyl(0.01, 0.015, 1.0, K.iron, 0, 0.5, 0, { parent: g }, 6); const p = K.box(0.45, 0.32, 0.02, K.iron, 0, 1.08, 0, { parent: g }); p.rotation.x = -0.4; const sh = K.box(0.4, 0.28, 0.005, M.white, 0, 1.09, 0.02, { parent: g, cast: false }); sh.rotation.x = -0.4; return sh; };
       const sheet = stand(-8.6, 2.4, -1.3); stand(-11.2, 2.2, 0.4); stand(-12.0, 3.2, 0.9);
       // violoncelo
-      const cel = K.group(-12.9, 0.3, 3.9, 0.5); K.add(new T.SphereGeometry(0.28, 12, 10).scale(1, 1.5, 0.4), K.mat(0x7a2a10, { roughness: 0.3 }), 0, 0.55, 0, { parent: cel, rz: 0.15 }); K.box(0.05, 0.6, 0.04, M.black, -0.1, 1.15, 0, { parent: cel, rz: 0.15 });
+      const cel = K.group(-12.1, 0.33, 3.8, 0.5), wood = K.mat(0x7a2a10, { roughness: 0.3 }), ebony = K.mat(0x1a1210, { roughness: 0.4 });
+      // suporte de pé: base em cruz, berço sob o bojo e haste com forquilha no braço
+      for (const r of [0, Math.PI / 2]) K.box(0.42, 0.025, 0.04, K.iron, 0, 0.012, -0.06, { parent: cel, ry: r }); K.box(0.2, 0.05, 0.06, K.iron, 0, 0.1, 0.04, { parent: cel }); K.box(0.02, 0.1, 0.02, K.iron, 0, 0.06, 0.04, { parent: cel });
+      K.cyl(0.012, 0.012, 1.0, K.iron, 0, 0.5, -0.14, { parent: cel }, 6); K.box(0.02, 0.02, 0.16, K.iron, 0, 1.0, -0.07, { parent: cel }); for (const sd of [-1, 1]) K.box(0.012, 0.06, 0.012, K.iron, sd * 0.045, 1.03, 0.0, { parent: cel });
+      K.cyl(0.006, 0.006, 0.12, K.iron, 0, 0.06, 0, { parent: cel }, 4);
+      K.add(new T.SphereGeometry(0.21, 14, 10).scale(1, 0.95, 0.42), wood, 0, 0.32, 0, { parent: cel }); K.add(new T.SphereGeometry(0.17, 14, 10).scale(1, 0.95, 0.42), wood, 0, 0.62, 0, { parent: cel }); K.box(0.26, 0.16, 0.12, wood, 0, 0.47, 0, { parent: cel });
+      K.box(0.05, 0.62, 0.035, ebony, 0, 0.98, 0.05, { parent: cel }); K.box(0.06, 0.16, 0.05, wood, 0, 1.35, 0, { parent: cel }); K.torus(0.035, 0.012, wood, 0, 1.46, 0, { parent: cel, ry: Math.PI / 2 }, 6, 10);
+      K.box(0.07, 0.025, 0.02, ebony, 0, 0.22, 0.09, { parent: cel }); for (const s of [-0.012, -0.004, 0.004, 0.012]) K.box(0.0025, 1.06, 0.0025, K.mat(0xd8d0b8), s, 0.77, 0.075, { parent: cel, cast: false });
+      for (const s of [-1, 1]) K.box(0.012, 0.09, 0.004, ebony, s * 0.07, 0.45, 0.085, { parent: cel, cast: false });
       // harpa dourada
-      const hp = K.group(-7.95, 0.3, 3.9, -0.6); K.box(0.08, 1.6, 0.1, gilt, 0, 0.8, 0, { parent: hp }); K.add(new T.TorusGeometry(0.55, 0.04, 6, 16, Math.PI * 0.8), gilt, 0.35, 1.25, 0, { parent: hp, rz: -0.3 }); for (let k = 0; k < 8; k++) K.box(0.004, 0.9 - k * 0.08, 0.004, K.mat(0xf3e0b0), 0.1 + k * 0.08, 0.75 - k * 0.04 + 0.2, 0, { parent: hp, cast: false });
+      const hp = K.group(-7.95, 0.3, 3.9, -0.6); K.box(0.08, 1.6, 0.1, gilt, 0, 0.8, 0, { parent: hp }); K.box(0.8, 0.1, 0.22, gilt, 0.36, 0.05, 0, { parent: hp }); { const sb = K.box(0.13, 1.22, 0.16, K.mat(0x8a5a2a, { roughness: 0.4 }), 0.42, 0.62, 0, { parent: hp }); sb.rotation.z = 0.62; } K.add(new T.TorusGeometry(0.55, 0.04, 6, 16, Math.PI * 0.8), gilt, 0.35, 1.25, 0, { parent: hp, rz: -0.3 }); for (let k = 0; k < 8; k++) { const sx = 0.1 + k * 0.08, y0 = 1.12 - k * 0.11, y1 = 1.23 + Math.sqrt(0.3025 - (sx - 0.35) ** 2); K.box(0.004, y1 - y0, 0.004, K.mat(0xf3e0b0), sx, (y0 + y1) / 2, 0, { parent: hp, cast: false }); }
       // candelabros de pé dos lados do palco
-      for (const [x, z] of [[-12.9, 1.3], [-7.6, 1.3]]) { K.cyl(0.03, 0.06, 1.6, gilt, x, 1.1, z, {}, 8); K.cyl(0.2, 0.2, 0.04, gilt, x, 1.9, z, {}, 12); for (let k = 0; k < 5; k++) { const a = k * 1.256, xx = x + Math.cos(a) * 0.16, zz = z + Math.sin(a) * 0.16; K.cyl(0.018, 0.018, 0.16, M.candle, xx, 2.0, zz, { cast: false }, 6); K.flame(xx, 2.08, zz, 0.015); } }
+      for (const [x, z] of [[-12.4, 1.4], [-8.0, 1.4]]) { K.cyl(0.03, 0.06, 1.6, gilt, x, 1.1, z, {}, 8); K.cyl(0.16, 0.2, 0.06, gilt, x, 0.33, z, {}, 10); K.cyl(0.2, 0.2, 0.04, gilt, x, 1.9, z, {}, 12); for (let k = 0; k < 5; k++) { const a = k * 1.256, xx = x + Math.cos(a) * 0.16, zz = z + Math.sin(a) * 0.16; K.cyl(0.018, 0.018, 0.16, M.candle, xx, 2.0, zz, { cast: false }, 6); K.flame(xx, 2.08, zz, 0.015); } }
       K.plight(-10.2, 2.4, 2.4, 0xffb870, 1.6, 7);
       const sheetMat = sheet.material;
       K.tell('partitura', (live) => { sheet.material = K.mat(0xd8323a, { roughness: 0.7 }); if (live) K.anim(0.8, e => { sheet.rotation.y = Math.sin(e * Math.PI) * 1.2; }); }, () => { sheet.material = sheetMat; sheet.rotation.y = 0; });
@@ -302,11 +311,11 @@ MIRA_CENARIOS.push({
     // fios de luz em leque partindo do topo do arco
     for (let k = 0; k < 8; k++) { const a = k / 7 * Math.PI; K.bulbs([5.0, 6.0, 2.6], [5.0 + Math.cos(a) * 6.5, 3.0, 2.6 + Math.sin(a) * 6.5 * 0.9], 9, 0.5, 0xffd08a, 3.0); }
     const chand = K.group(5.0, 4.55, 2.6);
-    K.cyl(0.012, 0.012, 1.4, gilt, 0, -0.1, 0, { parent: chand, cast: false }, 4);
+    K.cyl(0.012, 0.012, 2.3, gilt, 0, 0.35, 0, { parent: chand, cast: false }, 4);
     const glassC = [0xff6aa0, 0x6ad0ff, 0xffe070, 0x80ffb0, 0xffffff];
     K.lathe([[0, 0], [0.18, 0.05], [0.12, 0.3], [0.05, 0.5], [0, 0.55]], K.mat(0xe8f2ff, { transparent: true, opacity: 0.55, roughness: 0.05, emissive: 0x405060, emissiveIntensity: 0.4 }), 0, -1.35, 0, { parent: chand, cast: false });
-    for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5; const arm = K.group(0, -1.15, 0, -a, chand); K.add(new T.TorusGeometry(0.35, 0.02, 6, 12, Math.PI * 0.6), K.mat(glassC[k % 5], { transparent: true, opacity: 0.8, roughness: 0.1, emissive: glassC[k % 5], emissiveIntensity: 0.6 }), 0.35, 0, 0, { parent: arm, cast: false, rx: Math.PI / 2 }); K.cyl(0.04, 0.03, 0.08, K.mat(glassC[(k + 2) % 5], { emissive: glassC[(k + 2) % 5], emissiveIntensity: 0.7 }), 0.68, 0.06, 0, { parent: arm, cast: false }, 8); K.flame(0, 0, 0, 0.018, 0xffc060, arm).position.set(0.68, 0.11, 0); }
-    for (let k = 0; k < 14; k++) { const a = k * 0.45; K.sphere(0.035, K.mat(glassC[k % 5], { transparent: true, opacity: 0.85, emissive: glassC[k % 5], emissiveIntensity: 0.8 }), Math.cos(a) * 0.45, -1.55 - (k % 3) * 0.06, Math.sin(a) * 0.45, { parent: chand, cast: false }, 8, 6); }
+    for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5; const arm = K.group(0, -1.15, 0, -a, chand); K.cyl(0.015, 0.015, 0.36, K.mat(glassC[k % 5], { roughness: 0.1, emissive: glassC[k % 5], emissiveIntensity: 0.6 }), 0.18, 0, 0, { parent: arm, cast: false, rz: Math.PI / 2 }, 6); K.cyl(0.004, 0.004, 0.25, K.glass, 0.45, -0.125, 0, { parent: arm, cast: false }, 4); K.sphere(0.035, K.mat(glassC[(k + 1) % 5], { transparent: true, opacity: 0.85, emissive: glassC[(k + 1) % 5], emissiveIntensity: 0.8 }), 0.45, -0.27, 0, { parent: arm, cast: false }, 8, 6); K.add(new T.TorusGeometry(0.35, 0.02, 6, 12, Math.PI * 0.6), K.mat(glassC[k % 5], { transparent: true, opacity: 0.8, roughness: 0.1, emissive: glassC[k % 5], emissiveIntensity: 0.6 }), 0.35, 0, 0, { parent: arm, cast: false, rx: Math.PI / 2 }); K.cyl(0.04, 0.03, 0.08, K.mat(glassC[(k + 2) % 5], { emissive: glassC[(k + 2) % 5], emissiveIntensity: 0.7 }), 0.68, 0.06, 0, { parent: arm, cast: false }, 8); K.flame(0, 0, 0, 0.018, 0xffc060, arm).position.set(0.68, 0.11, 0); }
+    if (0) for (let k = 0; k < 14; k++) { const a = k * 0.45; K.sphere(0.035, K.mat(glassC[k % 5], { transparent: true, opacity: 0.85, emissive: glassC[k % 5], emissiveIntensity: 0.8 }), Math.cos(a) * 0.45, -1.55 - (k % 3) * 0.06, Math.sin(a) * 0.45, { parent: chand, cast: false }, 8, 6); }
     const chLight = K.plight(5.0, 3.0, 2.6, 0xffc890, 2.4, 10);
     K.pool(5.0, 2.6, 3.4, 0xffb070, 0.45);
     let chSwing = 0;
@@ -324,15 +333,15 @@ MIRA_CENARIOS.push({
       [[0.28, 0.16], [0.2, 0.14], [0.13, 0.12]].reduce((y, [r, h]) => { K.cyl(r, r, h, K.mat(0xf6efe4, { roughness: 0.7 }), bx - 1.6, y + h / 2, bz - 0.25, {}, 18); K.torus(r, 0.015, K.mat(0xe8a0b0), bx - 1.6, y + h - 0.01, bz - 0.25, { rx: Math.PI / 2 }); return y + h; }, 0.81);
       K.sphere(0.04, K.mat(0xc8322f), bx - 1.6, 1.28, bz - 0.25);
       // candelabro de prata
-      K.cyl(0.02, 0.06, 0.45, K.silver, bx + 0.3, 1.03, bz - 0.2, {}, 8); for (const s of [-0.14, 0, 0.14]) { K.cyl(0.015, 0.015, 0.14, M.candle, bx + 0.3 + s, 1.32, bz - 0.2, { cast: false }, 6); K.flame(bx + 0.3 + s, 1.39, bz - 0.2, 0.014); }
+      K.cyl(0.02, 0.06, 0.45, K.silver, bx + 0.3, 1.03, bz - 0.2, {}, 8); K.box(0.32, 0.02, 0.02, K.silver, bx + 0.3, 1.24, bz - 0.2, { cast: false }); for (const s of [-0.14, 0, 0.14]) { K.cyl(0.025, 0.015, 0.03, K.silver, bx + 0.3 + s, 1.265, bz - 0.2, { cast: false }, 8); K.cyl(0.015, 0.015, 0.14, M.candle, bx + 0.3 + s, 1.35, bz - 0.2, { cast: false }, 6); K.flame(bx + 0.3 + s, 1.42, bz - 0.2, 0.014); }
       // torre de champanhe: pirâmide de taças
       const tw = [], tx = -2.3, tz = 5.4; let topCoupe = null;
-      for (let lvl = 0; lvl < 4; lvl++) { const n = 4 - lvl, y = 0.84 + lvl * 0.13; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) tw.push([tx + (i - (n - 1) / 2) * 0.11, y, tz + (j - (n - 1) / 2) * 0.11]); }
+      for (let lvl = 0; lvl < 4; lvl++) { const n = 4 - lvl, y = 0.84 + lvl * 0.1; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) tw.push([tx + (i - (n - 1) / 2) * 0.11, y, tz + (j - (n - 1) / 2) * 0.11]); }
       const champ = K.mat(0xf2d070, { transparent: true, opacity: 0.85, emissive: 0xf2c14e, emissiveIntensity: 0.35, roughness: 0.1 });
       K.inst(new T.CylinderGeometry(0.05, 0.012, 0.035, 10).translate(0, 0.085, 0), champ, tw, { cast: false });
       K.inst(new T.CylinderGeometry(0.004, 0.004, 0.07, 4).translate(0, 0.035, 0), K.glass, tw, { cast: false });
-      topCoupe = K.cyl(0.05, 0.012, 0.035, champ, tx, 0.84 + 4 * 0.13 + 0.085, tz, { cast: false }, 10);
-      K.cyl(0.004, 0.004, 0.07, K.glass, tx, 0.84 + 4 * 0.13 + 0.035, tz, { cast: false }, 4);
+      topCoupe = K.cyl(0.05, 0.012, 0.035, champ, tx, 0.84 + 4 * 0.1 + 0.085, tz, { cast: false }, 10);
+      K.cyl(0.004, 0.004, 0.07, K.glass, tx, 0.84 + 4 * 0.1 + 0.035, tz, { cast: false }, 4);
       K.box(0.6, 0.04, 0.6, K.silver, tx, 0.82, tz, { cast: false });
       for (let k = 0; k < 3; k++) K.lathe([[0, 0], [0.04, 0], [0.042, 0.2], [0.015, 0.28], [0.015, 0.33], [0, 0.33]], K.mat(0x1a3a1a, { roughness: 0.15, metalness: 0.2 }), tx - 0.45 + k * 0.08, 0.82, tz - 0.35, { cast: false }, 8);
       K.cyl(0.13, 0.11, 0.22, K.silver, tx + 0.45, 0.92, tz - 0.3, {}, 14);
@@ -356,7 +365,7 @@ MIRA_CENARIOS.push({
       let gold = null;
       mcol.forEach((c, k) => { const x = -1.1 + (k % 6) * 0.44, y = 2.15 - Math.floor(k / 6) * 0.6; const mm = K.add(mg, K.mat(c, { metalness: c === 0xd9a441 || c === 0xc9ced6 ? 0.8 : 0.1, roughness: 0.3 }), x, y, -0.2, { parent: g, cast: false, ry: -Math.PI / 2 }); mm.rotation.set(0, -Math.PI / 2, 0); if (k === 7) gold = mm; for (let f = 0; f < 2; f++) K.add(new T.SphereGeometry(0.03, 6, 6).scale(1, 5, 0.3), K.mat([0xf6f3ec, 0x16161a, 0xc8322f][(k + f) % 3]), x + 0.12 + f * 0.04, y + 0.15, -0.14, { parent: g, cast: false, rz: -0.5 }); });
       // máscaras soltas sobre a bancada
-      for (let k = 0; k < 5; k++) K.add(mg, K.mat(mcol[(k * 5) % 12], { metalness: 0.5, roughness: 0.35 }), -1.0 + k * 0.5, 0.98, 0.35, { parent: g, cast: false, rx: -Math.PI / 2 });
+      for (let k = 0; k < 5; k++) K.add(mg, K.mat(mcol[(k * 5) % 12], { metalness: 0.5, roughness: 0.35 }), -1.0 + k * 0.5, 0.91, 0.35, { parent: g, cast: false, rx: -Math.PI / 2 });
       K.col(sx - 1.45, sz - 0.3, sx + 1.45, sz + 0.62);
       K.halo(sx, 2.35, sz + 0.6, 0.9, 0xffc070, 0.35); K.plight(sx, 2.3, sz + 1.3, 0xffcf96, 1.0, 5);
       const goldMat = gold.material;
@@ -395,7 +404,7 @@ MIRA_CENARIOS.push({
     // lanternas venezianas em postes (ferro + vidro âmbar)
     for (const [x, z] of [[-13.6, 8.6], [5.0, 8.6], [9.0, 8.6], [13.6, 8.6], [-13.6, -5.6], [13.6, -6.0]]) K.lamppost(x, z, { h: 2.9, color: 0xffb060, i: 0.9, d: 6 });
     // candelabros de pé espalhados
-    for (const [x, z] of [[-6.5, -5.4], [6.5, -5.4], [-1.2, 8.4]]) { K.cyl(0.03, 0.07, 1.7, gilt, x, 0.85, z, {}, 8); K.cyl(0.18, 0.22, 0.06, gilt, x, 0.03, z, {}, 10); for (let k = 0; k < 3; k++) { const xx = x + (k - 1) * 0.16; K.cyl(0.018, 0.018, 0.18, M.candle, xx, 1.8, z, { cast: false }, 6); K.flame(xx, 1.9, z, 0.016); } K.colR(x, z, 0.2); K.pool(x, z, 1.2, 0xffb060, 0.3); }
+    for (const [x, z] of [[-6.5, -5.4], [6.5, -5.4], [-1.2, 8.4]]) { K.cyl(0.03, 0.07, 1.7, gilt, x, 0.85, z, {}, 8); K.cyl(0.18, 0.22, 0.06, gilt, x, 0.03, z, {}, 10); K.box(0.38, 0.03, 0.03, gilt, x, 1.7, z, { cast: false }); for (let k = 0; k < 3; k++) { const xx = x + (k - 1) * 0.16; K.cyl(0.03, 0.02, 0.03, gilt, xx, 1.725, z, { cast: false }, 8); K.cyl(0.018, 0.018, 0.18, M.candle, xx, 1.83, z, { cast: false }, 6); K.flame(xx, 1.93, z, 0.016); } K.colR(x, z, 0.2); K.pool(x, z, 1.2, 0xffb060, 0.3); }
     // mesas altas com toalha, velas e flores
     for (const [x, z, n] of [[-6.2, 1.2, 4], [-2.8, 2.2, 4], [10.8, 1.8, 4], [12.0, 6.4, 3], [-11.4, 7.2, 4], [1.0, 6.2, 4], [-7.8, -2.6, 3], [7.6, -2.6, 4]]) K.table(x, z, { r: 0.42, h: 1.05, flower: R() < 0.5 ? 0xc8322f : 0xf6f3ec, slots: n });
     // vasos com ciprestes e topiarias ao longo das laterais

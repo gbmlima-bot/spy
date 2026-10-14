@@ -242,11 +242,13 @@ MIRA_CENARIOS.push({
     const door = (w, h, parent, x, y, z, ry) => { const g = K.group(x, y, z, ry || 0, parent); K.box(w, h, 0.08, doorMat, 0, h / 2, 0, { parent: g }); K.box(w + 0.16, 0.12, 0.12, cedarDk, 0, h + 0.06, 0, { parent: g }); return g; };
     const horseshoe = (p, cx, y0, hw, jamb, k = 1.13) => { const r = hw * k, d = Math.sqrt(r * r - hw * hw), yc = y0 + jamb + d, phi = Math.atan2(d, hw); p.moveTo(cx - hw, y0); p.lineTo(cx + hw, y0); p.lineTo(cx + hw, y0 + jamb); p.absarc(cx, yc, r, -phi, PI + phi, false); p.lineTo(cx - hw, y0); return { yc, r, phi, top: yc + r }; };
     const orangeList = [], petalLists = [[], [], []];
+    // copa irregular (bolo de folhas), sem cara de poliedro; não usa R() para não mudar o sorteio do mapa
+    const folhas = (r, k) => { const g = new T.IcosahedronGeometry(r, 2), q = g.attributes.position, v = new T.Vector3(), ph = k * 1.7; for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i).divideScalar(r); const d = 1 + 0.13 * Math.sin(v.x * 11 + ph) * Math.cos(v.y * 9 - ph) + 0.08 * Math.sin(v.z * 17 + v.x * 5 + ph); q.setXYZ(i, v.x * r * d, v.y * r * d * 0.88, v.z * r * d); } return K.normaisLisas(g, 1, 0.88, 1); };
     const orangeTree = (x, z, y0, s = 1) => {
       K.cyl(0.06 * s, 0.1 * s, 1.3 * s, K.mat(0x5a4030, { roughness: 0.9 }), x, y0 + 0.65 * s, z, {}, 7);
       for (const a of [0.5, 2.6, 4.4]) K.cyl(0.025, 0.04, 0.6 * s, K.mat(0x5a4030), x + Math.cos(a) * 0.15, y0 + 1.3 * s, z + Math.sin(a) * 0.15, { rz: Math.cos(a) * 0.5, rx: -Math.sin(a) * 0.5 }, 5);
-      const parts = []; for (let k = 0; k < 10; k++) { const px = x + (R() - 0.5) * 1.0 * s, py = y0 + 1.75 * s + (R() - 0.35) * 0.7 * s, pz = z + (R() - 0.5) * 1.0 * s; parts.push([K.at(new T.IcosahedronGeometry(0.4 * s * (0.7 + R() * 0.5), 1), px, py, pz), pk([0x1f3f1c, 0x2a4f24, 0x183a1a, 0x335a28])]); }
-      K.merge(parts, K.vcol({ roughness: 0.85, flatShading: true }));
+      const parts = []; for (let k = 0; k < 10; k++) { const px = x + (R() - 0.5) * 1.0 * s, py = y0 + 1.75 * s + (R() - 0.35) * 0.7 * s, pz = z + (R() - 0.5) * 1.0 * s; parts.push([K.at(folhas(0.4 * s * (0.7 + R() * 0.5), k), px, py, pz), pk([0x1f3f1c, 0x2a4f24, 0x183a1a, 0x335a28])]); }
+      K.merge(parts, K.vcol({ roughness: 0.85 }));
       for (let k = 0; k < 16; k++) { const a = R() * PI * 2, e = (R() - 0.3) * 1.2, rr = 0.72 * s; orangeList.push([x + Math.cos(a) * Math.cos(e) * rr, y0 + 1.8 * s + Math.sin(e) * rr * 0.8, z + Math.sin(a) * Math.cos(e) * rr]); }
       K.blob(x, z, 2.2 * s, 2.2 * s, 0.3);
     };
@@ -710,6 +712,7 @@ MIRA_CENARIOS.push({
       for (const z of [z0 + 0.05, z1 - 0.05]) K.cyl(0.04, 0.05, 2.4, cedarDk, 12.95, 1.2, z, {}, 6);
       const aw = K.canvasTex(256, 64, (g, w, h) => { for (let q = 0; q < 10; q++) { g.fillStyle = q % 2 ? '#f2e6c8' : '#1d6a4a'; g.fillRect(q * w / 10, 0, w / 10, h); } g.fillStyle = '#c8902a'; for (let q = 0; q < 20; q++) { g.beginPath(); g.arc(q * w / 20 + 6, h, 6, PI, 0); g.fill(); } });
       K.add(new T.PlaneGeometry(z1 - z0 + 0.3, 1.8), K.texMat(aw, { side: T.DoubleSide }), 13.85, 2.5, zc, { cast: true }).rotation.set(-PI / 2, 0.2, PI / 2, 'YXZ');
+      K.box(0.04, 0.04, z1 - z0 - 0.1, cedarDk, 12.97, 2.29, zc, { cast: false });
       for (let q = 0; q < 7; q++) { const z = z0 + 0.3 + q * 0.5; K.cyl(0.003, 0.003, 0.25, K.mat(0x8a7a5a), 13.0, 2.15, z, { cast: false }, 3); K.add(new T.ConeGeometry(0.07, 0.3, 6), K.mat(pk([0x5a7a3a, 0x8a6a3a, 0xa8203a, 0x4a6a2a]), { roughness: 1 }), 13.0, 1.9, z, { cast: false, rx: PI }); }
       // balança de latão
       { const g = K.group(14.1, 0.84, 9.35); K.cyl(0.012, 0.015, 0.4, brass, 0, 0.2, 0, { parent: g }, 6); K.box(0.42, 0.012, 0.012, brass, 0, 0.4, 0, { parent: g }); for (const s of [-1, 1]) K.cyl(0.08, 0.06, 0.02, brass, s * 0.2, 0.26, 0, { parent: g, cast: false }, 12); }
