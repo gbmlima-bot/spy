@@ -19,9 +19,11 @@ MIRA_CENARIOS.push({
   ],
   convidados: 28,
   inicio: [9.0, 9.4, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte; antes eram 0x0f1428, 0x8ea4d6/0x3a2c22, 0xa8b8ff e 0xffb070 lidos como lineares,
+  // que saíam desbotados): noite de verdade, sombra no azul do céu, luz quente só onde há lâmpada
   ambiente: {
-    ceu: ['#04060d', '#0a1126', '#18224a', '#3a3358'], neblina: [0x0f1428, 60, 180], hemi: [0x8ea4d6, 0x3a2c22, 0.2],
-    sol: [0xa8b8ff, 0.5, -14, 26, 18], preenche: [0xffb070, 0.26], exposicao: 0.86, bloom: 0.7,
+    ceu: ['#04060d', '#0a1126', '#18224a', '#3a3358'], neblina: [0x010205, 60, 180], hemi: [0x455fab, 0x0b0604, 0.5],
+    sol: [0x647aff, 0.75, -14, 26, 18], preenche: [0xff6f29, 0.26], exposicao: 0.86, bloom: 0.7,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [22, 22, 23, 0], talk: [4, 4, 4, 22] },
@@ -708,6 +710,8 @@ MIRA_CENARIOS.push({
     }
     // ------------------------------------------------------------ ambiente vivo: poeira dourada flutuando nos fachos dos spots do salão
     K.particles({ modo: 'paira', x0: -3.5, x1: 3.5, z0: -1, z1: 6, y0: 1.6, y1: 6.5, n: 70, cor: [0xffe8c0, 0xfff4e0], tam: 0.035, vel: 0.25, balanco: 0.35, add: true, opacity: 0.55, pisca: 0.8 });
+    // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: parapeito art déco do Edifício Aurora. Granilite com filete de latão em zigue-zague e a data gravada,
   // pilares escalonados e o para-raios com a luz vermelha de aviação que pisca

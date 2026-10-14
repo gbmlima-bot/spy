@@ -16,9 +16,11 @@ MIRA_CENARIOS.push({
   escadas: [{ de: 0, para: 1, a: [-1.95, -8.3], b: [-0.3, -8.3], rotulo: 'passarela' }],
   convidados: 28,
   inicio: [-8.8, 2.4, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte; antes eram 0x1a1d38, 0x8ea0d8/0x2a2430, 0x9fb0ff e 0xffb0b8 lidos como lineares,
+  // que saíam desbotados): noite de verdade, sombra no azul do céu, luz quente só onde há lâmpada
   ambiente: {
-    ceu: ['#060a1c', '#121b40', '#2b2f5e', '#6a4a72'], neblina: [0x1a1d38, 75, 330], hemi: [0x8ea0d8, 0x2a2430, 0.24],
-    sol: [0x9fb0ff, 0.5, -18, 24, 20], preenche: [0xffb0b8, 0.2], exposicao: 0.95, bloom: 0.8,
+    ceu: ['#060a1c', '#121b40', '#2b2f5e', '#6a4a72'], neblina: [0x03030a, 75, 330], hemi: [0x5f69a1, 0x060408, 0.5],
+    sol: [0x93a1de, 0.75, -18, 24, 20], preenche: [0xff6f7a, 0.2], exposicao: 0.95, bloom: 0.8,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [23, 22, 0] },
@@ -629,6 +631,8 @@ MIRA_CENARIOS.push({
     K.plight(-7.0, 3.0, 1.0, 0xffd2a8, 1.2, 9);
     K.plight(6.8, 3.0, 3.6, 0xffd2a8, 1.2, 9);
     K.pool(-7.0, 1.0, 3.0, 0xffb880, 0.2); K.pool(6.8, 3.6, 3.0, 0xffb880, 0.2);
+    // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: atrás da chaminé, no telhado de zinco. Chapas com juntas em pé, pátina e escorridos de ferrugem,
   // a calha na frente, a chaminé de tijolo com potes de terracota à direita e a antena velha à esquerda
