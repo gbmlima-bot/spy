@@ -503,7 +503,7 @@ function MIRA_KIT(T, root, seed) {
   // ---------------------------------------------------------------- texturas em canvas
   K.canvasTex = (w, h, draw, rep) => {
     const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d', { willReadFrequently: true }), w, h);
-    const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+    const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = Math.max(4, T.Texture.DEFAULT_ANISOTROPY);
     if (rep) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); }
     return t;
   };
@@ -10377,12 +10377,14 @@ renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
+// textures seen at a slant (floors, decks, roofs from the sniper's nest) stay sharp instead of shimmering
+T.Texture.DEFAULT_ANISOTROPY = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const scene = new T.Scene();
 scene.fog = new T.Fog(0x1a2238, 70, 190);
 
 function canvasTex(w, h, draw, rep) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d', { willReadFrequently: true }), w, h);
-  const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+  const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = T.Texture.DEFAULT_ANISOTROPY;
   if (rep) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rep[0], rep[1]); }
   return t;
 }
@@ -12703,19 +12705,29 @@ const FinalShader = {
       gl_FragColor = vec4(col, 1.0);
     }`,
 };
-let composer = null, renderPass = null, bloomPass = null, finalPass = null;
-function setupPost() {
+let composer = null, renderPass = null, bloomPass = null, finalPass = null, postMS = 0;
+function setupPost(samples = 4) {
   try {
     if (!T.EffectComposer || !T.RenderPass || !T.UnrealBloomPass || !T.ShaderPass) return;
     const pr = renderer.getPixelRatio();
-    const rt = new T.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, { type: T.HalfFloatType, format: T.RGBAFormat, minFilter: T.LinearFilter, magFilter: T.LinearFilter });
+    // the scene is drawn into this target, not the canvas, so the canvas's own antialias never applies: on WebGL2 the target
+    // itself is multisampled (4×), which smooths every edge; without it the game would look jagged on any screen at density 1
+    const ro = { type: T.HalfFloatType, format: T.RGBAFormat, minFilter: T.LinearFilter, magFilter: T.LinearFilter };
+    const ms = renderer.capabilities.isWebGL2 && T.WebGLMultisampleRenderTarget ? Math.min(samples, renderer.capabilities.maxSamples || 0) : 0;
+    postMS = ms;
+    const rt = ms ? Object.assign(new T.WebGLMultisampleRenderTarget(innerWidth * pr, innerHeight * pr, ro), { samples: ms }) : new T.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, ro);
     composer = new T.EffectComposer(renderer, rt);
     renderPass = new T.RenderPass(scene, iso);
     bloomPass = new T.UnrealBloomPass(new T.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.5, 1.5);
     finalPass = new T.ShaderPass(FinalShader);
     composer.addPass(renderPass); composer.addPass(bloomPass); composer.addPass(finalPass);
     renderer.toneMapping = T.NoToneMapping; renderer.outputEncoding = T.LinearEncoding;
+    resizePost();
   } catch (e) { console.warn('post off', e); composer = null; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.outputEncoding = T.sRGBEncoding; }
+}
+function rebuildPost(samples) {
+  if (composer) { composer.renderTarget1.dispose(); composer.renderTarget2.dispose(); if (bloomPass.dispose) bloomPass.dispose(); }
+  setupPost(samples);
 }
 function resizePost() {
   if (!composer) return;
@@ -12737,7 +12749,9 @@ function renderFrame(dt, opts) {
   if (FPS.t > 2) {
     const fps = FPS.n / FPS.t; FPS.t = 0; FPS.n = 0;
     if (fps < 32 && renderer.getPixelRatio() > 1) { renderer.setPixelRatio(Math.max(1, renderer.getPixelRatio() - 0.5)); resize(); }
-    else if (fps < 28 && ++FPS.low >= 2 && FPS.lv < 2) {
+    // then the antialias goes (a slow machine is better off with steady frames than smooth edges), then the shadows
+    else if (fps < 28 && ++FPS.low >= 2 && postMS) { FPS.low = 0; rebuildPost(0); }
+    else if (fps < 28 && FPS.low >= 2 && FPS.lv < 2) {
       FPS.low = 0; FPS.lv++;
       if (FPS.lv === 1) renderer.shadowMap.autoUpdate = false;
       if (FPS.lv === 2 && sun.shadow.mapSize.x > 1024) { sun.shadow.mapSize.setScalar(sun.shadow.mapSize.x / 2); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
@@ -14025,7 +14039,7 @@ Net.init().then(ok => {
   $('#multiBox').hidden = !ok; $('#multiOff').hidden = ok;
   if (!ok) $('#multiOff').textContent = 'O modo multijogador não está disponível nesta visualização. Os treinos abaixo funcionam normalmente.';
 });
-window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
+window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, get composer() { return composer; }, rebuildPost, get postMS() { return postMS; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
 // sniper: what the sniper's tests and the balance tuning read
