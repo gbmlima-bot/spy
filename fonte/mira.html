@@ -9589,7 +9589,21 @@ const TIES = [0x8b1e2d, 0x1e3a8b, 0x111111, 0xc9a227, 0x2c6e49, 0x6b3f8c];
 // the fixed cast keeps h = 1, bw = 1 since their poses are placed by hand
 function outfitFor(seed, id, st) {
   const o = outfitFor0(seed, id, st);
-  if (o.h === undefined) { const r = mulberry32((seed * 3571 + id * 2659 + 17) >>> 0); o.h = o.dress ? 0.94 + r() * 0.07 : 0.97 + r() * 0.08; o.bw = 0.94 + r() * 0.12; }
+  const free = o.h === undefined;
+  if (free) { const r = mulberry32((seed * 3571 + id * 2659 + 17) >>> 0); o.h = o.dress ? 0.94 + r() * 0.07 : 0.97 + r() * 0.08; o.bw = 0.94 + r() * 0.12; }
+  // the face, from a seed of its own so outfits stay as they were: brows, nose, lipstick and blush, beard style,
+  // and for the random guests (not the scripted ones) a few more hairstyles
+  if (o.browW === undefined) {
+    const r = mulberry32((seed * 7919 + id * 4241 + 29) >>> 0);
+    o.browW = 0.7 + r() * 0.7; o.browT = -0.16 + r() * 0.3; o.nose = 0.85 + r() * 0.35;
+    if (o.dress) { o.lipC = pick([0x9b3a3a, 0xb0203a, 0x7a2a48, 0xb8706a, 0xc85a78], r); o.blush = r() < 0.45; }
+    else { const k = r(); o.beardStyle = o.beard ? (k < 0.5 ? 'full' : k < 0.75 ? 'goatee' : 'mustache') : k < 0.1 ? 'mustache' : ''; }
+    const h = r();
+    if (free && !o.hat) {
+      if (!o.dress && o.hairStyle === 'short') { if (h < 0.15) o.hairStyle = 'bald'; else if (h < 0.27) o.hairStyle = 'curly'; }
+      else if (o.dress && (o.hairStyle === 'long' || o.hairStyle === 'wavy') && h < 0.25) { o.hairStyle = 'curly'; o.bangs = false; }
+    }
+  }
   return o;
 }
 function outfitFor0(seed, id, st) {
@@ -11500,6 +11514,12 @@ CG.robeSkirt = lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80]
 CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.1, 6, 5);
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
 CG.fringe = (() => { const g = new T.CylinderGeometry(11.9, 11.7, 7.5, 14, 1, true, -0.8, 1.6); g.scale(0.96, 1, 1.03); return g; })();
+// faces: moustache, goatee, blush, a fringe of hair round the back for the balding, a mass of curls
+CG.mustache = (() => { const g = new T.SphereGeometry(3.2, 8, 4); g.scale(1.45, 0.36, 0.6); return g; })();
+CG.goatee = (() => { const g = new T.SphereGeometry(2.6, 8, 5); g.scale(1, 1.35, 0.7); return g; })();
+CG.blush = (() => { const g = new T.SphereGeometry(1.7, 8, 5); g.scale(1.3, 0.85, 0.3); return g; })();
+CG.baldRing = (() => { const g = new T.CylinderGeometry(11.5, 11.1, 5, 14, 1, true, Math.PI * 0.58, Math.PI * 0.84); g.scale(0.93, 1, 1.02); return g; })();
+CG.curly = (() => { const g = new T.SphereGeometry(13.6, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62); g.scale(1.06, 1, 1); return g; })();
 CG.sideQuiff = (() => { const g = new T.SphereGeometry(7.5, 10, 6); g.scale(1.25, 0.5, 1.15); return g; })();
 // how a character walks, fixed per character (the same for players and guests): 0 arms swinging, 1 hands in the pockets
 // (trousers only), 2 hands behind the back; a free hand is needed, so a prop or clutch keeps the arms swinging
@@ -11585,22 +11605,25 @@ function makeChar(o, id) {
     m(CG.ear, skin, s * 10.4, -0.5, -0.5, headG);
     m(CG.sclera, mat(0xf4f1ea, { roughness: 0.35 }), s * 3.8, 1.2, 10.3, headG);
     m(CG.pupil, mat(0x1a1410, { roughness: 0.2 }), s * 3.8, 1.2, 11.1, headG);
-    const b = m(CG.brow, hair, s * 4, 4.2, 10.9, headG); b.rotation.z = s * -0.12;
+    const b = m(CG.brow, hair, s * 4, 4.2, 10.9, headG); b.rotation.z = s * (-0.12 + (o.browT || 0)); b.scale.y = o.browW || 1;
+    if (o.blush) m(CG.blush, mat(new T.Color(o.skin).lerp(new T.Color(0xd9566a), 0.35).getHex(), { roughness: 0.7 }), s * 5.7, -1.8, 9.2, headG);
     if (o.earring) m(CG.earring, mat(0xe2c26a, { metalness: 0.9, roughness: 0.2 }), s * 10.6, -4, 0, headG);
   }
   // eyelids hang from a little bone of their own, so they still blink once the character's meshes are batched
   // (built closed, which is the bind pose; animChar opens them)
   const lids = new T.Object3D(); lids.name = 'Lids'; lids.position.set(0, 9.5 + 3.2, 1.5); B.Head.add(lids); B.Lids = lids;
   for (const s of [-1, 1]) m(CG.lid, skin, s * 3.8, 0, 10.6, lids);
-  m(CG.nose, skin, 0, -1.2, 11.9, headG);
-  m(CG.lip, mat(o.dress ? 0x9b3a3a : 0x8a5a4a), 0, -5.8, 10.4, headG);
+  m(CG.nose, skin, 0, -1.2, 11.9, headG).scale.setScalar(o.nose || 1);
+  m(CG.lip, mat(o.lipC || (o.dress ? 0x9b3a3a : 0x8a5a4a)), 0, -5.8, 10.4, headG);
   if (o.sunglasses) {
     const lm = mat(0x0f0f14, { roughness: 0.15, metalness: 0.6 });
     for (const s of [-1, 1]) { m(CG.lens, lm, s * 3.9, 1.3, 11.6, headG); m(CG.temple, lm, s * 6.6, 1.5, 5.8, headG); }
     m(CG.bridge, lm, 0, 1.5, 11.5, headG);
   }
   if (o.bangs) m(CG.fringe, hair, 0, 6.2, 0.2, headG);
-  const capM = m(CG.cap, hair, 0, 1.2, -1.2, headG); capM.rotation.x = -0.32;
+  if (o.hairStyle === 'bald') m(CG.baldRing, hair, 0, 0.2, -0.6, headG);
+  else { const capM = m(CG.cap, hair, 0, 1.2, -1.2, headG); capM.rotation.x = -0.32; }
+  if (o.hairStyle === 'curly') { const c = m(CG.curly, hair, 0, 1.5, -3.6, headG); c.rotation.x = -0.25; }
   if (o.hairStyle === 'quiff') m(CG.quiff, hair, 0, 10, 3.5, headG);
   if (o.hairStyle === 'bun') m(CG.bun, hair, 0, 8, -10.5, headG);
   if (o.hairStyle === 'long') m(CG.longBack, hair, 0, -13, -1.2, headG);
@@ -11608,7 +11631,10 @@ function makeChar(o, id) {
   if (o.hairStyle === 'side') { const q = m(CG.sideQuiff, hair, 2.8, 9.6, 3.2, headG); q.rotation.z = -0.25; }
   if (o.hairStyle === 'wavy') { m(CG.longBack, hair, 0, -13, -1.2, headG); for (const s of [-1, 1]) { const st = m(CG.strand, hair, s * 9.6, -9, 5.2, headG); st.rotation.z = s * 0.1; st.rotation.x = -0.12; } }
   if (o.hairStyle === 'ponytail') { m(CG.bun, hair, 0, 6, -10.5, headG); const tl = m(CG.tail, hair, 0, -7, -14, headG); tl.rotation.x = 0.28; }
-  if (o.beard) m(CG.beard, hair, 0, -0.8, 0.4, headG);
+  const bs = o.beardStyle ?? (o.beard ? 'full' : '');
+  if (bs === 'full') m(CG.beard, hair, 0, -0.8, 0.4, headG);
+  if (bs === 'goatee') m(CG.goatee, hair, 0, -9.2, 9.2, headG);
+  if (bs) m(CG.mustache, hair, 0, -3.5, 11.1, headG);
   // arms
   let glass = null, clutch = null;
   for (const s of ['Left', 'Right']) {
