@@ -10473,8 +10473,8 @@ class Sim {
 // th scales how sure it must be before shooting; `map` adjusts th or gest per map (0 = rooftop, 1..10 = the extra
 // scenarios) so the robot agent wins 40-55% everywhere in t10.js (crowded maps make gestures noisier, sparse ones easier)
 const AI_SNIPER = { area: 0.8, exact: 0.8, gest: 0.02, win: 9, idWin: 20, idT: [5, 12], th: 1,
-  map: { 0: { th: 1.75 }, 1: { th: 1 }, 2: { th: 1.3 }, 3: { th: 0.8 }, 4: { th: 1.3 }, 5: { th: 0.9 }, 6: { th: 1.35 },
-    7: { th: 1.45 }, 8: { th: 0.88, gest: 0 }, 9: { th: 1.5 }, 10: { th: 1 } } };
+  map: { 0: { th: 1.85 }, 1: { th: 1.23 }, 2: { th: 1.39 }, 3: { th: 1.28 }, 4: { th: 1.31 }, 5: { th: 1.12 }, 6: { th: 1.31 },
+    7: { th: 1.48 }, 8: { th: 1 }, 9: { th: 1.43 }, 10: { th: 1.14 } } };
 const aiMap = () => AI_SNIPER.map[SCEN.id] || {};
 const GESTURE_ANIMS = new Set(Object.values(GESTURES).map(g => g.anim));
 class AISniper {
@@ -10499,7 +10499,8 @@ class AISniper {
     for (const e of E) {
       if (e.dead || e.kind === 'static') continue;
       this.sus[e.id] *= Math.exp(-dt / 120);
-      if (GESTURE_ANIMS.has(e.anim)) this.sus[e.id] += dt * (aiMap().gest ?? AI_SNIPER.gest);
+      // a gesture is a tell only when it is done at an object (as a mission is): dancing or waving on a crowded floor is not
+      if (e.st === 'act' && GESTURE_ANIMS.has(e.anim)) this.sus[e.id] += dt * (aiMap().gest ?? AI_SNIPER.gest);
       const v = this.sus[e.id];
       if (v > bv) { second = bv; bv = v; best = e.id; } else if (v > second) second = v;
     }
@@ -10510,7 +10511,7 @@ class AISniper {
     if (e) this.aim.lerp(new T.Vector3(e.x, e.y + 1.45, e.z), 1 - Math.exp(-dt * 2.5));
     s.mk = bv > 0.35 ? [best] : [];
     const u = (s.dn.length >= 3 ? 0.65 : 1) * AI_SNIPER.th * (aiMap().th || 1);
-    if (!this.shot && bv > 0.35 && this.tgt === best && this.lock > 2.5 && ((bv > 2.6 * u && bv - second > 1.0 * u) || (s.t < 12 && bv > 0.6))) { this.shot = true; s.shoot(best); }
+    if (!this.shot && bv > 0.35 && this.tgt === best && this.lock > 2.5 && bv > 2.6 * u && bv - second > 1.0 * u) { this.shot = true; s.shoot(best); } // no last-second guess: time running out is the sniper's win
   }
 }
 function lerpAngle(a, b, t) { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * t; }
