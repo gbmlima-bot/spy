@@ -9,7 +9,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
   await p.waitForFunction(() => window.__mira.G.sim && window.__mira.G.sim.ph === 'brief', null, { timeout: 60000 });
   await p.evaluate(() => { const S = window.__mira.G.sim; S.t = 0.01; if (S.ai) S.ai.update = () => {}; });
   await p.waitForFunction(() => window.__mira.G.sim.ph === 'play', null, { timeout: 60000 });
-  const M0 = await p.evaluate(() => { const M = window.__mira, S = M.G.sim; return S.ms.map(o => ({ o, g: M.MISSIONS[o].g, ga: M.MISSIONS[o].ga, label: M.MISSIONS[o].label })); });
+  const M0 = await p.evaluate(() => { const M = window.__mira, S = M.G.sim; return S.ms.filter(o => !(S.ts && o === S.ts[0])).map(o => ({ o, g: M.MISSIONS[o].g, ga: M.MISSIONS[o].ga, label: M.MISSIONS[o].label })); });
   console.log('missions', JSON.stringify(M0));
   const res = [];
   for (const m of M0.slice(0, 3)) {
@@ -43,7 +43,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
   }
   // every kind of challenge, on decoy acts (props that are not the agent's): find one prop per kind for this round
   const kinds = await p.evaluate(() => { const M = window.__mira, st = M.G.sim.snapshot ? M.G.sim.snapshot() : null, rd = M.G.sim.round, S = M.G.sim, out = {};
-    M.PROPS.forEach((P, pi) => { if (P.ms.some(o => S.ms.includes(o))) return; const o = M.missionAtProp(pi, { ms: S.ms, dn: S.dn, rd }); const k = M.makeChallenge(o, rd).k; if (!(k in out)) out[k] = { pi, o }; }); return out; });
+    M.PROPS.forEach((P, pi) => { if (P.ms.some(o => S.ms.includes(o)) || (S.ts && pi === S.ts[1])) return; const o = M.missionAtProp(pi, { ms: S.ms, dn: S.dn, rd }); const k = M.makeChallenge(o, rd).k; if (!(k in out)) out[k] = { pi, o }; }); return out; });
   console.log('kinds', JSON.stringify(kinds));
   for (const k of ['seq', 'ponto', 'calma']) {
     if (!kinds[k]) { console.log('sem', k); continue; }
