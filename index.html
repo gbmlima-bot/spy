@@ -10468,15 +10468,16 @@ const cyl = (rt, rb, h, m, x, y, z, o, seg = 10) => add(new T.CylinderGeometry(r
 const glassClear = new T.MeshStandardMaterial({ color: 0xe8f2ff, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.45, envMapIntensity: 1.2 });
 let envTex = null;
 try { if (T.RoomEnvironment) { const pm = new T.PMREMGenerator(renderer); envTex = pm.fromScene(new T.RoomEnvironment(), 0.04).texture; scene.environment = envTex; } } catch (e) { envTex = null; }
-const hemi = new T.HemisphereLight(0x8ea4d6, 0x5a4434, envTex ? 0.16 : 0.45); scene.add(hemi);
-const sun = new T.DirectionalLight(0xffb878, 0.95);
-sun.position.set(-22, 19, 14); sun.castShadow = true;
+// the rooftop's light (linear colours; applyAmbient(null) sets the same when coming back from a scenario)
+const hemi = new T.HemisphereLight(0x455fab, 0x1a0f09, envTex ? 0.3 : 0.6); scene.add(hemi);
+const sun = new T.DirectionalLight(0xff7a30, 2.0);
+sun.position.set(-30, 14, 6); sun.castShadow = true;
 Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 95, bottom: -40, near: 1, far: 200 });
 const LOWEND = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 700;
 sun.shadow.mapSize.setScalar(LOWEND ? 2048 : 4096);
 sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.025;
 scene.add(sun);
-const fill = new T.DirectionalLight(0x7f94d0, 0.35); fill.position.set(18, 14, -10); scene.add(fill);
+const fill = new T.DirectionalLight(0x364ca1, 0.45); fill.position.set(18, 14, -10); scene.add(fill);
 const MAP0_FROM = scene.children.length; // everything added to the scene from here to the sniper's nest is the rooftop map
 const PL = [];
 function plight(x, y, z, c, i, d) { const p = new T.PointLight(c, i, d, 2); p.position.set(x, y, z); scene.add(p); PL.push(p); return p; }
@@ -10598,7 +10599,7 @@ scene.background = canvasTex(8, 512, (g, w, h) => {
   gr.addColorStop(0, '#0b1230'); gr.addColorStop(0.35, '#1d2a55'); gr.addColorStop(0.62, '#4a4f7e'); gr.addColorStop(0.8, '#a06a74'); gr.addColorStop(0.92, '#e09a6a'); gr.addColorStop(1, '#f4c27e');
   g.fillStyle = gr; g.fillRect(0, 0, w, h);
 });
-scene.fog = new T.Fog(0x4a4a72, 110, 330);
+scene.fog = new T.Fog(0x11112b, 110, 330);
 const SKY0 = scene.background;
 {
   const sea = new T.Mesh(new T.PlaneGeometry(1400, 1400), new T.MeshStandardMaterial({ color: 0x1a2648, roughness: 0.15, metalness: 0.4, envMapIntensity: 0.6 }));
@@ -12239,9 +12240,11 @@ function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose()
 function skyTex(c) { return canvasTex(4, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); c.forEach((st, i) => gr.addColorStop(i / (c.length - 1), st)); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); }
 function applyAmbient(A) {
   if (!A) {
-    scene.background = SKY0; scene.fog.color.set(0x4a4a72); scene.fog.near = 110; scene.fog.far = 330;
-    hemi.color.set(0x8ea4d6); hemi.groundColor.set(0x5a4434); hemi.intensity = envTex ? 0.16 : 0.45;
-    sun.color.set(0xffb878); sun.intensity = 0.95; sun.position.set(-22, 19, 14); fill.color.set(0x7f94d0); fill.intensity = 0.35;
+    // light and fog colours are linear values (0x4a4a72 used to be read as linear and came out a pale lavender): a low warm
+    // sun from the left with long shadows, the shade in the blue of the sky, the far hills as dark silhouettes on the dusk
+    scene.background = SKY0; scene.fog.color.set(0x11112b); scene.fog.near = 110; scene.fog.far = 330;
+    hemi.color.set(0x455fab); hemi.groundColor.set(0x1a0f09); hemi.intensity = envTex ? 0.3 : 0.6;
+    sun.color.set(0xff7a30); sun.intensity = 2.0; sun.position.set(-30, 14, 6); fill.color.set(0x364ca1); fill.intensity = 0.45;
     scene.environment = envTex; if (bloomPass) bloomPass.strength = 0.55; SCEN.exposure = 1;
     Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 95, bottom: -40 });
   } else {
@@ -12268,9 +12271,10 @@ function setNight(on) {
   }
   applyAmbient(null);
   if (on) {
-    scene.background = NIGHT.sky; scene.fog.color.set(0x070a18); scene.fog.near = 60; scene.fog.far = 240;
-    scene.environment = null; hemi.color.set(0x5a6ab0); hemi.groundColor.set(0x1a1420); hemi.intensity = 0.32;
-    sun.color.set(0x9fb4ff); sun.intensity = 0.3; sun.position.set(18, 26, 10); fill.color.set(0x4060c0); fill.intensity = 0.18;
+    // linear values too: moonlight from behind the tower's right, the neon washes do the rest
+    scene.background = NIGHT.sky; scene.fog.color.set(0x010206); scene.fog.near = 60; scene.fog.far = 240;
+    scene.environment = null; hemi.color.set(0x1a2370); hemi.groundColor.set(0x030203); hemi.intensity = 0.55;
+    sun.color.set(0x586fff); sun.intensity = 0.45; sun.position.set(18, 26, -10); fill.color.set(0x0d1b8a); fill.intensity = 0.2;
     if (bloomPass) bloomPass.strength = 1.0; SCEN.exposure = 0.85;
   }
   for (const pl of NIGHT.lights) { pl.visible = on; pl.intensity = on ? 2.4 : 0; }
@@ -14080,6 +14084,8 @@ setupPost(); navBuild(); NAV0 = { lv: NAV.lv };
   // piece of the rooftop, merged or not, joins OCCLUDERS. Glass, see-through bits and what starts hidden stay out (fonte/cenarios/ferramentas/oclusores.js)
   const inOcc = new Set(OCCLUDERS), floors = new Set(MAP0.floors), seeThrough = m => (Array.isArray(m) ? m : [m]).every(x => !x || (x.transparent && x.opacity < 0.6) || x.visible === false || x.blending !== T.NormalBlending);
   const shownNow = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
+  // less of the neutral room's reflection on the rooftop: the shade takes the sky's blue instead of a flat light grey
+  { const seen = new Set(); for (const r of MAP0.objs) r.traverse(o => { if (o.isMesh && !o.isSkinnedMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m && m.envMapIntensity !== undefined && !seen.has(m)) { seen.add(m); m.envMapIntensity *= 0.35; } }); }); }
   for (const r of MAP0.objs) r.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && shownNow(o) && !inOcc.has(o) && !floors.has(o) && o.userData.eid === undefined && !(o.userData.noCol && o.parent && o.parent.userData.noCol) && !seeThrough(o.material)) OCCLUDERS.push(o); }); }
 newBackdrop(); resize();
 $('#loading').remove(); show('#menu', true);
