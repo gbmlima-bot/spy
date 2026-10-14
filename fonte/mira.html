@@ -8934,6 +8934,7 @@ const T = THREE;
 const $ = s => document.querySelector(s);
 
 // ---------------------------------------------------------------- constants
+const OT_T = 30; // overtime: when the clock runs out with the agent one mission short, 30 more seconds for both sides
 const NPC_N = 30, ROUND_T = 300, BRIEF_T = 15, NEED = 4, MS_N = 6, IR = 1.4, P_SPEED = 1.5, RAD = 0.28;
 const SNIPER_POS = new T.Vector3(0, 27, 46);
 // the wide (unscoped) view is fitted so the whole stepped tower is on screen: all six levels, bottom party to the top deck
@@ -9646,7 +9647,8 @@ const WHY = {
   npc: 'O sniper acertou um convidado inocente. Bônus de humilhação: cada convidado ganha 2 pontos.',
   missions: 'O agente cumpriu 4 missões sem ser pego.',
   'time-marked': 'O tempo acabou, mas o sniper tinha marcado o agente como suspeito principal.',
-  time: 'O tempo acabou e o agente não era o suspeito principal.',
+  time: 'O tempo acabou antes de o agente cumprir as 4 missões.',
+  overtime: 'A prorrogação acabou antes da última missão do agente.',
   left: 'O sniper saiu da sala.',
 };
 
@@ -10026,7 +10028,7 @@ class Sim {
       e.x = s.x; e.z = s.z; e.lv = s.lv; e.y = LVY(s.lv); e.rot = s.rot; e.slot = si; s.busy = e.id; this.arrive(e, true);
       if (e.kind === 'player') { s.busy = -1; e.slot = -1; e.anim = 0; }
     }
-    this.dn = []; this.tells = []; this.tq = []; this.sh = null; this.w = null; this.why = null; this.mk = [];
+    this.dn = []; this.tells = []; this.tq = []; this.sh = null; this.w = null; this.why = null; this.mk = []; this.ot = 0;
     this.sc = o.sc || {};
     this.near = PROPS.map(() => new Map());
     // the object spot of each prop, so a guest standing there can make way for a player who comes close
@@ -10224,7 +10226,8 @@ class Sim {
     if (this.ph === 'brief') { this.t -= dt; if (this.t <= 0) { this.ph = 'play'; this.t = ROUND_T; } }
     else if (this.ph === 'play') {
       this.t -= dt;
-      if (this.t <= 0) { this.t = 0; this.end(this.mk[0] === this.agentId ? 's' : 'g', this.mk[0] === this.agentId ? 'time-marked' : 'time'); }
+      // out of time the sniper wins (doing nothing never wins the agent the round); an agent one mission short gets one overtime
+      if (this.t <= 0) { if (!this.ot && this.dn.length >= NEED - 1) { this.ot = 1; this.t = OT_T; } else { this.t = 0; this.end('s', this.ot ? 'overtime' : 'time'); } }
     }
     for (const e of this.ents) if (e.kind !== 'player') this.stepAI(e, dt);
     if (this.ph === 'play' && (this.yieldT -= dt) <= 0) { this.yieldT = 0.5; this.makeWay(); }
@@ -10258,7 +10261,7 @@ class Sim {
       ph: this.ph, rd: this.round, sd: this.seed, tl: this.t,
       ents: this.ents.map(e => ({ id: e.id, x: e.x, y: e.y, z: e.z, rot: e.rot, anim: e.dead ? 5 : e.anim })),
       pm: this.pm, rl: this.rl, nm: this.nm, ms: this.ms, dn: this.dn, tells: this.tells,
-      sh: this.sh, w: this.w, why: this.why, sc: this.sc, mk: this.mk, bm: this.bm, ho: this.ho,
+      sh: this.sh, w: this.w, why: this.why, sc: this.sc, mk: this.mk, bm: this.bm, ho: this.ho, ot: this.ot,
       ag: this.agentId, aim: this.ai ? this.ai.aim : null, sx: this.sx, mp: this.map, nt: this.night ? 1 : 0, lg: this.lg, ts: this.ts, tg: this.got ? 1 : 0,
     });
   }
@@ -12755,6 +12758,7 @@ const sndScope = () => tone(1400, 0.06, 0.03, 'square');
 // the shot rolling back off the buildings (the spent case rings on its own, see stepNest)
 const sndEcho = () => { setTimeout(() => noise(0.8, 700, 0.25), 320); setTimeout(() => noise(1.1, 420, 0.12), 760); };
 // the verdict behind the scope: a dull settle when the agent drops, a sour falling sting when the shot was wasted
+const sndOvertime = () => { tone(523, 0.18, 0.05, 'square'); setTimeout(() => tone(523, 0.18, 0.05, 'square'), 260); setTimeout(() => tone(784, 0.5, 0.05, 'square'), 520); };
 const sndHit = () => { tone(110, 0.5, 0.07); setTimeout(() => tone(82, 0.7, 0.06), 180); };
 const sndMiss = () => { tone(392, 0.22, 0.05, 'sawtooth'); setTimeout(() => tone(330, 0.24, 0.05, 'sawtooth'), 200); setTimeout(() => tone(233, 0.6, 0.06, 'sawtooth'), 420); };
 // air through the nose: a band of noise with its own swell (in rises, out falls, a gasp is two quick rasps)
@@ -12867,7 +12871,7 @@ function myPeerId() { const m = Net.me(); return m ? m.peer : null; }
 function encodeState(st) {
   const e = [];
   for (const x of st.ents) e.push(x.id, Math.round(x.x * 50), Math.round(x.z * 50), Math.round(x.rot * 100), x.anim, Math.round((x.y || 0) * 50));
-  const g = { ph: st.ph, rd: st.rd, sd: st.sd, mp: st.mp || 0, nt: st.nt ? 1 : 0, tl: Math.round(st.tl * 10) / 10, e, pm: st.pm, rl: st.rl, nm: st.nm, ms: st.ms, dn: st.dn, te: st.tells, sh: st.sh, w: st.w, why: st.why, sc: st.sc, mk: st.mk, bm: st.bm, ho: st.ho };
+  const g = { ph: st.ph, rd: st.rd, sd: st.sd, mp: st.mp || 0, nt: st.nt ? 1 : 0, tl: Math.round(st.tl * 10) / 10, e, pm: st.pm, rl: st.rl, nm: st.nm, ms: st.ms, dn: st.dn, te: st.tells, sh: st.sh, w: st.w, why: st.why, sc: st.sc, mk: st.mk, bm: st.bm, ho: st.ho, ot: st.ot ? 1 : 0 };
   if (st.ph === 'reveal') { g.ag = st.ag; g.lg = st.lg; }
   g.sx = st.sx; g.ts = st.ts; g.tg = st.tg;
   return g;
@@ -12877,7 +12881,7 @@ function decodeState(g) {
   const ents = [];
   for (let i = 0; i + 5 < g.e.length; i += 6) ents.push({ id: g.e[i], x: g.e[i + 1] / 50, z: g.e[i + 2] / 50, rot: g.e[i + 3] / 100, anim: g.e[i + 4], y: g.e[i + 5] / 50 });
   ents.sort((a, b) => a.id - b.id);
-  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0 };
+  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ot: g.ot ? 1 : 0, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0 };
 }
 
 const hostSeen = { seq: {}, shot: false, at: {}, raw: {} };
@@ -13006,7 +13010,7 @@ function adoptSim(st) {
   }
   sim.pm = Object.assign({}, st.pm); sim.rl = Object.assign({}, st.rl); sim.nm = Object.assign({}, st.nm); sim.agentId = -1;
   for (const p of peers) { const e = sim.ents[st.pm[p]]; if (!e) return null; Object.assign(e, { kind: 'player', role: st.rl[p] === 'a' ? 'agent' : 'acc', peer: p, speed: P_SPEED, todo: [] }); if (st.rl[p] === 'a') sim.agentId = e.id; }
-  Object.assign(sim, { bm: st.bm, ho: st.ho, sx: (st.sx || []).slice(), ms: st.ms.slice(), dn: st.dn.slice(), tells: st.tells.slice(), mk: (st.mk || []).slice(), sh: st.sh || null, w: st.w || null, why: st.why || null, ph: st.ph, t: st.tl, _st: null });
+  Object.assign(sim, { bm: st.bm, ho: st.ho, sx: (st.sx || []).slice(), ms: st.ms.slice(), dn: st.dn.slice(), tells: st.tells.slice(), mk: (st.mk || []).slice(), sh: st.sh || null, w: st.w || null, why: st.why || null, ot: st.ot ? 1 : 0, ph: st.ph, t: st.tl, _st: null });
   // missions done whose tell had not shown yet still show, a moment later
   sim.tq = sim.dn.filter(o => !sim.tells.includes(o)).map(o => ({ obj: o, at: 1 + rng() * 3 }));
   sim.ts = st.ts || null; sim.got = !!st.tg;
@@ -13083,6 +13087,10 @@ function syncRound(st) {
     snip.tellAt = snip.tellAt || {};
     while (snip.radioSeen < st.tells.length) { const o = st.tells[snip.radioSeen++]; snip.tellAt[o] = st.tl; toast('📻 Rádio: algo mudou ' + areaOf(o) + '. Enquadre com a luneta para ver o quê.'); }
   } else snip.radioSeen = st.tells.length;
+  if (st.ph === 'play' && st.ot && G.otSeen !== st.rd) {
+    G.otSeen = st.rd; sndOvertime();
+    toast(G.role === 's' ? `⏱ Prorrogação: o agente está a uma missão. Mais ${OT_T} s para achá-lo.` : G.role === 'a' ? `⏱ Prorrogação: ${OT_T} s para a última missão.` : `⏱ Prorrogação: o agente está a uma missão. Mais ${OT_T} s.`, 'bad');
+  }
   if (G.role === 'a' && st.dn.length > G.dnSeen) {
     for (let i = G.dnSeen; i < st.dn.length; i++) toast(`Missão cumprida: ${MISSIONS[st.dn[i]].label} (${i + 1}/${NEED})`, 'good');
     G.dnSeen = st.dn.length; sndGood();
@@ -13113,9 +13121,9 @@ function renderBrief(st) {
   const r = G.role; let body = '';
   const nGuests = st.ents.length - 2 - (st.sx || []).length - Object.keys(st.pm || {}).length, lvTxt = LV_N === 1 ? 'num único terraço' : `por ${LV_N} andares`;
   const whereTxt = SCEN.id ? `<p class="muted"><b>${esc(SCEN.sc.nome)}</b> · ${esc(SCEN.sc.lugar)}. Você está ${esc(SCEN.sc.sniper.desc || 'no prédio em frente')}.</p>` : '';
-  if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. O rádio avisa onde algo mudou; enquadre o lugar com zoom para descobrir o quê. Você tem um único tiro.</p>`;
-  else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <small class="muted">· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small class="muted">↳ antes, pegue a encomenda: ${esc(PROPS[st.ts[1]].where)}</small>` : ''}</li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando.</p>`;
-  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Se o sniper atirar em você, os convidados vencem.</p>`;
+  if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. O rádio avisa onde algo mudou; enquadre o lugar com zoom para descobrir o quê. Você tem um único tiro. Se o tempo acabar, você vence; com o agente a uma missão, há ${OT_T} s de prorrogação.</p>`;
+  else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <small class="muted">· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small class="muted">↳ antes, pegue a encomenda: ${esc(PROPS[st.ts[1]].where)}</small>` : ''}</li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando. Se o tempo acabar, o sniper vence; com 3 de 4 missões feitas, você ganha ${OT_T} s de prorrogação.</p>`;
+  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Se o sniper atirar em você, os convidados vencem. Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
   else body = `<p>A rodada já começou. Você entra na próxima.</p>`;
   $('#brief').innerHTML = `<div class="eyebrow">Rodada ${st.rd} · começa em instantes</div><h2>${roleTitle(r)}</h2>${body}`;
 }
@@ -13894,7 +13902,7 @@ let lastTimerText = '';
 function updateHUD(st) {
   if (G.screen !== 'game' || !st || st.ph !== 'play') return;
   const tt = fmt(st.tl); if (tt !== lastTimerText) { $('#timer').textContent = tt; lastTimerText = tt; $('#timer').classList.toggle('low', st.tl < 30); }
-  $('#roundTag').textContent = 'Rodada ' + st.rd;
+  { const tag = st.ot ? 'Prorrogação' : 'Rodada ' + st.rd; if ($('#roundTag').textContent !== tag) $('#roundTag').textContent = tag; }
   if (G.role === 'a') {
     const dc = $('#dnCount'); if (dc && dc.textContent !== String(st.dn.length)) dc.textContent = st.dn.length;
     document.querySelectorAll('#msList li').forEach(li => li.classList.toggle('done', st.dn.includes(+li.dataset.o)));
