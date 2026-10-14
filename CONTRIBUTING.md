@@ -61,6 +61,9 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Cúmplices: `LURE` no `fonte/mira.html` dá pontos de isca (laser em cima e tempo no caderno do sniper, até 2 por rodada)
   e um despiste por rodada (a próxima missão falsa vira uma mudança que o rádio ouve). `node fonte/testes/t19.js <url>`
   confere as regras, o estado de rede, a troca de anfitrião, o uso pelos robôs e o jogador armando com G.
+- Regras sorteáveis (só multijogador): `RULES` no `fonte/mira.html` (apagão, duas balas e 3 minutos, missão em dupla);
+  o anfitrião escolhe na sala ("Surpresa" sorteia uma regra em metade das rodadas). Os treinos solo e o t10 seguem na regra
+  clássica. `node fonte/testes/t20.js <url>` confere cada regra na simulação, na rede, na troca de anfitrião e na tela.
 - Qualidade de imagem: `node fonte/testes/qualidade.js <url> <pasta> [mapas] [rotulo]` captura cada mapa na vista larga,
   na luneta e de perto (agente), em 1280×720 com densidade 1, o pior caso para serrilhado (`DPR=2` para tela de alta
   densidade). Com `AB=1` grava o mesmo quadro sem e com o antialias do pós-processamento. O jogo desenha a cena num alvo
