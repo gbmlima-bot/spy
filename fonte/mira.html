@@ -12105,7 +12105,10 @@ function loadMap(id) {
   if (id) {
     SCEN.batch = batchStatic([SCEN.root], SCEN.root, new Set(FLOORS));
     // what the scope and the laser can hit: the scenery's meshes (sprites and lines are skipped)
-    SCEN.occ = []; SCEN.root.traverse(o => { if (o.isMesh && !FLOORS.includes(o)) SCEN.occ.push(o); });
+    // every mesh stops the shot except floors and what the eye sees through (glass, light shafts, additive glows): what
+    // doesn't hide someone doesn't shield them either (fonte/cenarios/ferramentas/oclusores.js checks both ways)
+    const seeThrough = m => (Array.isArray(m) ? m : [m]).every(x => !x || (x.transparent && x.opacity < 0.6) || x.blending !== T.NormalBlending);
+    SCEN.occ = []; SCEN.root.traverse(o => { if (o.isMesh && !FLOORS.includes(o) && !seeThrough(o.material)) SCEN.occ.push(o); });
   }
   resize();
 }
@@ -13663,7 +13666,12 @@ function mapChoice() { return mapPick().id; }
 function mapPick() { const v = $('#mapSel').value; if (v === 'n') return { id: 0, night: true }; if (v === 'r') { const k = Math.floor(rnd() * (SCENARIOS.length + 2)); return k > SCENARIOS.length ? { id: 0, night: true } : { id: k, night: false }; } return { id: Math.max(0, Math.min(SCENARIOS.length, +v || 0)), night: false }; }
 
 setupPost(); navBuild(); NAV0 = { lv: NAV.lv };
-{ const holder = new T.Group(); holder.name = 'map0-batched'; scene.add(holder); SCEN.batch0 = batchStatic(MAP0.objs.slice(), holder, new Set(OCCLUDERS.concat(MAP0.floors))); MAP0.objs.push(holder); }
+{ const holder = new T.Group(); holder.name = 'map0-batched'; scene.add(holder); SCEN.batch0 = batchStatic(MAP0.objs.slice(), holder, new Set(OCCLUDERS.concat(MAP0.floors))); MAP0.objs.push(holder);
+  // what hides someone from the sniper also stops the shot (as in the scenarios, where every mesh is an occluder): every opaque
+  // piece of the rooftop, merged or not, joins OCCLUDERS. Glass, see-through bits and what starts hidden stay out (fonte/cenarios/ferramentas/oclusores.js)
+  const inOcc = new Set(OCCLUDERS), floors = new Set(MAP0.floors), seeThrough = m => (Array.isArray(m) ? m : [m]).every(x => !x || (x.transparent && x.opacity < 0.6) || x.visible === false || x.blending !== T.NormalBlending);
+  const shownNow = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
+  for (const r of MAP0.objs) r.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && shownNow(o) && !inOcc.has(o) && !floors.has(o) && o.userData.eid === undefined && !(o.userData.noCol && o.parent && o.parent.userData.noCol) && !seeThrough(o.material)) OCCLUDERS.push(o); }); }
 newBackdrop(); resize();
 $('#loading').remove(); show('#menu', true);
 requestAnimationFrame(frame);
