@@ -713,6 +713,27 @@ MIRA_CENARIOS.push({
       for (let k = 0; k < 18; k++) { const x = -14 + R() * 28, z = 11 + R() * 3; m.push([x, hgt(x, z), z, R() * 3, [0.8 + R(), 0.3 + R() * 0.3, 0.6 + R() * 0.5]]); }
       K.inst(new T.SphereGeometry(1, 10, 6), snow, m, { cast: false }); }
 
+    // ------------------------------------------------------------ descida das tochas: fila de esquiadores com tochas em zigue-zague
+    // (Fackellauf) descendo do morro da esquerda pela neve na frente do deck; bem abaixo da linha do sniper até a festa
+    { const N = 16, pos = new Float32Array(N * 3), pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(pos, 3));
+      const pm = new T.PointsMaterial({ color: new T.Color(0xff7a20).multiplyScalar(3.2), map: K.radialTex, size: 1.9, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false });
+      const pts = new T.Points(pg, pm); pts.frustumCulled = false; K.root.add(pts);
+      const trilha = (u) => { const x = -64 + u * 100, z = 19.5 - u * 3 + Math.sin(u * Math.PI * 7) * 2.2; return [x, hgt(x, z) + 1.0, z]; };
+      K.tick((dt, t) => { for (let i = 0; i < N; i++) { const u = ((t * 0.006 + i / N * 0.55) % 1), [x, y, z] = trilha(u), tremor = Math.sin(t * 13 + i * 3) * 0.05;
+        pos[i * 3] = x + tremor; pos[i * 3 + 1] = y + (u > 0.96 ? -(u - 0.96) * 80 : 0); pos[i * 3 + 2] = z; } pg.attributes.position.needsUpdate = true; pm.size = 1.85 + Math.sin(t * 9) * 0.2; });
+    }
+    // ------------------------------------------------------------ neve escorregando do telhado das alas: de tempos em tempos um bloco
+    // desliza até o beiral, cai na frente da ala com um poof de pó e vai se desmanchando no chão
+    { const bl = K.add(K.rbox(1.6, 0.3, 0.9, 0.12), snow, 0, -9, 0, { cast: false }); bl.userData.noCol = true; bl.raycast = () => { };
+      const poof = [0, 1, 2].map(() => { const h = K.halo(0, -9, 0, 1.2, 0xdfe8ff, 0.8); h.visible = false; return h; });
+      K.tick((dt, t) => { const c = 38, k = Math.floor(t / c), u = t - k * c, s = k % 2 ? 1 : -1, x = s * (11.2 + (k % 3) * 0.6), z0 = -11.6, y0 = 3.62;
+        let y = -9, z = z0, sq = 1;
+        if (u < 2.2) { const e = (u / 2.2) ** 2; z = z0 + e * 1.7; y = y0 - e * 0.2; }
+        else if (u < 2.9) { const f = (u - 2.2) / 0.7; z = z0 + 1.7 + f * 0.6; y = y0 - 0.2 - f * f * 3.9; }
+        else if (u < 16) { const f = (u - 2.9) / 13; z = z0 + 2.3; y = -0.55 - f * 0.3; sq = 1 - f * 0.8; }
+        bl.position.set(x, y, z); bl.rotation.set(u < 2.9 ? 0.12 + Math.max(0, u - 2.2) * 1.2 : 0, 0, 0); bl.scale.set(1 + (1 - sq) * 0.6, sq * (u >= 2.9 ? 0.6 : 1), 1 + (1 - sq) * 0.4);
+        poof.forEach((h, i) => { const f = (u - 2.9) / 1.4; h.visible = f > 0 && f < 1; if (h.visible) { h.position.set(x + (i - 1) * 0.5 * (0.5 + f), -0.2 + f * 0.8 + i * 0.1, z0 + 2.3 + (i % 2) * 0.3); h.scale.setScalar(1.2 + f * 2.2); h.material.opacity = 0.7 * (1 - f); } }); });
+    }
     // ------------------------------------------------------------ vagas extras (conversa geral e vista)
     [[-12.0, 9.3], [-8.8, 9.3], [0.6, 9.3], [4.4, 9.3], [10.6, 9.3], [12.4, 9.0]].forEach(([x, z]) => K.slot(x, z, x, 16, 'view'));
     [[3.6, -5.0], [5.0, -1.6], [-2.6, -5.6], [-0.2, -6.8], [8.2, 0.4], [6.6, 6.8], [-3.6, 0.6], [11.0, 4.0], [-9.0, -0.4], [-9.4, 1.1]].forEach(([x, z]) => K.slot(x, z, x + (R() - 0.5), z + (R() - 0.5) * 2, 'talk'));
