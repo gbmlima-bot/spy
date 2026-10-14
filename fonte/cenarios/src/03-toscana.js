@@ -35,6 +35,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.16) { o.propL = 'fan'; o.propColor = [0xf6f3ec, 0xe0a0a8, 0xd8c8ea][Math.floor(r() * 3)]; o.clutch = false; o.name += ', leque'; }
         if (r() < 0.12) { o.scarf = pastel[Math.floor(r() * 6)]; o.name += ', echarpe'; }
       }
+      // garçons do casamento, de avental de couro e bandeja (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.1) { Object.assign(o, { main: 0x3a2a22, pants: 0x1b1b1f, shirt: 0xf6f3ec, tie: 0x5a1020, bow: true, apron: 0x6a4024, prop: 'tray', trayUp: true, glass: false, hat: false, pocket: 0, glasses: false }); o.name = 'garçom de colete marrom, avental de couro e bandeja' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

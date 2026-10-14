@@ -35,6 +35,8 @@ MIRA_CENARIOS.push({
       if (r() < 0.5) { const [c, n] = C(knit); o.scarf = c; o.name += ', cachecol ' + n; }
       if (r() < 0.12) { o.glasses = 'goggles'; o.maskColor = C([0xff8a1c, 0x6ad0ff, 0xd9a441]); o.name += ', óculos de esqui'; }
       if (!o.dress && r() < 0.12) { o.gloves = C(knit)[0]; }
+      // instrutores de esqui da estação (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.1) { Object.assign(o, { main: 0xc8202a, pants: 0x16161a, hat: 'beanie', hatColor: 0x16161a, hatBand: 0x16161a, glasses: 'goggles', maskColor: 0xff9a3c, scarf: 0 }); o.name = 'instrutor de esqui, de suéter vermelho e óculos de neve na testa' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

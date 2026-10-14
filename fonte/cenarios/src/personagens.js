@@ -5,7 +5,7 @@
 //   hat: 'top' | 'bowler' | 'fedora' | 'tricorn' | 'boater' | 'beret' | 'chef' | 'cap' | 'beanie' | 'fez' | 'cowboy' | 'veil' | 'tiara' | 'feathers' | 'turban' | 'kasa' | 'hardhat' | 'flower'
 //   hatColor, hatBand, mask: 'venetian' | 'domino' | 'plague' | 'kitsune' | 'ski', maskColor, glasses: 'sun' | 'round' | 'monocle' | 'goggles'
 //   apron, scarf, sash, cape, gloves, stripes (cores), coat (casaco longo, cor), skirt (saia rodada, cor), lei (colar de flores, cor)
-//   prop (mão direita) e propL (mão esquerda): 'tray' | 'camera' | 'violin' | 'fan' | 'bouquet' | 'clipboard' | 'umbrella' | 'oar' | 'binoculars' | 'teapot' | 'cane'
+//   trayUp: bandeja nivelada na palma (garçom de braço erguido); prop (mão direita) e propL (mão esquerda): 'tray' | 'camera' | 'violin' | 'fan' | 'bouquet' | 'clipboard' | 'umbrella' | 'oar' | 'binoculars' | 'teapot' | 'cane'
 //     | 'mic' | 'torch' | 'book' | 'baton' | 'shaker' | 'lantern' | 'cigar' | 'flute' | 'tablet' | 'radio' | 'ski' | 'pole' | 'tambourine' | 'whistle' | 'map' | 'magnifier' | 'gavel' | 'skewer' | 'scroll'
 (function () {
   const G = {};
@@ -37,7 +37,7 @@
       sash: (() => { const g = new T.CylinderGeometry(14.4, 14.4, 6, 16, 1, true); return g; })(), sashBow: new T.BoxGeometry(14, 8, 4),
       cape: (() => { const g = new T.CylinderGeometry(17, 30, 90, 16, 1, true, Math.PI * 0.62, Math.PI * 1.76); g.translate(0, -45, -2); return g; })(),
       coat: new T.CylinderGeometry(15, 22, 62, 14, 1, true).translate(0, -31, 0), skirt: new T.CylinderGeometry(14, 40, 62, 18, 1, true).translate(0, -31, 0),
-      stripe: new T.TorusGeometry(15.2, 0.9, 4, 18), glove: new T.SphereGeometry(5, 8, 6), lei: new T.TorusGeometry(9, 2.2, 6, 18),
+      stripe: (() => { const g = new T.TorusGeometry(15.2, 0.9, 4, 18); g.rotateX(Math.PI / 2); return g; })(), glove: new T.SphereGeometry(5, 8, 6), lei: new T.TorusGeometry(9, 2.2, 6, 18),
       tray: cyl(15, 15, 1, 18), trayGlass: cyl(1.8, 1.0, 5, 8), camBody: new T.BoxGeometry(12, 8, 6), camLens: cyl(3, 3.4, 7, 10),
       violin: (() => { const g = new T.SphereGeometry(7, 10, 8); g.scale(1, 1.6, 0.35); return g; })(), neck: new T.BoxGeometry(2, 22, 1.5), bow: new T.BoxGeometry(0.6, 50, 0.6),
       fan: (() => { const g = new T.CircleGeometry(16, 12, 0, Math.PI * 0.9); return g; })(), stem: cyl(0.5, 0.5, 26, 5), bloom: new T.SphereGeometry(3.2, 7, 5),
@@ -57,7 +57,7 @@
     const dark = mat(0x16161a, { roughness: 0.35, metalness: 0.3 }), wood = mat(0x5a3a22, { roughness: 0.55 }), brass = mat(0xd9a441, { metalness: 0.85, roughness: 0.28 }), silver = mat(0xc9ced6, { metalness: 0.85, roughness: 0.25 });
     const c = o.propColor || 0xc8322f;
     switch (kind) {
-      case 'tray': { const t = m(G.tray, silver, 0, 2, 10, g); for (let i = 0; i < 4; i++) m(G.trayGlass, mat(0xf2c14e, { emissive: 0xf2c14e, emissiveIntensity: 0.3, roughness: 0.2 }), Math.cos(i * 1.6) * 8, 3.5, Math.sin(i * 1.6) * 8, t); break; }
+      case 'tray': { const t = m(G.tray, silver, 0, 2, 10, g); if (o.trayUp) t.rotation.x = Math.PI / 2; for (let i = 0; i < 4; i++) m(G.trayGlass, mat(0xf2c14e, { emissive: 0xf2c14e, emissiveIntensity: 0.3, roughness: 0.2 }), Math.cos(i * 1.6) * 8, 3.5, Math.sin(i * 1.6) * 8, t); break; }
       case 'camera': { const b = m(G.camBody, dark, 0, 0, 6, g); m(G.camLens, dark, 0, 0, 6, b).rotation.x = Math.PI / 2; m(new T.BoxGeometry(4, 3, 3), glow(0xffffff, 1.5), 4, 5, 0, b); break; }
       case 'violin': { const v = new T.Group(); v.position.set(0, 4, 10); v.rotation.set(0.4, 0, 1.2); g.add(v); m(G.violin, mat(0x8a3a12, { roughness: 0.35 }), 0, 0, 0, v); m(G.neck, dark, 0, 16, 0, v); break; }
       case 'fan': { const f = m(G.fan, mat(c, { side: T.DoubleSide, roughness: 0.6 }), 0, 4, 4, g); f.rotation.set(0, 0, 0.2); break; }
@@ -136,7 +136,8 @@
     if (o.coat) m(G.coat, mat(o.coat, { side: T.DoubleSide, roughness: 0.8 }), 0, 4, 0, B.Hips);
     if (o.skirt) m(G.skirt, mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips);
     if (o.lei) m(G.lei, mat(o.lei, { roughness: 0.8 }), 0, 16, 5, B.Spine2).rotation.x = Math.PI / 2 + 0.4;
-    if (o.stripes) for (let i = 0; i < 4; i++) m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(1.12, 1, 0.75);
+    // horizontal bands round the shirt, each fitted to the torso's width at its height (the torso is 0.62 as deep as it is wide)
+    if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k, 1.4, k * 0.62); }
     if (o.gloves) for (const s of ['Left', 'Right']) m(G.glove, mat(o.gloves, { roughness: 0.6 }), s === 'Left' ? 5 : -5, 0, 0, B[s + 'Hand']).scale.set(1.5, 0.75, 1);
     if (o.prop2) hand(T, o.prop2, B, 'R', m, mat, glow, o);
     if (o.propL) hand(T, o.propL, B, 'L', m, mat, glow, o);
