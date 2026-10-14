@@ -11353,6 +11353,13 @@ CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
 CG.fringe = (() => { const g = new T.CylinderGeometry(11.9, 11.7, 7.5, 14, 1, true, -0.8, 1.6); g.scale(0.96, 1, 1.03); return g; })();
 CG.sideQuiff = (() => { const g = new T.SphereGeometry(7.5, 10, 6); g.scale(1.25, 0.5, 1.15); return g; })();
+// how a character walks, fixed per character (the same for players and guests): 0 arms swinging, 1 hands in the pockets
+// (trousers only), 2 hands behind the back; a free hand is needed, so a prop or clutch keeps the arms swinging
+function walkStyle(o, id) {
+  if (o.prop || o.propL || o.clutch) return 0;
+  const k = ((id + 1) * 2654435761 >>> 0) % 20;
+  return !o.dress && !o.robeLong && k < 5 ? 1 : k >= 17 ? 2 : 0;
+}
 function makeChar(o, id) {
   const root = new T.Group(); const rig = new T.Group(); const hs = o.h || 1, bw = o.bw || 1; rig.scale.setScalar(RS * hs); root.add(rig);
   const B = {}; for (const b of RIG.bones) { const ob = new T.Object3D(); ob.name = b.n; ob.position.fromArray(b.pos); B[b.n] = ob; (b.p ? B[b.p] : rig).add(ob); }
@@ -11469,7 +11476,7 @@ function makeChar(o, id) {
   if (o.prop === 'brush') { const br = m(new T.CylinderGeometry(0.4, 0.5, 14, 5), walnut, -7, -1, 4, B.RightHand); br.rotation.x = Math.PI / 2; m(new T.ConeGeometry(0.9, 2.5, 6), mat(0xc8322f), 0, 8, 0, br); const pal = m(new T.CylinderGeometry(9, 9, 0.6, 12), mat(0xd8c8a0, { roughness: 0.9 }), 9, -2, 2, B.LeftHand); pal.scale.z = 0.75; [0xc8322f, 0x2e5fa8, 0xe9c33b, 0x3f8a3a, 0xf6f1e8].forEach((c, i) => m(new T.CylinderGeometry(1.4, 1.4, 0.6, 8), mat(c), -4 + i * 2.2, 0.5, (i % 2 ? -3 : 3), pal)); }
   if (window.MIRA_VESTIR) { try { MIRA_VESTIR(T, o, B, m, mat, glow, headG); } catch (e) { console.warn('vestir', e); } }
   batchChar(root, B, [glass, clutch, phone, sh]);
-  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, tray: o.prop === 'tray', hs, x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
+  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, tray: o.prop === 'tray', hs, walk: walkStyle(o, id), x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
   return root;
 }
 const CLIP_PP = { samba: true };
@@ -11489,7 +11496,13 @@ function overridesFor0(anim, u, t) {
   const o = [];
   const sip = Math.max(0, Math.sin((t + u.ph) * 0.35) - 0.94) * 16;
   if (anim === 5) return o;
-  if (anim === 1) { if (u.glass) o.push(...ARM('Right', 0.25, 0.08, 1.55)); return o; }
+  if (anim === 1) {
+    // each character has their own way of walking: free arms, hands in the pockets, or hands behind the back
+    if (u.walk === 1) { o.push(...ARM('Left', -0.12, 0.2, 0.55)); if (!u.glass) o.push(...ARM('Right', -0.12, 0.2, 0.55)); }
+    else if (u.walk === 2) { o.push(...ARM2('Left', -0.35, 0.12, 1.5, -2.2)); if (!u.glass) o.push(...ARM2('Right', -0.35, 0.12, 1.5, -2.2)); o.push(['Head', E(0.05, Math.sin((t + u.ph) * 0.6) * 0.2, 0)]); }
+    if (u.glass) o.push(...ARM('Right', 0.25, 0.08, 1.55));
+    return o;
+  }
   if (anim === 2) { o.push(['Spine1', E(0.3, 0, 0)], ['Head', E(0.35, 0, 0)], ...ARM('Right', 0.9 + Math.sin(t * 7) * 0.08, 0.12, 0.9), ...ARM('Left', 0.55, 0.15, 1.1)); return o; }
   if (anim === 3) return o;
   if (anim === 6) { o.push(...ARM('Right', 2.1 + Math.sin(t * 2) * 0.05, 0.25, 1.4), ['Head', E(-0.2, 0, 0)]); return o; }
