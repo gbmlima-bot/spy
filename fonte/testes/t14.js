@@ -24,6 +24,8 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
     if (ch.k === 'seq') for (const d of ch.keys) key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][d]);
     if (ch.k === 'ponto') { const t1 = performance.now(); while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; if (Math.abs(0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp) - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); if (c.act) c.act.t += 0.5; } } }
     if (ch.k === 'calma') ch.p = 0.99;
+    if (ch.k === 'girar') for (let i = 0; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft');
+    if (ch.k === 'pulso') for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 1 - ch.ph) * ch.per; key('e'); }
     const t0 = performance.now(); while (c.act && performance.now() - t0 < 90000) await new Promise(r => setTimeout(r, 100));
     await frame(); await frame(); mo.disconnect();
     return { label: it && it.label, o: a.o, dn: S.dn.slice(), got: S.got, tells: S.tq.length + S.tells.length, toast: seen.join(' | '), note: (document.querySelector('#tsNote') || {}).textContent || '' };
