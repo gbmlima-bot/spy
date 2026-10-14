@@ -4632,7 +4632,9 @@ MIRA_CENARIOS.push({
     vestidoChance: 0.48, longo: 0.12, taca: 0.55, tacas: ['tumbler', 'tumbler', 'tumbler', 'wine'], drinks: [0xf2c14e, 0xf2c14e, 0xc8e070, 0xffd9a0, 0xff7a2a],
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)], q = r();
-      if (q < 0.12) { o.main = 0xf6f3ec; o.pants = o.dress ? o.pants : 0xf6f3ec; if (!o.dress) o.stripes = 0x1f3a8a; o.hat = 'cap'; o.hatColor = 0xf6f3ec; o.hatBand = 0x1f3a8a; o.name = o.dress ? 'fantasia de marinheira, quepe branco' : 'fantasia de marinheiro, camisa listrada'; }
+      // a bloco is T-shirts (abadás), shorts or jeans and sneakers, not suits; the costumes below go on top
+      if (!o.dress) { o.tee = true; const k = Math.floor(q * 997) % 5; o.shorts = k < 3; o.pants = [0x2a4a7a, 0xd8c8a0, 0x1b1b1f, 0x3a5a8a, 0xf6f3ec][k]; o.shoe = [0xf2f2ee, 0x1b1b1f, 0xc8322f][k % 3]; o.bow = false; o.pocket = 0; o.vest = 0; o.watch = k === 4 ? 'steel' : false; }
+      if (q < 0.12) { o.main = 0xf6f3ec; o.pants = o.dress ? o.pants : 0xf6f3ec; if (!o.dress) o.stripes = 0x1f3a8a; o.hat = 'cap'; o.hatColor = 0xf6f3ec; o.hatBand = 0x1f3a8a; o.name = o.dress ? 'fantasia de marinheira, quepe branco' : 'fantasia de marinheiro, camisa listrada'; if (!o.dress) o.shorts = false; }
       else if (q < 0.21) { o.hat = 'tricorn'; o.hatColor = 0x16161a; o.mask = 'domino'; o.maskColor = 0x16161a; o.sash = 0xc8322f; if (!o.dress) { o.main = 0x1b1b1f; o.stripes = 0xf6f3ec; } o.name = o.dress ? 'fantasia de pirata, faixa vermelha' : 'fantasia de pirata, tapa-olho e tricórnio'; }
       else if (q < 0.33) { o.lei = pk([0xff5d8f, 0xffd23f, 0xff7a2a, 0xf6f3ec, 0x9b5de5]); o.hat = 'boater'; o.hatColor = 0xe9d79a; o.hatBand = pk([0xc8322f, 0x1f9a6a, 0xff5d8f]); o.name += ', fantasia de havaiano, colar de flores'; }
       else if (q < 0.43) { o.hat = 'feathers'; o.hatColor = pk([0xff3d7f, 0x2ec4b6, 0xffd23f, 0x9b5de5]); o.name += ', cocar de plumas'; }
@@ -11150,7 +11152,10 @@ function makeChar(o, id) {
   // under a long gown the legs are slimmer and drawn in a little, so they stay inside the skirt
   for (const s of ['Left', 'Right']) {
     if (o.dress) { const lg = [m(CG.bareThigh, skin, 0, 0, 0, B[s + 'UpLeg']), m(CG.bareKnee, skin, 0, 0, 0, B[s + 'Leg']), m(CG.bareShin, skin, 0, 0, 0, B[s + 'Leg'])]; if (o.gown) for (const g of lg) { g.scale.set(0.72, 1, 0.72); g.position.x = s === 'Left' ? -2.2 : 2.2; } const hm = mat(o.shoe, { roughness: 0.3, metalness: 0.2 }); m(CG.heel, hm, 0, 0, 0, B[s + 'Foot']); m(CG.heelBlock, hm, 0, 0, 0, B[s + 'Foot']); }
-    else { m(CG.thigh, pants, 0, 0, 0, B[s + 'UpLeg'], true); m(CG.knee, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shin, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shoe, dark, 0, 0, 0, B[s + 'Foot']); m(CG.sole, mat(0x0d0d10, { roughness: 0.6 }), 0, 0, 0, B[s + 'Foot']); }
+    else if (o.shorts) { // shorts and sneakers: cloth to just above the knee, then bare leg
+      m(CG.thigh, pants, 0, 0, 0, B[s + 'UpLeg'], true); m(CG.bareKnee, skin, 0, 0, 0, B[s + 'Leg']); m(CG.bareShin, skin, 0, 0, 0, B[s + 'Leg']);
+      m(CG.shoe, mat(o.shoe === undefined || o.shoe === 0x1b1b1f ? 0xf2f2ee : o.shoe, { roughness: 0.6 }), 0, 0, 0, B[s + 'Foot']); m(CG.sole, mat(0xf6f3ec, { roughness: 0.8 }), 0, 0, 0, B[s + 'Foot']);
+    } else { m(CG.thigh, pants, 0, 0, 0, B[s + 'UpLeg'], true); m(CG.knee, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shin, pants, 0, 0, 0, B[s + 'Leg']); m(CG.shoe, dark, 0, 0, 0, B[s + 'Foot']); m(CG.sole, mat(0x0d0d10, { roughness: 0.6 }), 0, 0, 0, B[s + 'Foot']); }
   }
   // torso
   if (o.dress) {
@@ -11163,7 +11168,7 @@ function makeChar(o, id) {
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
     m(CG.pelvis, pants, 0, 0, 0, B.Hips);
-    m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong);
+    if (!o.tee) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); // a T-shirt ends at the waist
     m(CG.jacket, cloth, 0, -4, 0, B.Spine, true);
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
   }
@@ -11172,6 +11177,9 @@ function makeChar(o, id) {
     const cm = mat(o.collar ?? new T.Color(o.main).multiplyScalar(0.55).getHex(), { roughness: 0.6 });
     if (o.robe === 'cross') { const v = m(CG.vee, cm, 0, 16, o.dress ? 10.4 : 12.0, B.Spine2); v.rotation.x = o.dress ? -0.2 : -0.12; v.scale.set(0.8, 0.85, 1); }
     m(CG.neckband, cm, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
+  } else if (o.tee) {
+    // a T-shirt: round neck in the shirt's own colour, nothing on the chest
+    m(CG.neckband, cloth, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
   } else if (!o.dress) {
     const v = m(CG.vee, o.vest ? mat(o.vest, { roughness: 0.5 }) : shirt, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05;
     // shirt collar points and the band round the neck
@@ -11218,6 +11226,7 @@ function makeChar(o, id) {
     const k = s[0];
     if (o.robe) { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.bellSleeve[k], cloth, 0, 0, 0, B[s + 'ForeArm']); }
     else if (o.dress) { m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
+    else if (o.tee) { const sl = m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); sl.scale.set(0.5, 1.12, 1.12); m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
     else { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.foreArm[k], cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.cuff[k], shirt, 0, 0, 0, B[s + 'ForeArm']); }
     m(CG.hand[k], skin, 0, 0, 0, B[s + 'Hand']); m(CG.thumb, skin, s === 'Left' ? 4.2 : -4.2, 0.6, 3.4, B[s + 'Hand']);
     if (s === 'Left' && o.watch) { m(CG.watchBand, mat(o.watch === 'gold' ? 0x3a2a1a : 0x15151a, { roughness: 0.5 }), 25.2, 0, 0, B.LeftForeArm).rotation.y = Math.PI / 2; m(CG.watchFace, o.watch === 'gold' ? gold : mat(0xd0d4da, { metalness: 0.9, roughness: 0.2 }), 25.2, 4.6, 0, B.LeftForeArm); }
