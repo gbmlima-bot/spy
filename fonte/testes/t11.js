@@ -36,7 +36,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
         while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; const x = 0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp); if (Math.abs(x - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); c.act && (c.act.t += 0.5); } }
       } else if (kind === 'calma') ch.p = 0.99;
       else if (kind === 'girar') for (let i = 0; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft');
-      else if (kind === 'pulso') for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 1 - ch.ph) * ch.per; key('e'); }
+      else if (kind === 'pulso') for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 1 - ch.ph) * ch.per; key('e'); }
       const mini = document.querySelector('#mini').innerHTML.slice(0, 80);
       const t0 = performance.now(); while (c.act && performance.now() - t0 < 90000) await new Promise(r => setTimeout(r, 100));
       return { act, anim, kind, wrong, mini, done: S.dn.includes(o), dn: S.dn.length };
@@ -64,8 +64,8 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
       if (k === 'ponto') { const t1 = performance.now(); while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; if (Math.abs(0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp) - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); if (c.act) c.act.t += 0.5; } } }
       if (k === 'girar') { key('ArrowLeft'); key('ArrowLeft'); res.afterSame = ch.i; for (let i = 1; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft'); }
       if (k === 'pulso') { // off the beat breaks the streak; then three on the beat
-        c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 0.5 - ch.ph) * ch.per; key('e'); res.offBeat = ch.hits + (ch.miss > 0 ? 'm' : ''); ch.miss = 0;
-        for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 1 - ch.ph) * ch.per; key('e'); } }
+        c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 0.5 - ch.ph) * ch.per; key('e'); res.offBeat = ch.hits + (ch.miss > 0 ? 'm' : ''); ch.miss = 0;
+        for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 1 - ch.ph) * ch.per; key('e'); } }
       if (k === 'calma') { // laser on the player: no progress; laser away: it fills
         S.ai && (S.ai.aim.set(c.x, c.y + 1.4, c.z)); for (let i = 0; i < 6; i++) await frame(); res.nearP = +ch.p.toFixed(2); res.near = ch.near;
         S.ai && S.ai.aim.set(c.x + 30, c.y, c.z + 30); ch.p = Math.max(ch.p, 0.98); }
