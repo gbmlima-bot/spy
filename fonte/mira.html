@@ -13899,6 +13899,30 @@ function renderLabels(st) {
   });
 }
 let lastTimerText = '';
+// The closing of a round, heard by everyone in the game: a low drone that swells over the last 60 s (and from the
+// moment the radio has counted NEED-1 changes), with a clock pulse that quickens; the overtime runs it at full. It cuts to
+// silence the instant the round ends, so the shot or the last mission lands on a quiet beat.
+const CRESC = { nodes: null, k: 0, pulse: 0 };
+function crescNodes(ac) {
+  const out = ac.createGain(); out.gain.value = 0; out.connect(ac.destination);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220; lp.connect(out);
+  const a = ac.createOscillator(), b = ac.createOscillator(); a.type = 'sawtooth'; b.type = 'sine'; a.frequency.value = 55; b.frequency.value = 110.6;
+  const gb = ac.createGain(); gb.gain.value = 0.5; a.connect(lp); b.connect(gb); gb.connect(lp); a.start(); b.start();
+  return { out, lp, a, b };
+}
+function stepCrescendo(dt, st) {
+  const live = G.screen === 'game' && st && st.ph === 'play';
+  const k = live ? (st.ot ? 1 : Math.max(st.tl < 60 ? 1 - st.tl / 60 : 0, st.tells.length >= NEED - 1 ? 0.4 : 0)) : 0;
+  if (!CRESC.nodes && k <= 0) return;
+  const ac = audio(); if (!ac) return;
+  if (!CRESC.nodes) CRESC.nodes = crescNodes(ac);
+  const n = CRESC.nodes, now = ac.currentTime;
+  // ends cut fast (silence before the verdict); swells come in slowly
+  n.out.gain.setTargetAtTime(0.045 * k * k, now, k < CRESC.k ? 0.05 : 0.8);
+  n.lp.frequency.setTargetAtTime(180 + 900 * k, now, 0.8); n.a.frequency.setTargetAtTime(55 * (1 + 0.06 * k), now, 1.5);
+  CRESC.k = k;
+  if (k > 0.05) { CRESC.pulse -= dt; if (CRESC.pulse <= 0) { tone(st.ot ? 1320 : 990, 0.04, 0.012 + 0.02 * k, 'square'); CRESC.pulse = (st.ot ? 0.45 : 1.1) - 0.5 * k * (st.ot ? 0.3 : 1); } } else CRESC.pulse = 0;
+}
 function updateHUD(st) {
   if (G.screen !== 'game' || !st || st.ph !== 'play') return;
   const tt = fmt(st.tl); if (tt !== lastTimerText) { $('#timer').textContent = tt; lastTimerText = tt; $('#timer').classList.toggle('low', st.tl < 30); }
@@ -13961,6 +13985,7 @@ function frame(now) {
     if (G.backdrop && G.screen !== 'game') G.backdrop.tick(dt);
     const st = currentState();
     if (INTRO.on && !(st && st.ph === 'play' && G.screen === 'game' && G.role === 's')) introEnd(); // the round ended or the player left
+    stepCrescendo(dt, st);
     if (st && st.ents) {
       syncRound(st);
       updateLocal(dt, st);
@@ -14028,7 +14053,7 @@ window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animC
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
 // sniper: what the sniper's tests and the balance tuning read
-Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO });
+Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO, CRESC });
 // characters: what the tests of the character area read
 Object.assign(window.__mira, { actAnimFor });
 })();
