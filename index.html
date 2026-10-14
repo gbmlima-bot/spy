@@ -80,7 +80,10 @@ label{display:grid;gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04e
 #mini .dial.miss{box-shadow:0 0 0 1px #e05a4a}#mini .beat{width:34px;height:34px;border:2px solid var(--brass);border-radius:50%;display:grid;place-items:center}#mini .beat i{width:30px;height:30px;border-radius:50%;background:rgba(201,162,90,.7)}#mini .beat.miss{border-color:#e05a4a}#mini .pads{display:flex;gap:6px}#mini .pads button{width:44px;height:40px;font-size:18px}#mini small{color:var(--muted,#9aa)}#mini small.warn{color:#e0a84a}
 kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--paper)}
 #touch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom,0px));display:grid;gap:8px}
-#touch button{width:96px;padding:12px 8px;pointer-events:auto}
+#touch button{width:96px;padding:12px 8px;pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#breathBtn{touch-action:none}
+/* phone upright: the buttons make one row along the bottom instead of a column over the scope's right edge */
+@media (orientation:portrait) and (max-width:700px){#touch{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}#touch button{width:auto;min-width:0;padding:12px 2px;font-size:11px;line-height:1.15}}
 #shootBtn{background:rgba(255,65,52,.2);border-color:var(--laser)}
 
 /* scope */
@@ -13088,7 +13091,11 @@ addEventListener('keyup', e => { keyDown.delete(e.key.toLowerCase()); if (e.key 
 addEventListener('blur', () => keyDown.clear());
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 const ray = new T.Raycaster(); const ndc = new T.Vector2();
+// fingers on the canvas (sniper, touch): one drags the scope, two pinch the zoom, a short tap on the open view aims there
+const TOUCHES = new Map(); let pinch = null, tapAt = null;
+const pinchDist = () => { const [a, b] = [...TOUCHES.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
 canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse') { TOUCHES.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (TOUCHES.size === 2) pinch = { d: pinchDist(), z: snip.zoom }; tapAt = TOUCHES.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; }
   canvas.focus(); audio();
   const st = currentState(); if (G.screen !== 'game' || !st) return;
   snip.lastPX = e.clientX; snip.lastPY = e.clientY;
@@ -13113,7 +13120,24 @@ canvas.addEventListener('pointerdown', e => {
     }
   }
 });
+const touchUp = e => {
+  if (e.pointerType === 'mouse' || !TOUCHES.delete(e.pointerId)) return;
+  if (TOUCHES.size < 2) pinch = null;
+  if (TOUCHES.size === 1) { const p = [...TOUCHES.values()][0]; snip.lastPX = p.x; snip.lastPY = p.y; } // the finger left behind keeps dragging from where it is
+  const st = currentState();
+  if (e.type === 'pointerup' && tapAt && G.screen === 'game' && G.role === 's' && st && st.ph === 'play' && !snip.scoped && Math.hypot(e.clientX - tapAt.x, e.clientY - tapAt.y) < 12 && performance.now() - tapAt.t < 700) { aimFromPointer(e.clientX, e.clientY); setScope(true); }
+  tapAt = null;
+};
+canvas.addEventListener('pointerup', touchUp); canvas.addEventListener('pointercancel', touchUp);
 canvas.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' && TOUCHES.has(e.pointerId)) {
+    TOUCHES.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch) { // two fingers: zoom with the spread, no aiming
+      if (G.role === 's' && snip.scoped) { const z = Math.max(3, Math.min(10, Math.round(pinch.z * pinchDist() / pinch.d))); if (z !== snip.zoom) { snip.zoom = z; $('#zoomTag').textContent = z + '×'; sndZoom(); } }
+      return;
+    }
+    if (!e.isPrimary && TOUCHES.size > 1) return;
+  }
   if (G.screen !== 'game' || G.role !== 's') return;
   if (!snip.scoped) { if (e.pointerType === 'mouse') aimFromPointer(e.clientX, e.clientY); }
   else {
@@ -13526,7 +13550,8 @@ const sndCreak = () => { tone(72, 1.0, 0.03, 'sawtooth'); setTimeout(() => tone(
 const sndWhistle = () => { tone(880, 1.3, 0.025); tone(1108, 1.3, 0.02); };
 // per scenario: every = seconds between events, rate = ambient particles per second, ev = the event
 const NEST_MOODS = {
-  0: { every: [30, 50], ev() { lensSweep('rgba(220,235,255,.16)', 2.4, lensRnd(-0.3, 0.3), 0.3); sndRotor(); } }, // police helicopter's searchlight
+  // a helicopter passing: its shadow over the lens by day; at night the scene already sweeps searchlights, so only the rotor
+  0: { every: [30, 50], ev() { if (!NIGHT.on) lensSweep('rgba(0,0,0,.14)', 1.4, lensRnd(-0.3, 0.3), 0.3); sndRotor(); } },
   1: { every: [35, 55], ev() { sndBell(); lensShake(0.0011, 11); } }, // San Vidal's bell overhead
   2: { every: [30, 50], ev() { sndHorn(); setTimeout(() => lensSweep('rgba(0,0,0,.16)', 0.6, lensRnd(-1, 1), 0.18), 1500); } }, // a ship's horn; a gull's shadow
   3: { every: [20, 35], ev() { lensPart('bug', { x: -1.1, y: lensRnd(-0.6, 0.6), vx: 0.7, vy: 0, life: 3.2, r: 0.008 }); sndBuzz(); } }, // a fly across the glass
@@ -13673,7 +13698,7 @@ function updateNotebook(st) {
   const sl = $('#suspectList'), rl = $('#radioLog'); if (!sl || !rl) return;
   const key = snip.marks.join(',') + '|' + snip.marks.map(id => { const e = st.ents.find(x => x.id === id); return e ? e.anim + ':' + lvOfY(e.y || 0) : ''; }).join(',') + '|' + st.tells.length + '|' + Object.keys(snip.idd || {}).length;
   if (key === snip.nbKey) return; snip.nbKey = key;
-  sl.innerHTML = snip.marks.length ? snip.marks.map((id, i) => { const e = st.ents.find(x => x.id === id); const o = outfitFor(st.sd, id, st); const lv = e ? lvOfY(e.y || 0) : 0; return `<li class="${i === 0 ? 'first' : ''}"><b>${i === 0 ? 'Principal' : 'Suspeito ' + (i + 1)}</b> · ${esc(o.name)}<small>${e ? esc(ANIM_LABEL[e.anim] || '') : ''} · ${esc(lvLabel(lv))}</small></li>`; }).join('') : '<li class="muted">Mire num convidado e aperte <kbd>F</kbd> para anotar.</li>';
+  sl.innerHTML = snip.marks.length ? snip.marks.map((id, i) => { const e = st.ents.find(x => x.id === id); const o = outfitFor(st.sd, id, st); const lv = e ? lvOfY(e.y || 0) : 0; return `<li class="${i === 0 ? 'first' : ''}"><b>${i === 0 ? 'Principal' : 'Suspeito ' + (i + 1)}</b> · ${esc(o.name)}<small>${e ? esc(ANIM_LABEL[e.anim] || '') : ''} · ${esc(lvLabel(lv))}</small></li>`; }).join('') : '<li class="muted">Mire num convidado e ' + (matchMedia('(pointer:coarse)').matches ? 'toque em <b>Marcar</b>' : 'aperte <kbd>F</kbd>') + ' para anotar.</li>';
   const tm = (o) => { const i = st.tells.indexOf(o); return i >= 0 ? '' : ''; };
   rl.innerHTML = st.tells.length ? st.tells.slice().reverse().map(o => `<li><b>${fmt(Math.max(0, ROUND_T - (snip.tellAt && snip.tellAt[o] !== undefined ? snip.tellAt[o] : st.tl)))}</b>${snip.idd && snip.idd[o] ? `${esc(MISSIONS[o].label)} <span class="muted">· ${esc(MISSIONS[o].where)}</span>` : `Algo mudou <span class="muted">· ${esc(areaOf(o))} · enquadre com zoom</span>`}</li>`).join('') : '<li class="muted">Silêncio no rádio por enquanto.</li>';
 }
