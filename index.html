@@ -5546,7 +5546,18 @@ MIRA_CENARIOS.push({
     morro(lump(new T.SphereGeometry(1, 20, 12), 0.08), 62, -28, -240, [44, 26, 40], { rocha: MATA, mata: MATA, bruma: 0.22, mata_ate: 2 });
     morro(lump(new T.SphereGeometry(1, 24, 16), 0.06), 26, -28, -212, [32, 40, 30], { rocha: ROCHA, mata: MATA, bruma: 0.18, base: -1, alto: 2, mata_ate: 0.7 });
     morro(lump(new T.SphereGeometry(1, 20, 12), 0.08), 26, -28, -212, [40, 22, 36], { rocha: MATA, mata: MATA, bruma: 0.18, mata_ate: 2 });
-    wire([26, 12, -212], [60, 63, -240], 2.5, new T.LineBasicMaterial({ color: 0x3a3a44 })); K.box(1.2, 0.9, 1.2, K.mat(0xe8e2d2), 43, 34.5, -226, { cast: false });
+    // o bondinho do Pão de Açúcar: dois cabos e dois carrinhos que se cruzam no meio, com as janelas acesas do fim de tarde.
+    // O cabo chega na estação do ombro do morro (o morro aqui é mais íngreme que o de verdade: até o topo ele atravessaria a pedra).
+    // Os carrinhos e as pipas levam userData.dyn para a fusão do fim do arquivo não juntá-los com o que fica parado.
+    { const cabM = new T.LineBasicMaterial({ color: 0x3a3a44 }), A = [26, 12, -212], B = [59.6, 50.6, -231.8], lado = [[0, 0], [1.6, -1.3]];
+      const cor = (c) => new T.Color(c).convertSRGBToLinear(), carM = new T.MeshBasicMaterial({ color: cor(0xd8d2c4), fog: false, toneMapped: false }), janM = new T.MeshBasicMaterial({ color: cor(0xffd890), fog: false, toneMapped: false });
+      K.box(4, 2.4, 3.2, carM, B[0] + 1.2, B[1] - 0.6, B[2] - 0.6, { cast: false }); K.box(4.1, 0.5, 3.0, janM, B[0] + 1.2, B[1] - 0.3, B[2] - 0.6, { cast: false });
+      const cars = lado.map(([dx, dz], k) => { wire([A[0] + dx, A[1], A[2] + dz], [B[0] + dx, B[1], B[2] + dz], 2.5, cabM);
+        const g = K.group(0, 0, 0); g.name = 'bondinho' + k; g.userData.dyn = true; g.rotation.y = Math.atan2(B[0] - A[0], B[2] - A[2]); K.box(2.0, 1.4, 2.4, carM, 0, -1.6, 0, { parent: g, cast: false }); K.box(2.04, 0.45, 2.2, janM, 0, -1.45, 0, { parent: g, cast: false }); K.box(0.12, 1.0, 0.12, carM, 0, -0.5, 0, { parent: g, cast: false });
+        return { g, dx, dz }; });
+      K.tick((dt, t) => cars.forEach((c, k) => { const T0 = 70, v = (t + k * T0 / 2) % T0, ida = v < T0 / 2, w = (ida ? v : v - T0 / 2) / (T0 / 2), u = Math.min(1, Math.max(0, (w - 0.1) / 0.8)), e = u * u * (3 - 2 * u), f = ida ? e : 1 - e;
+        c.g.position.set(A[0] + c.dx + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f - Math.sin(f * Math.PI) * 2.5, A[2] + c.dz + (B[2] - A[2]) * f); }));
+    }
     for (const [x, z, sx, sy] of [[-160, -470, 90, 40], [-40, -500, 70, 55], [60, -480, 60, 34], [180, -460, 110, 48]]) morro(lump(new T.SphereGeometry(1, 18, 10), 0.08), x, -28, z, [sx, sy, 40], { rocha: [0x7a7a9a, 0x3e3e5e], mata: [0x5a6a7a, 0x34405a], bruma: 0.5, base: -1, alto: 2, mata_ate: 0.6 });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest2, -95, -30, -95, { s: [55, 70, 50], cast: false });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest, 120, -30, -80, { s: [60, 62, 45], cast: false });
@@ -5557,6 +5568,20 @@ MIRA_CENARIOS.push({
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest, -78, -12, -10, { s: [40, 32, 60], cast: false });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest2, 80, -14, 5, { s: [44, 30, 60], cast: false });
 
+    // pipas no céu atrás do bloco, empinadas dos morros dos lados: balançam, dão laçadas e a rabiola ondula
+    { const kv = [0, 0.6, 0, -0.42, 0, 0, 0, -0.75, 0, 0.42, 0, 0], tri = [0, 1, 2, 0, 2, 3], pos = []; for (const i of tri) pos.push(kv[i * 3], kv[i * 3 + 1], kv[i * 3 + 2]); for (const i of tri.slice().reverse()) pos.push(kv[i * 3], kv[i * 3 + 1], kv[i * 3 + 2]);
+      const kg = new T.BufferGeometry(); kg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); kg.computeVertexNormals();
+      const rabM = new T.LineBasicMaterial({ color: 0xf3ecdc }), linhaM = new T.LineBasicMaterial({ color: 0x5a5048, transparent: true, opacity: 0.6 }), r = K.rng(616);
+      const pipas = [[-34, 15, -38, 0xe8302a], [-24, 19, -58, 0xf2c41e], [-44, 12, -64, 0x2a6ad0], [30, 16, -42, 0x30b050], [42, 13, -60, 0xe8602a], [22, 20, -70, 0xb040c0]].map(([x, y, z, c]) => {
+        const g = K.group(x, y, z); g.userData.dyn = true; K.add(kg, K.mat(c, { roughness: 0.7 }), 0, 0, 0, { parent: g, s: 1.5, cast: false });
+        const rp = new Float32Array(10 * 3), rg = new T.BufferGeometry(); rg.setAttribute('position', new T.BufferAttribute(rp, 3)); g.add(new T.Line(rg, rabM));
+        const chao = [x * 1.25, -6, z + 16], lg = new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]), ln = new T.Line(lg, linhaM); K.root.add(ln);
+        return { g, x, y, z, rp, rg, lg, chao, ph: r() * 6.28, laco: 30 + r() * 40 }; });
+      K.tick((dt, t) => pipas.forEach(p => { const l = (t + p.ph * 5) % p.laco, gira = l < 2.4 ? (l / 2.4) * Math.PI * 2 : 0;
+        p.g.position.set(p.x + Math.sin(t * 0.4 + p.ph) * 1.6, p.y + Math.sin(t * 0.7 + p.ph) * 0.9 - (gira ? Math.sin(gira) * 2.2 : 0), p.z); p.g.rotation.set(Math.sin(t * 1.3 + p.ph) * 0.15, Math.sin(t * 0.5 + p.ph) * 0.3, Math.sin(t * 0.9 + p.ph) * 0.25 + gira);
+        for (let i = 0; i < 10; i++) { p.rp[i * 3] = Math.sin(t * 4 + i * 0.8 + p.ph) * 0.12 * i / 3; p.rp[i * 3 + 1] = -1.1 - i * 0.28; p.rp[i * 3 + 2] = 0; } p.rg.attributes.position.needsUpdate = true;
+        const a = p.lg.attributes.position; a.setXYZ(0, p.g.position.x, p.g.position.y - 0.4, p.g.position.z); a.setXYZ(1, p.chao[0], p.chao[1], p.chao[2]); a.needsUpdate = true; }));
+    }
     // ------------------------------------------------------------ frente: o vale e o morro da igrejinha (poleiro do sniper)
     K.add(new T.PlaneGeometry(400, 60).rotateX(-Math.PI / 2), K.mat(0x3a5a2a, { roughness: 1 }), 0, -9, 40, { cast: false });
     { const mato = K.canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#2f4a24'; g.fillRect(0, 0, w, h); for (let k = 0; k < 500; k++) { g.fillStyle = ['#3e5e2c', '#26401e', '#4a6e34', '#344f26'][(R() * 4) | 0]; g.beginPath(); g.ellipse(R() * w, R() * h, 4 + R() * 12, 3 + R() * 7, R() * 3, 0, 7); g.fill(); } }, [60, 1.2]);
