@@ -20,6 +20,8 @@ MIRA_CENARIOS.push({
     ceu: ['#050818', '#0e1838', '#23295a', '#5a3e5a'], neblina: [0x141a34, 80, 330], hemi: [0x8ea4d6, 0x4a2a1a, 0.24],
     sol: [0xa8bcff, 0.4, -16, 26, 20], preenche: [0xffa060, 0.24], exposicao: 1.0, bloom: 0.85, semReflexo: true,
   },
+  // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
+  rotinas: { view: [22, 0, 0], talk: [4, 4, 4, 25] },
   guardaRoupa: {
     ternos: [[0xf0e6cf, 'djellaba creme'], [0x6a4a32, 'djellaba de lã marrom'], [0x2a3a6a, 'djellaba índigo'], [0x5a6a3a, 'djellaba verde-oliva'], [0x8a8a86, 'djellaba cinza'], [0x3a2a2a, 'djellaba cor de tâmara'], [0x7a1f2a, 'djellaba bordô']],
     vestidos: [[0x0f6a4a, 'kaftan esmeralda'], [0x9a1030, 'kaftan rubi'], [0xe0a020, 'kaftan açafrão'], [0x3a4ad0, 'kaftan azul-majorelle'], [0xb0207a, 'kaftan magenta'], [0x1aa0a0, 'kaftan turquesa'], [0xf2e6c8, 'kaftan marfim bordado'], [0x5a2a7a, 'kaftan ameixa']],
