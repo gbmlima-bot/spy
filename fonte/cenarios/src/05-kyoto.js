@@ -863,6 +863,8 @@ MIRA_CENARIOS.push({
     K.particles({ modo: 'cai', x0: -15.5, x1: -11.5, z0: -4.6, z1: 0.6, y0: 0.05, y1: 4.2, n: 46, cor: [0xf6b8cc, 0xf8d0dc, 0xe890b0], tam: 0.07, vel: 0.35, balanco: 0.45 });
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.1 });
   },
   // ninho do sniper: último andar do pagode. Corrimão de laca vermelha gasta (o preto aparece nas bordas), pétalas de
   // sakura, beiral de telhas escuras logo abaixo, uma lanterna de papel acesa e um sino de vento (fūrin) que balança

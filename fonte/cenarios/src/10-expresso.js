@@ -857,6 +857,8 @@ MIRA_CENARIOS.push({
     K.pool(-4, 0, 6, 0xffb070, 0.12); K.pool(5, -2, 6, 0xffb070, 0.12);
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.05 });
   },
   // ninho do sniper: atrás do relógio da torre da estação. Granito com fuligem, chapa de ferro rebitada na borda, a
   // plaqueta de latão da companhia e, nas laterais, as engrenagens do mecanismo do relógio girando devagar

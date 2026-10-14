@@ -917,6 +917,8 @@ MIRA_CENARIOS.push({
     K.root.traverse(m => { if (!m.isMesh || !m.castShadow || m.isInstancedMesh) return; m.geometry.computeBoundingSphere(); m.getWorldScale(sc); if (m.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < 0.16) m.castShadow = false; });
     // ------------------------------------------------------------ ambiente vivo: mariposas rodeando a grande lanterna perfurada
     K.particles({ modo: 'paira', x0: -0.9, x1: 0.9, z0: -8.9, z1: -7.6, y0: 1.9, y1: 3.0, n: 14, cor: [0xffe0a0], tam: 0.04, vel: 2.2, balanco: 0.35, add: true, pisca: 3 });
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.12 });
   },
   // ninho do sniper: varanda do minarete. Zellige verde, branco e ocre com estrelas de oito pontas, poeira de areia,
   // pilares de azulejo e uma lanterna de latão vazada balançando

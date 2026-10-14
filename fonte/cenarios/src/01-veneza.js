@@ -440,6 +440,8 @@ MIRA_CENARIOS.push({
     K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });
     // menos reflexo da sala neutra: à noite o palazzo fica no azul da lua e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.1 });
   },
   // ninho do sniper: janela do campanário de San Vidal. Peitoril de pedra da Ístria gasto (musgo, iniciais riscadas,
   // marcas de pombo), pilares de tijolo com capitel, a corda do sino e gerânios espiando por cima da borda
