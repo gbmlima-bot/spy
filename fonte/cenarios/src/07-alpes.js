@@ -16,7 +16,7 @@ MIRA_CENARIOS.push({
     sol: [0x9ab0f0, 0.36, -16, 26, 20], preenche: [0xffa860, 0.16], exposicao: 0.9, bloom: 0.62,
   },
   guardaRoupa: {
-    ternos: [[0xb0202a, 'suéter de tricô vermelho'], [0x1f3a6a, 'jaqueta azul-marinho'], [0xece6da, 'suéter de tricô creme'], [0x2f5a3a, 'suéter verde-pinheiro'], [0x6a4630, 'jaqueta de camurça'], [0x55585f, 'parka cinza'], [0xd9822a, 'jaqueta de esqui laranja'], [0x16161a, 'parka preta']],
+    ternos: [[0xb0202a, 'suéter de tricô vermelho'], [0x1f3a6a, 'suéter azul-marinho'], [0xece6da, 'suéter de tricô creme'], [0x2f5a3a, 'suéter verde-pinheiro'], [0x6a4630, 'suéter caramelo'], [0x55585f, 'suéter cinza'], [0xd9822a, 'suéter laranja'], [0x16161a, 'suéter preto de gola alta']],
     vestidos: [[0xf4f1ea, 'vestido de lã branco'], [0x7a1a22, 'vestido bordô'], [0x1b1b22, 'vestido preto'], [0x7a9ac8, 'vestido azul-gelo'], [0xb8a07a, 'vestido caramelo'], [0x5a2a4a, 'vestido ameixa']],
     vestidoChance: 0.4, longo: 0.5, tacas: ['tumbler', 'wine', 'tumbler', 'coupe'], drinks: [0x8a1a22, 0x5a3020, 0xf2c14e, 0xb3122e],
     extra(o, r) {
