@@ -20,6 +20,8 @@ MIRA_CENARIOS.push({
     ceu: ['#3d4f93', '#8a6fae', '#ee8f78', '#ffcf8f'], neblina: [0xeab08e, 90, 430], hemi: [0xa8b4e8, 0x6a4a34, 0.42],
     sol: [0xffa868, 1.25, -20, 15, 17], preenche: [0xff9070, 0.22], exposicao: 0.88, bloom: 0.32, semReflexo: true,
   },
+  // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
+  rotinas: { view: [3, 3, 0], talk: [4, 3, 3] },
   guardaRoupa: {
     ternos: [[0xc8322f, 'camisa vermelha do bloco'], [0x1f9a6a, 'abadá verde do bloco'], [0xffd23f, 'abadá amarelo'], [0xf6f3ec, 'camisa branca'], [0x2e5fa8, 'camisa azul'], [0xff5da2, 'camisa rosa-choque'], [0x6b3f8c, 'camisa roxa'], [0xff7a2a, 'camisa laranja']],
     vestidos: [[0xff3d7f, 'vestido rosa de paetê'], [0xffd23f, 'vestido amarelo de chita'], [0x2ec4b6, 'vestido turquesa'], [0xc8322f, 'vestido vermelho de bolinha'], [0xf6f3ec, 'vestido branco'], [0x9b5de5, 'vestido lilás'], [0x1f9a6a, 'vestido verde do bloco']],
