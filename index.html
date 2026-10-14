@@ -11845,12 +11845,14 @@ function makeChar(o, id) {
   m(CG.neck, skin, 0, 0, 0, B.Neck);
   // head: the Head bone sits at the base of the skull
   const headG = new T.Group(); headG.position.set(0, 9.5, 1.5); B.Head.add(headG);
+  // the brows hang from a little bone of their own (like the eyelids) so animChar can raise them when startled or talking
+  const brows = new T.Object3D(); brows.name = 'Brows'; brows.position.set(0, 9.5, 1.5); B.Head.add(brows); B.Brows = brows;
   m(CG.head, skin, 0, 0, 0, headG, true);
   for (const s of [-1, 1]) {
     m(CG.ear, skin, s * 10.4, -0.5, -0.5, headG);
     m(CG.sclera, mat(0xf4f1ea, { roughness: 0.35 }), s * 3.8, 1.2, 10.3, headG);
     m(CG.pupil, mat(0x1a1410, { roughness: 0.2 }), s * 3.8, 1.2, 11.1, headG);
-    const b = m(CG.brow, hair, s * 4, 4.2, 10.9, headG); b.rotation.z = s * (-0.12 + (o.browT || 0)); b.scale.y = o.browW || 1;
+    const b = m(CG.brow, hair, s * 4, 4.2, 10.9, brows); b.rotation.z = s * (-0.12 + (o.browT || 0)); b.scale.y = o.browW || 1;
     if (o.blush) m(CG.blush, mat(new T.Color(o.skin).lerp(new T.Color(0xd9566a), 0.35).getHex(), { roughness: 0.7 }), s * 5.7, -1.8, 9.2, headG);
     if (o.earring) m(CG.earring, mat(0xe2c26a, { metalness: 0.9, roughness: 0.2 }), s * 10.6, -4, 0, headG);
   }
@@ -12010,6 +12012,10 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   if (u.blend < 1 && pc) hy = hy * u.blend + sampleHipsY(pc, u.pt, CLIP_PP[u.prev]) * (1 - u.blend);
   B.Hips.position.y = hy;
   // blinking: every few seconds the lids close for a moment; closed when lying dead
+  if (B.Brows) { // brows: up when crouching (startled by a shot or putting something down), lively while talking
+    let up = 0; if (anim === 21) up = 1.4; else if (anim === 4) { const w = Math.sin(t * 2.3 + u.ph * 3); up = w > 0.55 ? (w - 0.55) * 3 : w < -0.8 ? -0.5 : 0; }
+    u.bu = (u.bu || 0) + (up - (u.bu || 0)) * Math.min(1, dt * 10); B.Brows.position.y = 9.5 + u.bu;
+  }
   if (B.Lids) { u.blink = (u.blink ?? 1 + Math.random() * 4) - dt; if (u.blink < -0.13) u.blink = 2 + Math.random() * 4.5; B.Lids.scale.y = anim === 5 || u.blink < 0 ? 1 : 0.08; }
   // procedural overrides eased in and out
   const want = overridesFor(anim, u, t), seen = {};
@@ -12489,7 +12495,7 @@ function batchStatic(roots, holder, skip) {
 function batchChar(root, B, keep) {
   if (window.__noBatch) return;
   root.updateMatrixWorld(true);
-  const boneList = RIG.bones.map(b => B[b.n]).concat(B.Lids ? [B.Lids] : []).filter(Boolean), boneIx = new Map(boneList.map((b, i) => [b, i])), skip = new Set();
+  const boneList = RIG.bones.map(b => B[b.n]).concat(B.Lids ? [B.Lids] : [], B.Brows ? [B.Brows] : []).filter(Boolean), boneIx = new Map(boneList.map((b, i) => [b, i])), skip = new Set();
   for (const k of keep) if (k) k.traverse(o => skip.add(o));
   const groups = new Map();
   root.traverse(o => {
