@@ -43,6 +43,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.22) { o.coat = [0x16161a, 0xb08a5a, 0x6b6e75, 0xf2efe8][Math.floor(r() * 4)]; o.name += ', sobretudo longo'; }
         if (r() < 0.2) { o.scarf = [0xf2efe8, 0x16161a, 0xb0102a, 0xd9a441][Math.floor(r() * 4)]; o.name += ', echarpe'; }
       }
+      // garçons de bistrô, de colete preto e avental comprido (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.1) { Object.assign(o, { main: 0x16161a, pants: 0x16161a, shirt: 0xf6f3ec, tie: 0x16161a, bow: true, apron: 0xf6f3ec, prop: 'tray', trayUp: true, glass: false, hat: false, glasses: false, scarf: 0, pocket: 0 }); o.name = 'garçom de bistrô, de colete preto e avental branco' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

@@ -27,6 +27,8 @@ MIRA_CENARIOS.push({
       if (!o.dress && r() < 0.3) { o.hat = 'tricorn'; o.hatColor = 0x16161a; o.name += ', tricórnio'; }
       if (r() < 0.18) { o.cape = [0x16161a, 0x5b2232, 0x1f2a44][Math.floor(r() * 3)]; o.name += ', capa'; }
       if (o.dress && r() < 0.25) { o.propL = 'fan'; o.propColor = [0x16161a, 0xd9a441, 0x8a1020][Math.floor(r() * 3)]; o.clutch = false; o.name += ', leque'; }
+      // figurantes da casa: gondoleiros e garçons de libré (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress) { const f = r(); if (f < 0.07) { Object.assign(o, { main: 0xf6f3ec, pants: 0x16161a, shirt: 0xf6f3ec, tie: 0xf6f3ec, bow: false, pocket: 0, stripes: f < 0.035 ? 0x1f2a6a : 0x8a1020, hat: 'boater', hatColor: 0xe9d79a, hatBand: 0xc8322f, scarf: 0xc8322f, cape: 0 }); o.name = 'gondoleiro de camisa listrada' + (o.stripes === 0x8a1020 ? ' de vermelho' : ' de azul') + (o.mask ? ', de máscara' : '') + (o.beard ? ', de barba' : ''); } else if (f < 0.13) { Object.assign(o, { main: 0x5b2232, pants: 0x16161a, shirt: 0xf6f3ec, tie: 0xd9a441, bow: true, pocket: 0, gloves: 0xf6f3ec, prop: 'tray', trayUp: true, glass: false, hat: false, cape: 0 }); o.name = 'garçom de libré bordô e bandeja' + (o.mask ? ', de máscara' : '') + (o.beard ? ', de barba' : ''); } }
     },
   },
   elenco: [

@@ -41,6 +41,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.2) { o.propL = 'fan'; o.propColor = pk([0xf6f3ec, 0xff7a62, 0x2ec4b6]); o.clutch = false; o.name += ', leque'; }
       }
       if (r() < 0.5) { o.glasses = 'sun'; o.name += ', óculos escuros'; }
+      // tripulação: marinheiros de camisa listrada e boné de pompom (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.12) { Object.assign(o, { camisa: false, tee: true, main: 0xf6f3ec, stripes: 0x1f2a44, pants: 0x1f2a44, hat: 'beanie', hatColor: 0xf6f3ec, hatBand: 0xc8322f, scarf: 0, pocket: 0, glasses: r() < 0.3 ? 'sun' : false }); o.name = 'marinheiro de camisa listrada e boné de pompom' + (o.glasses ? ', óculos escuros' : '') + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

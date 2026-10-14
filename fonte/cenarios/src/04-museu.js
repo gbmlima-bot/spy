@@ -42,6 +42,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.4) { o.necklace = true; o.name += ', colar de pérolas'; }
       }
       if (!o.propL && r() < 0.14) { o.propL = 'book'; o.propColor = 0x1a2238; o.name += ', catálogo do leilão'; }
+      // garçons da gala, de jaqueta branca e bandeja (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.1) { Object.assign(o, { main: 0xf6f3ec, pants: 0x101014, shirt: 0xf6f3ec, tie: 0x101014, bow: true, gloves: 0xf6f3ec, prop: 'tray', trayUp: true, glass: false, pocket: 0, scarf: 0, glasses: false }); o.name = 'garçom de jaqueta branca e bandeja' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

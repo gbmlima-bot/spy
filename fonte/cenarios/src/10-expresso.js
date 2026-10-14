@@ -43,6 +43,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.3) { o.gloves = pk([0xf2eee6, 0x16161a]); o.name += ', luvas longas'; }
         if (r() < 0.18) { o.coat = pk([0x3a2a3a, 0x8a7a5a, 0x1f2430]); o.name += ', casaco de lã'; }
       }
+      // garçons do vagão-restaurante, de jaqueta branca e bandeja (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.12) { Object.assign(o, { main: 0xf2eee6, pants: 0x1b2238, shirt: 0xf6f3ec, tie: 0x16161a, bow: true, prop: 'tray', trayUp: true, glass: false, hat: false, coat: 0, propL: false, pocket: 0 }); o.name = 'garçom do vagão-restaurante, de jaqueta branca e bandeja' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [

@@ -43,6 +43,8 @@ MIRA_CENARIOS.push({
         if (r() < 0.3) { o.scarf = pk([0xf2e6c8, 0xe0a020, 0x1aa0a0, 0xb0207a]); o.name += ', lenço no pescoço'; }
         else if (r() < 0.25) { o.hat = 'turban'; o.hatColor = pk([0xe0a020, 0x9a1030, 0x0f6a4a, 0xf2e6c8]); o.name += ', lenço na cabeça'; }
       }
+      // servidores do chá, de fez vermelho e bule (qualquer convidado pode ser sorteado, o agente também)
+      if (!o.dress && r() < 0.1) { Object.assign(o, { main: 0xf0e6cf, pants: 0xf0e6cf, hat: 'fez', hatColor: 0xa8172a, apron: 0x2c6e49, prop: 'teapot', glass: false, glasses: false }); o.name = 'servidor do chá, de fez vermelho, avental verde e bule' + (o.beard ? ', de barba' : ''); }
     },
   },
   elenco: [
