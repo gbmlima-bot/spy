@@ -16,9 +16,11 @@ MIRA_CENARIOS.push({
   escadas: [{ de: 0, para: 1, a: [0, -4.2], b: [0, -6.9], rotulo: 'escadaria do templo' }],
   convidados: 28,
   inicio: [0.6, 5.4, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte; antes eram 0x16142a, 0x6a78b8/0x2a1810, 0x8fa0ff e 0xff9a58 lidos como lineares,
+  // que saíam desbotados): noite de verdade, sombra no azul do céu, luz quente só onde há lâmpada
   ambiente: {
-    ceu: ['#03040c', '#0b1030', '#22183a', '#5a2a38'], neblina: [0x16142a, 60, 175], hemi: [0x6a78b8, 0x2a1810, 0.2],
-    sol: [0x8fa0ff, 0.34, -16, 26, 22], preenche: [0xff9a58, 0.26], exposicao: 0.92, bloom: 0.9,
+    ceu: ['#03040c', '#0b1030', '#22183a', '#5a2a38'], neblina: [0x020206, 60, 175], hemi: [0x41476f, 0x060201, 0.5],
+    sol: [0x6f7ace, 0.6, -16, 26, 22], preenche: [0xff5219, 0.26], exposicao: 0.92, bloom: 0.9,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [22, 0], talk: [4, 4, 25, 25] },
@@ -859,6 +861,8 @@ MIRA_CENARIOS.push({
     // ------------------------------------------------------------ ambiente vivo: hanabi sobre o rio, atrás do templo, e pétalas da cerejeira
     K.fireworks({ x0: -30, x1: 30, y: 19, dy: 3, z: -44, dz: 10, raio: 5, tam: 0.6, cada: 2.2, n: 4, cores: [0xffb04a, 0xff5a7a, 0x9ad8ff, 0xc8ff60, 0xffffff] });
     K.particles({ modo: 'cai', x0: -15.5, x1: -11.5, z0: -4.6, z1: 0.6, y0: 0.05, y1: 4.2, n: 46, cor: [0xf6b8cc, 0xf8d0dc, 0xe890b0], tam: 0.07, vel: 0.35, balanco: 0.45 });
+    // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: último andar do pagode. Corrimão de laca vermelha gasta (o preto aparece nas bordas), pétalas de
   // sakura, beiral de telhas escuras logo abaixo, uma lanterna de papel acesa e um sino de vento (fūrin) que balança

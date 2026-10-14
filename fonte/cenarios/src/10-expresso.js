@@ -15,9 +15,11 @@ MIRA_CENARIOS.push({
   escadas: [{ de: 0, para: 1, a: [-5.3, 8.75], b: [-13.0, 8.7], rotulo: 'passarela de ferro' }],
   convidados: 28,
   inicio: [1.6, 3.4, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte; antes eram 0x121828, 0x8496c8/0x3a2e24, 0xa4b6ff e 0xffb070 lidos como lineares,
+  // que saíam desbotados): noite de verdade, sombra no azul do céu, luz quente só onde há lâmpada
   ambiente: {
-    ceu: ['#04060d', '#0a1128', '#18203f', '#3a2c3c'], neblina: [0x121828, 60, 175], hemi: [0x8496c8, 0x3a2e24, 0.2],
-    sol: [0xa4b6ff, 0.55, -16, 26, 22], preenche: [0xffb070, 0.24], exposicao: 0.9, bloom: 0.7,
+    ceu: ['#04060d', '#0a1128', '#18203f', '#3a2c3c'], neblina: [0x020205, 60, 175], hemi: [0x3b4e93, 0x0b0704, 0.5],
+    sol: [0x5f77ff, 0.8, -16, 26, 22], preenche: [0xff6f29, 0.24], exposicao: 0.9, bloom: 0.7,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [22, 23, 0], talk: [4, 4, 4, 23] },
@@ -853,6 +855,8 @@ MIRA_CENARIOS.push({
     // ------------------------------------------------------------ luz geral da plataforma
     K.plight(-7.5, 4.2, 1.5, 0xffd0a0, 1.0, 12); K.plight(7.5, 4.2, 0.0, 0xffd0a0, 1.0, 12);
     K.pool(-4, 0, 6, 0xffb070, 0.12); K.pool(5, -2, 6, 0xffb070, 0.12);
+    // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: atrás do relógio da torre da estação. Granito com fuligem, chapa de ferro rebitada na borda, a
   // plaqueta de latão da companhia e, nas laterais, as engrenagens do mecanismo do relógio girando devagar

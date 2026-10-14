@@ -11,9 +11,11 @@ MIRA_CENARIOS.push({
   niveis: [{ nome: 'deck do chalé', y: 0, x0: -14.5, x1: 14.5, z0: -9.6, z1: 9.9 }],
   convidados: 28,
   inicio: [4.4, 7.2, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte; antes eram 0x141c38, 0x7f96d0/0x2a2430, 0x9ab0f0 e 0xffa860 lidos como lineares,
+  // que saíam desbotados): noite de verdade, sombra no azul do céu, luz quente só onde há lâmpada
   ambiente: {
-    ceu: ['#03050f', '#0a1230', '#1c2a55', '#3c4a78'], neblina: [0x141c38, 70, 300], hemi: [0x7f96d0, 0x2a2430, 0.2],
-    sol: [0x9ab0f0, 0.36, -16, 26, 20], preenche: [0xffa860, 0.16], exposicao: 0.9, bloom: 0.62,
+    ceu: ['#03050f', '#0a1230', '#1c2a55', '#3c4a78'], neblina: [0x02030a, 70, 300], hemi: [0x364ea1, 0x060408, 0.5],
+    sol: [0x526fde, 0.6, -16, 26, 20], preenche: [0xff641e, 0.16], exposicao: 0.9, bloom: 0.62,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [24, 24, 23, 0], talk: [4, 4, 4, 24] },
@@ -738,6 +740,8 @@ MIRA_CENARIOS.push({
     [[-12.0, 9.3], [-8.8, 9.3], [0.6, 9.3], [4.4, 9.3], [10.6, 9.3], [12.4, 9.0]].forEach(([x, z]) => K.slot(x, z, x, 16, 'view'));
     [[3.6, -5.0], [5.0, -1.6], [-2.6, -5.6], [-0.2, -6.8], [8.2, 0.4], [6.6, 6.8], [-3.6, 0.6], [11.0, 4.0], [-9.0, -0.4], [-9.4, 1.1]].forEach(([x, z]) => K.slot(x, z, x + (R() - 0.5), z + (R() - 0.5) * 2, 'talk'));
     K.slot(10.2, -3.2, 7.8, -5.6, 'talk'); K.slot(5.4, -3.2, 7.8, -5.6, 'talk');
+    // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
+    K.reflexo(0.3);
   },
   // ninho do sniper: janela da cabine do teleférico. Peitoril de madeira coberto de neve fofa (sombras azuladas, pegadas
   // de passarinho, agulhas de pinheiro), pingentes de gelo na frente e a plaquinha esmaltada da estação no batente
