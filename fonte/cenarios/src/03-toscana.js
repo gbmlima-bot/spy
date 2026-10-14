@@ -717,6 +717,21 @@ MIRA_CENARIOS.push({
       const pet = []; for (let k = 0; k < 260; k++) { const x = -3 + R() * 6, z = 1.5 + R() * 4.8; if (R() < 0.5) pet.push([x, 0.06, z, R() * 6]); else pet.push([-14 + R() * 28, 0.02, -1 + R() * 10, R() * 6]); }
       K.inst(new T.CircleGeometry(0.025, 5).rotateX(-Math.PI / 2), K.mat(0xfbf0f2, { roughness: 0.8 }), pet, { cast: false });
     }
+    // ------------------------------------------------------------ borboletas nas lavandas: fogem quando alguém passa e voltam
+    K.borboletas({ pontos: [[-7.6, -5.6], [5.2, -5.6], [-7.6, -0.8], [8.2, 9.5], [-8.6, 9.5], [14.0, 2.4]], y: 0.7, n: 4, tam: 1.5, cores: [0xf6f2e6, 0xf2b630, 0xe87a30] });
+    // ------------------------------------------------------------ balão de ar quente subindo devagar atrás da villa, com o maçarico
+    // acendendo de vez em quando; sai do vale, sobe até sumir no alto e recomeça (ciclo de 4 min)
+    { const gomos = K.canvasTex(256, 128, (c, w, h) => { const cs = ['#d8402a', '#f2c14e', '#2a6aa8', '#f6efe0', '#d8402a', '#3a8a5a', '#f2c14e', '#f6efe0']; for (let k = 0; k < 16; k++) { c.fillStyle = cs[k % cs.length]; c.fillRect(k * w / 16, 0, w / 16 + 1, h); } c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(0, h * 0.78, w, 3); c.fillRect(0, h * 0.22, w, 3); }, [1, 1]);
+      const bal = K.group(0, -40, 0); bal.name = 'balao';
+      K.add(new T.LatheGeometry([[0, -3.4], [0.9, -3.1], [2.2, -1.6], [3.3, 0.3], [3.5, 1.6], [3.1, 2.9], [2.1, 3.8], [0, 4.2]].map(([x, y]) => new T.Vector2(x, y)), 16), K.texMat(gomos, { roughness: 0.7 }), 0, 4.6, 0, { parent: bal, cast: false });
+      K.box(1.1, 0.8, 1.1, K.mat(0x8a5a30, { roughness: 0.9 }), 0, 0, 0, { parent: bal, cast: false });
+      for (const [x, z] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) K.box(0.03, 1.4, 0.03, K.mat(0x3a3028), x * 1.3, 1.0, z * 1.3, { parent: bal, cast: false });
+      const chama = K.cone(0.22, 0.9, K.glow(0xffa040, 3), 0, 1.25, 0, { parent: bal, cast: false }, 8), luz = K.halo(0, 1.6, 0, 3.2, 0xffa040, 1.4, bal);
+      const ciclo = 240, xs = -34, zs = -70;
+      K.tick((dt, t) => { const u = (t % ciclo) / ciclo, k = Math.floor(t / ciclo);
+        bal.position.set(xs + u * 22 + Math.sin(t * 0.05) * 1.5, -14 + u * 70, zs - (k % 2) * 8); bal.rotation.y = t * 0.02;
+        const fogo = Math.sin(t * 0.7) > 0.55 || (t % 13) < 1.2; chama.visible = fogo; luz.visible = fogo; if (fogo) chama.scale.set(1, 0.8 + Math.sin(t * 31) * 0.25, 1); });
+    }
     // brilho geral (manchas de luz quente no chão)
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);
   },

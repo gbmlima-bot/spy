@@ -567,6 +567,35 @@ function MIRA_KIT(T, root, seed) {
     });
     const api = { assustar: () => { calma = 0; voar(); }, voando: () => tv >= 0 }; K.bandos.push(api); return api;
   };
+  // borboletas pairando sobre flores em pontos [[x, z], ...] (o.y = altura das flores): quando alguém passa a menos de o.alerta de
+  // uma flor, as dela sobem em zigue-zague e voltam depois. Duas cores, uma chamada de desenho cada, mesmo truque de faces das asas.
+  K.borboletas = (o) => {
+    const r = K.rng((seed | 0) + 7177 + K.ticks.length * 17), por = o.n || 3, y0 = o.y || 0.7, alerta = o.alerta || 1.3, tam = o.tam || 1;
+    const wv = [0, 0, 0.03, -0.07, 0.01, 0.05, 0, 0, -0.03, -0.07, 0.01, 0.05, -0.055, 0.01, -0.06, 0, 0, -0.03, 0, 0, 0.03, 0, 0, -0.03, 0.07, 0.01, 0.05, 0, 0, -0.03, 0.055, 0.01, -0.06, 0.07, 0.01, 0.05], wf = [];
+    for (let k = 0; k < wv.length; k += 9) wf.push(...wv.slice(k, k + 3), ...wv.slice(k + 6, k + 9), ...wv.slice(k + 3, k + 6));
+    const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(wv.concat(wf), 3)); wg.computeVertexNormals();
+    const cores = [].concat(o.cores || [0xf6f2e6, 0xf2b630]), B = [], ms = [];
+    o.pontos.forEach(([x, z], pi) => { for (let k = 0; k < por; k++) B.push({ x, z, pi, c: (pi + k) % cores.length, ph: r() * 6.28, f: 9 + r() * 5, p: new T.Vector3(x, y0, z), fug: -1, a: r() * 6.28 }); });
+    const cnt = cores.map((_, c) => B.filter(b => b.c === c).length);
+    cores.forEach((c, i) => { const mm = new T.InstancedMesh(wg, new T.MeshStandardMaterial({ color: c, roughness: 0.8 }), cnt[i]); mm.frustumCulled = false; mm.userData.noCol = true; mm.raycast = () => { }; root.add(mm); ms.push(mm); });
+    const q = new T.Object3D(), alvo = new T.Vector3(), susto = o.pontos.map(() => 0); let chk = 0;
+    K.tick((dt, t) => {
+      dt = Math.min(dt, 0.1); chk -= dt;
+      if (chk <= 0) { chk = 0.3; o.pontos.forEach(([x, z], i) => { if (susto[i] <= 0 && K.perto(x, z, alerta, o.chao || 0)) susto[i] = 6 + r() * 3; }); }
+      for (let i = 0; i < susto.length; i++) susto[i] -= dt;
+      const ix = cores.map(() => 0);
+      B.forEach((b) => {
+        const fugindo = susto[b.pi] > 0, u = t * 0.9 + b.ph;
+        if (fugindo) { b.a += (Math.sin(t * 2.3 + b.ph) * 2.5) * dt; alvo.set(b.x + Math.cos(b.a) * 1.6, y0 + 1.6 + Math.sin(t * 1.7 + b.ph) * 0.5, b.z + Math.sin(b.a) * 1.6); }
+        else alvo.set(b.x + Math.sin(u) * 0.22, y0 + 0.12 + Math.abs(Math.sin(u * 1.7)) * 0.12, b.z + Math.cos(u * 1.3) * 0.22);
+        const dx = alvo.x - b.p.x, dz = alvo.z - b.p.z; b.p.lerp(alvo, Math.min(1, dt * (fugindo ? 2.2 : 1.4)));
+        const pousa = !fugindo && Math.sin(u * 0.37) > 0.6, th = pousa ? 1.2 + Math.sin(t * 2 + b.ph) * 0.15 : 0.35 + Math.sin(t * b.f + b.ph) * 0.75; // ângulo das asas
+        q.position.copy(b.p); if (pousa) q.position.y = y0 + 0.02; q.rotation.set(0, Math.atan2(dx, dz), 0); q.scale.set(tam * Math.max(0.12, Math.cos(th)), tam * Math.sin(th) * 7, tam); q.updateMatrix();
+        ms[b.c].setMatrixAt(ix[b.c]++, q.matrix);
+      });
+      ms.forEach(m => m.instanceMatrix.needsUpdate = true);
+    });
+  };
   // varanda/janela de onde o sniper atira (uma moldura simples no ponto dado)
   K.sniperNest = (x, y, z, o = {}) => {
     const g = K.group(x, y, z, o.ry || Math.PI, o.parent), wm = o.mat || K.mat(0x3a3530, { roughness: 0.8 });
@@ -2931,6 +2960,21 @@ MIRA_CENARIOS.push({
       K.tick((dt, t) => birds.forEach((b, k) => { const a = t * (0.35 + k * 0.03) + k * 0.7, r = 8 + (k % 3) * 4; const cx = k < 5 ? 0 : 7, cz = k < 5 ? -6 : 46, cy = k < 5 ? 10 + (k % 3) : 22; b.position.set(cx + Math.cos(a) * r, cy + Math.sin(a * 2.3) * 1.2, cz + Math.sin(a) * r * 0.6); b.rotation.y = -a; b.children.forEach((w, i) => w.rotation.z = (i ? -1 : 1) * (0.2 + Math.sin(t * 12 + k) * 0.4)); }));
       const pet = []; for (let k = 0; k < 260; k++) { const x = -3 + R() * 6, z = 1.5 + R() * 4.8; if (R() < 0.5) pet.push([x, 0.06, z, R() * 6]); else pet.push([-14 + R() * 28, 0.02, -1 + R() * 10, R() * 6]); }
       K.inst(new T.CircleGeometry(0.025, 5).rotateX(-Math.PI / 2), K.mat(0xfbf0f2, { roughness: 0.8 }), pet, { cast: false });
+    }
+    // ------------------------------------------------------------ borboletas nas lavandas: fogem quando alguém passa e voltam
+    K.borboletas({ pontos: [[-7.6, -5.6], [5.2, -5.6], [-7.6, -0.8], [8.2, 9.5], [-8.6, 9.5], [14.0, 2.4]], y: 0.7, n: 4, tam: 1.5, cores: [0xf6f2e6, 0xf2b630, 0xe87a30] });
+    // ------------------------------------------------------------ balão de ar quente subindo devagar atrás da villa, com o maçarico
+    // acendendo de vez em quando; sai do vale, sobe até sumir no alto e recomeça (ciclo de 4 min)
+    { const gomos = K.canvasTex(256, 128, (c, w, h) => { const cs = ['#d8402a', '#f2c14e', '#2a6aa8', '#f6efe0', '#d8402a', '#3a8a5a', '#f2c14e', '#f6efe0']; for (let k = 0; k < 16; k++) { c.fillStyle = cs[k % cs.length]; c.fillRect(k * w / 16, 0, w / 16 + 1, h); } c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(0, h * 0.78, w, 3); c.fillRect(0, h * 0.22, w, 3); }, [1, 1]);
+      const bal = K.group(0, -40, 0); bal.name = 'balao';
+      K.add(new T.LatheGeometry([[0, -3.4], [0.9, -3.1], [2.2, -1.6], [3.3, 0.3], [3.5, 1.6], [3.1, 2.9], [2.1, 3.8], [0, 4.2]].map(([x, y]) => new T.Vector2(x, y)), 16), K.texMat(gomos, { roughness: 0.7 }), 0, 4.6, 0, { parent: bal, cast: false });
+      K.box(1.1, 0.8, 1.1, K.mat(0x8a5a30, { roughness: 0.9 }), 0, 0, 0, { parent: bal, cast: false });
+      for (const [x, z] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) K.box(0.03, 1.4, 0.03, K.mat(0x3a3028), x * 1.3, 1.0, z * 1.3, { parent: bal, cast: false });
+      const chama = K.cone(0.22, 0.9, K.glow(0xffa040, 3), 0, 1.25, 0, { parent: bal, cast: false }, 8), luz = K.halo(0, 1.6, 0, 3.2, 0xffa040, 1.4, bal);
+      const ciclo = 240, xs = -34, zs = -70;
+      K.tick((dt, t) => { const u = (t % ciclo) / ciclo, k = Math.floor(t / ciclo);
+        bal.position.set(xs + u * 22 + Math.sin(t * 0.05) * 1.5, -14 + u * 70, zs - (k % 2) * 8); bal.rotation.y = t * 0.02;
+        const fogo = Math.sin(t * 0.7) > 0.55 || (t % 13) < 1.2; chama.visible = fogo; luz.visible = fogo; if (fogo) chama.scale.set(1, 0.8 + Math.sin(t * 31) * 0.25, 1); });
     }
     // brilho geral (manchas de luz quente no chão)
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);

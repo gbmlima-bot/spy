@@ -327,6 +327,35 @@ function MIRA_KIT(T, root, seed) {
     });
     const api = { assustar: () => { calma = 0; voar(); }, voando: () => tv >= 0 }; K.bandos.push(api); return api;
   };
+  // borboletas pairando sobre flores em pontos [[x, z], ...] (o.y = altura das flores): quando alguém passa a menos de o.alerta de
+  // uma flor, as dela sobem em zigue-zague e voltam depois. Duas cores, uma chamada de desenho cada, mesmo truque de faces das asas.
+  K.borboletas = (o) => {
+    const r = K.rng((seed | 0) + 7177 + K.ticks.length * 17), por = o.n || 3, y0 = o.y || 0.7, alerta = o.alerta || 1.3, tam = o.tam || 1;
+    const wv = [0, 0, 0.03, -0.07, 0.01, 0.05, 0, 0, -0.03, -0.07, 0.01, 0.05, -0.055, 0.01, -0.06, 0, 0, -0.03, 0, 0, 0.03, 0, 0, -0.03, 0.07, 0.01, 0.05, 0, 0, -0.03, 0.055, 0.01, -0.06, 0.07, 0.01, 0.05], wf = [];
+    for (let k = 0; k < wv.length; k += 9) wf.push(...wv.slice(k, k + 3), ...wv.slice(k + 6, k + 9), ...wv.slice(k + 3, k + 6));
+    const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(wv.concat(wf), 3)); wg.computeVertexNormals();
+    const cores = [].concat(o.cores || [0xf6f2e6, 0xf2b630]), B = [], ms = [];
+    o.pontos.forEach(([x, z], pi) => { for (let k = 0; k < por; k++) B.push({ x, z, pi, c: (pi + k) % cores.length, ph: r() * 6.28, f: 9 + r() * 5, p: new T.Vector3(x, y0, z), fug: -1, a: r() * 6.28 }); });
+    const cnt = cores.map((_, c) => B.filter(b => b.c === c).length);
+    cores.forEach((c, i) => { const mm = new T.InstancedMesh(wg, new T.MeshStandardMaterial({ color: c, roughness: 0.8 }), cnt[i]); mm.frustumCulled = false; mm.userData.noCol = true; mm.raycast = () => { }; root.add(mm); ms.push(mm); });
+    const q = new T.Object3D(), alvo = new T.Vector3(), susto = o.pontos.map(() => 0); let chk = 0;
+    K.tick((dt, t) => {
+      dt = Math.min(dt, 0.1); chk -= dt;
+      if (chk <= 0) { chk = 0.3; o.pontos.forEach(([x, z], i) => { if (susto[i] <= 0 && K.perto(x, z, alerta, o.chao || 0)) susto[i] = 6 + r() * 3; }); }
+      for (let i = 0; i < susto.length; i++) susto[i] -= dt;
+      const ix = cores.map(() => 0);
+      B.forEach((b) => {
+        const fugindo = susto[b.pi] > 0, u = t * 0.9 + b.ph;
+        if (fugindo) { b.a += (Math.sin(t * 2.3 + b.ph) * 2.5) * dt; alvo.set(b.x + Math.cos(b.a) * 1.6, y0 + 1.6 + Math.sin(t * 1.7 + b.ph) * 0.5, b.z + Math.sin(b.a) * 1.6); }
+        else alvo.set(b.x + Math.sin(u) * 0.22, y0 + 0.12 + Math.abs(Math.sin(u * 1.7)) * 0.12, b.z + Math.cos(u * 1.3) * 0.22);
+        const dx = alvo.x - b.p.x, dz = alvo.z - b.p.z; b.p.lerp(alvo, Math.min(1, dt * (fugindo ? 2.2 : 1.4)));
+        const pousa = !fugindo && Math.sin(u * 0.37) > 0.6, th = pousa ? 1.2 + Math.sin(t * 2 + b.ph) * 0.15 : 0.35 + Math.sin(t * b.f + b.ph) * 0.75; // ângulo das asas
+        q.position.copy(b.p); if (pousa) q.position.y = y0 + 0.02; q.rotation.set(0, Math.atan2(dx, dz), 0); q.scale.set(tam * Math.max(0.12, Math.cos(th)), tam * Math.sin(th) * 7, tam); q.updateMatrix();
+        ms[b.c].setMatrixAt(ix[b.c]++, q.matrix);
+      });
+      ms.forEach(m => m.instanceMatrix.needsUpdate = true);
+    });
+  };
   // varanda/janela de onde o sniper atira (uma moldura simples no ponto dado)
   K.sniperNest = (x, y, z, o = {}) => {
     const g = K.group(x, y, z, o.ry || Math.PI, o.parent), wm = o.mat || K.mat(0x3a3530, { roughness: 0.8 });
