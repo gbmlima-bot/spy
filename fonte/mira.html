@@ -11450,6 +11450,9 @@ CG.gownSit = {
   lap: (() => { const g = rbox(33, 12, 50, 3); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setX(i, p.getX(i) * (1 - Math.max(0, p.getZ(i)) / 70)); g.computeVertexNormals(); return g.translate(0, -9.5, 22); })(),
   drape: (() => { const g = new T.CylinderGeometry(15, 21, 46, 12); g.scale(1, 1, 0.42); g.translate(0, -32, 41); return g; })(),
 };
+// a long gown kneeling: cloth over each thigh and a skirt flaring from each knee, on the leg bones, so the knee up front
+// and the shin on the floor behind stay covered
+CG.gownKnee = { thigh: new T.CylinderGeometry(9.6, 8.8, 54, 10).translate(0, -25, 0), shin: (() => { const g = new T.CylinderGeometry(9, 11.5, 44, 10); g.scale(1, 1, 0.85); return g.translate(0, -22, 0); })() };
 CG.robeSkirt = lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80], [20.5, -96]], 0.82);
 CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.1, 6, 5);
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
@@ -11467,7 +11470,7 @@ function makeChar(o, id) {
   const root = new T.Group(); const rig = new T.Group(); const hs = o.h || 1, bw = o.bw || 1; rig.scale.setScalar(RS * hs); root.add(rig);
   const B = {}; for (const b of RIG.bones) { const ob = new T.Object3D(); ob.name = b.n; ob.position.fromArray(b.pos); B[b.n] = ob; (b.p ? B[b.p] : rig).add(ob); }
   const m = (geo, mm, x, y, z, parent, cast = false) => { const me = new T.Mesh(geo, mm); me.position.set(x, y, z); me.castShadow = cast; me.userData.eid = id; parent.add(me); return me; };
-  let gownStand = null, gownSit = null;
+  let gownStand = null, gownSit = null, gownKnee = null;
   const skin = mat(o.skin, { roughness: 0.6 }), hair = mat(o.hair, { roughness: 0.55 });
   const cloth = o.sequin ? mat(o.main, { roughness: 0.26, metalness: 0.7, emissive: o.main, emissiveIntensity: 0.12 }) : mat(o.main, { roughness: o.satin ? 0.35 : 0.72, metalness: o.satin ? 0.15 : 0.02 });
   const gold = mat(0xe2c26a, { metalness: 0.9, roughness: 0.25 });
@@ -11490,6 +11493,8 @@ function makeChar(o, id) {
       gownStand = m(CG.gown, cloth, 0, -2, 0, B.Hips, true);
       gownSit = new T.Group(); gownSit.position.y = -2; gownSit.visible = false; B.Hips.add(gownSit);
       for (const k of ['hips', 'lap', 'drape']) m(CG.gownSit[k], cloth, 0, 0, 0, gownSit, true).raycast = noPick;
+      gownKnee = ['Left', 'Right'].flatMap(s => [m(CG.gownKnee.thigh, cloth, 0, 0, 0, B[s + 'UpLeg']), m(CG.gownKnee.shin, cloth, 0, 0, 0, B[s + 'Leg'])]);
+      for (const g of gownKnee) { g.visible = false; g.raycast = noPick; }
     } else m(CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
     if (!o.robe) {
       m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
@@ -11588,8 +11593,8 @@ function makeChar(o, id) {
   if (o.prop === 'sax') { const bm = mat(0xd9a441, { metalness: 0.9, roughness: 0.25 }); const sax = new T.Group(); sax.position.set(6, -10, 16); sax.rotation.z = -0.25; B.Spine2.add(sax); m(new T.CylinderGeometry(1.6, 2.2, 32, 8), bm, 0, 0, 0, sax); const bell = m(new T.CylinderGeometry(6, 2.2, 10, 10), bm, 0, -20, 3, sax); bell.rotation.x = -0.8; m(new T.CylinderGeometry(1.0, 1.0, 10, 6), mat(0x15151a), -1, 19, -4, sax).rotation.x = 0.7; for (let i = 0; i < 6; i++) m(new T.SphereGeometry(0.9, 6, 4), mat(0xf6f1e8), 1.8, 10 - i * 3.5, 1.2, sax); }
   if (o.prop === 'brush') { const br = m(new T.CylinderGeometry(0.4, 0.5, 14, 5), walnut, -7, -1, 4, B.RightHand); br.rotation.x = Math.PI / 2; m(new T.ConeGeometry(0.9, 2.5, 6), mat(0xc8322f), 0, 8, 0, br); const pal = m(new T.CylinderGeometry(9, 9, 0.6, 12), mat(0xd8c8a0, { roughness: 0.9 }), 9, -2, 2, B.LeftHand); pal.scale.z = 0.75; [0xc8322f, 0x2e5fa8, 0xe9c33b, 0x3f8a3a, 0xf6f1e8].forEach((c, i) => m(new T.CylinderGeometry(1.4, 1.4, 0.6, 8), mat(c), -4 + i * 2.2, 0.5, (i % 2 ? -3 : 3), pal)); }
   if (window.MIRA_VESTIR) { try { MIRA_VESTIR(T, o, B, m, mat, glow, headG); } catch (e) { console.warn('vestir', e); } }
-  batchChar(root, B, [glass, clutch, phone, sh, gownStand, gownSit]);
-  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, gownStand, gownSit, tray: o.prop === 'tray', hs, walk: walkStyle(o, id), x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
+  batchChar(root, B, [glass, clutch, phone, sh, gownStand, gownSit, ...gownKnee || []]);
+  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, gownStand, gownSit, gownKnee, tray: o.prop === 'tray', hs, walk: walkStyle(o, id), x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
   return root;
 }
 const CLIP_PP = { samba: true };
@@ -11713,6 +11718,8 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   if (u.gownSit) { // seated in a long gown: swap to the seated gown (and make only the shown one hit by the scope)
     const sit = anim === 7 || anim === 9 || anim === 12 || anim === 17;
     if (u.gownSit.visible !== sit) { u.gownSit.visible = sit; u.gownStand.visible = !sit; u.gownStand.raycast = sit ? noPick : T.Mesh.prototype.raycast; u.gownSit.traverse(n => { if (n.isMesh) n.raycast = sit ? T.Mesh.prototype.raycast : noPick; }); }
+    const kneel = anim === 21;
+    if (u.gownKnee[0].visible !== kneel) for (const g of u.gownKnee) { g.visible = kneel; g.raycast = kneel ? T.Mesh.prototype.raycast : noPick; }
   }
   if (u.phone) u.phone.visible = anim === 18;
   if (u.glass) u.glass.visible = anim !== 18 && anim !== 15 && anim !== 21;
