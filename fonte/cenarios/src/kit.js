@@ -95,6 +95,9 @@ function MIRA_KIT(T, root, seed) {
   const UNIT = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   // mancha de luz aditiva no chão (barata, sem custo de luz real)
   K.pool = (x, z, r, color, k, y = 0.022, parent = root) => { const m = new T.Mesh(UNIT, new T.MeshBasicMaterial({ map: radialTex, color: new T.Color(color).multiplyScalar(k), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); m.scale.set(r * 2, 1, r * 2); m.position.set(x, y, z); m.renderOrder = 2; parent.add(m); return m; };
+  // brilho do ambiente (reflexo da sala neutra) em todo o cenário: abaixo de 1 a sombra pega a cor do céu e do chão (hemi)
+  // em vez de um cinza claro por igual. Chamar no fim do build, depois de criados os materiais.
+  K.reflexo = (k) => { const vistos = new Set(); root.traverse(o => (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m && m.envMapIntensity !== undefined && !vistos.has(m)) { vistos.add(m); m.envMapIntensity *= k; } })); };
   K.halo = (x, y, z, r, color, k, parent = root) => { const s = new T.Sprite(new T.SpriteMaterial({ map: radialTex, color: new T.Color(color).multiplyScalar(k), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); s.position.set(x, y, z); s.scale.set(r * 2, r * 2, 1); parent.add(s); return s; };
   K.blob = (x, z, sx, sz, op = 0.5, parent = root) => { const m = new T.Mesh(UNIT, new T.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: op, toneMapped: false })); m.scale.set(sx, 1, sz); m.position.set(x, 0.014, z); m.renderOrder = 1; parent.add(m); return m; };
   // chama de vela/tocha que tremula sozinha

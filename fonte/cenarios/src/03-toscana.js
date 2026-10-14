@@ -11,9 +11,10 @@ MIRA_CENARIOS.push({
   niveis: [{ nome: 'pátio da villa', y: 0, x0: -14.5, x1: 14.5, z0: -10, z1: 10 }],
   convidados: 28,
   inicio: [0, 8.6, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte): sol dourado baixo, sombra azulada do céu, bruma lilás ao longe
   ambiente: {
-    ceu: ['#5a7aa8', '#a9b2bc', '#f0c88a', '#ffb466', '#ffd8a0'], neblina: [0xd8a878, 110, 380], hemi: [0xffdcb0, 0x5a4428, 0.28],
-    sol: [0xffa860, 1.3, -26, 13, 12], preenche: [0x8aa0d8, 0.24], exposicao: 0.8, bloom: 0.3,
+    ceu: ['#5a7aa8', '#a9b2bc', '#f0c88a', '#ffb466', '#ffd8a0'], neblina: [0x937483, 60, 320], hemi: [0x4e67ad, 0x1a1105, 0.5],
+    sol: [0xff863e, 2.0, -26, 11, 12], preenche: [0x3043a4, 0.35], exposicao: 0.85, bloom: 0.3,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [22, 0, 0] },
@@ -125,7 +126,8 @@ MIRA_CENARIOS.push({
         if ((ax > 15 && ax < 26 && z < 11 && z > -12)) hex = '#8a8048';
         else if (z > 11 && z < 42 && Math.abs(x - 7) > 6) hex = '#7f7a44';
         else hex = pal[Math.floor(hs(Math.floor((x + 400) / 17), Math.floor((z + 400) / 13)) * pal.length)];
-        c.set(hex); const n = (hs(x * 0.7, z * 0.7) - 0.5) * 0.08; c.r += n; c.g += n; c.b += n * 0.6;
+        // a paleta foi pensada como cor de tela: converte para linear (sem isso as colinas saíam cor de palha)
+        c.set(hex).convertSRGBToLinear(); const n = (hs(x * 0.7, z * 0.7) - 0.5) * 0.04; c.r += n; c.g += n; c.b += n * 0.6;
         col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
       }
       geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.computeVertexNormals();
@@ -172,7 +174,7 @@ MIRA_CENARIOS.push({
       const ol = [], tr = [];
       for (let k = 0; k < 220; k++) { const x = (R() < 0.5 ? -1 : 1) * (28 + R() * 60), z = -60 + R() * 70; const y = H(x, z); ol.push([x, y + 1.9, z, R() * 6, 0.9 + R() * 0.6]); tr.push([x, y, z, 0, 1]); }
       for (let k = 0; k < 60; k++) { const x = -30 + R() * 60, z = -30 - R() * 30; const y = H(x, z); ol.push([x, y + 1.9, z, R() * 6, 0.9 + R() * 0.6]); tr.push([x, y, z, 0, 1]); }
-      K.inst(new T.SphereGeometry(1.3, 8, 6).scale(1.2, 0.75, 1.1), K.mat(0x8a9a6a, { roughness: 0.95 }), ol, { cast: false });
+      K.inst(new T.SphereGeometry(1.3, 8, 6).scale(1.2, 0.75, 1.1), K.mat(new T.Color(0x8a9a6a).convertSRGBToLinear().getHex(), { roughness: 0.95 }), ol, { cast: false });
       K.inst(new T.CylinderGeometry(0.12, 0.2, 1.6, 5).translate(0, 0.8, 0), oakDark, tr, { cast: false });
     }
     // casa de fazenda e borgo medieval com torre ao longe
@@ -738,6 +740,8 @@ MIRA_CENARIOS.push({
     }
     // brilho geral (manchas de luz quente no chão)
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);
+    // menos reflexo da sala neutra: a sombra pega o azul do céu e o lado do sol fica dourado
+    K.reflexo(0.25);
   },
   // ninho do sniper: ameias da torre de vigia medieval. Pedra arenítica irregular com argamassa, líquen laranja e uma
   // lagartixa tomando sol; mísulas de pedra na frente e hera subindo pela ameia da direita
