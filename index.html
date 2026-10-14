@@ -9369,7 +9369,7 @@ class Sim {
     const ids = shuffle([...Array(total).keys()], rng);
     this.ents = new Array(total);
     let k = 0;
-    const mk = (id, extra) => (this.ents[id] = Object.assign({ id, x: 0, z: 0, y: 0, lv: 0, lk: null, rot: 0, anim: 0, dead: false, kind: 'npc', role: 'npc', peer: null, speed: 1.1 + rng() * 0.4, st: 'idle', timer: rng() * 4, path: [], slot: -1, obj: -1, ov: 0, prog: 0, stuck: 0, lastD: 1e9, todo: [] }, extra));
+    const mk = (id, extra) => (this.ents[id] = Object.assign({ id, x: 0, z: 0, y: 0, lv: 0, lk: null, rot: 0, anim: 0, dead: false, kind: 'npc', role: 'npc', peer: null, speed: 1.1 + rng() * 0.4, st: 'idle', timer: rng() * 4, path: [], slot: -1, obj: -1, ov: 0, prog: 0, stuck: 0, lastD: 1e9, todo: [], waitFor: -1 }, extra));
     this.bm = ids[k++]; this.ho = ids[k++];
     if (SCEN.id) {
       // in the extra scenarios the barman and the host stand at two talk spots of the ground level
@@ -9413,6 +9413,8 @@ class Sim {
     this.dn = []; this.tells = []; this.tq = []; this.sh = null; this.w = null; this.why = null; this.mk = [];
     this.sc = o.sc || {};
     this.near = PROPS.map(() => new Map());
+    // the object spot of each prop, so a guest standing there can make way for a player who comes close
+    this.propSlot = PROPS.map((_, i) => this.slots.findIndex(s => s.type === 'obj' && s.obj === i)); this.yieldT = 0;
     this.ai = this.sniper && this.sniper.ai ? new AISniper(this) : null;
     this._st = null;
   }
@@ -9428,18 +9430,26 @@ class Sim {
     }
     e.st = 'idle'; e.obj = -1;
     e.timer = (SLOT_STAY[s.type] || 6) + this.rng() * 14 + (initial ? this.rng() * 6 : 0);
+    // a robot agent mingles a little between missions, like a person would, but not for half a minute
+    if (e.kind === 'bot' && e.role === 'agent' && !initial) e.timer = Math.min(e.timer, e.waitFor >= 0 ? 3 + this.rng() * 4 : 4 + this.rng() * 8);
     e.anim = s.type === 'talk' ? 4 : s.type === 'bar' ? (this.rng() < 0.5 ? 6 : 4) : (SEAT_ANIM[s.type] ?? 0);
   }
   pickNext(e) {
     const rng = this.rng;
     let want = -1;
     if (e.kind === 'bot' && this.ph === 'play') {
-      if (e.role === 'agent') { if (e.todo.length && rng() < 0.55) want = e.todo[0]; }
+      if (e.role === 'agent') { if (e.waitFor >= 0 && e.todo.includes(e.waitFor)) want = e.waitFor; else if (e.todo.length && rng() < 0.8) want = e.todo[0]; e.waitFor = -1; }
       else if (rng() < 0.4) want = Math.floor(rng() * MISSIONS.length);
     } else if (rng() < 0.15) want = Math.floor(rng() * MISSIONS.length); // guests stop at objects often enough to hide the agent
     let si = -1;
     e.wantM = -1;
-    if (want >= 0) { const i = this.slots.findIndex(s => s.type === 'obj' && s.obj === MISSIONS[want].p); if (i >= 0 && this.slots[i].busy < 0) { si = i; e.wantM = want; } }
+    if (want >= 0) {
+      const i = this.slots.findIndex(s => s.type === 'obj' && s.obj === MISSIONS[want].p);
+      if (i >= 0 && this.slots[i].busy < 0) { si = i; e.wantM = want; }
+      // someone is at the object: a robot agent does something else for a moment and comes back to it, instead of giving up
+      // (hanging around the object would give it away)
+      else if (i >= 0 && e.kind === 'bot' && e.role === 'agent') e.waitFor = want;
+    }
     if (si < 0) {
       // mostly stay on the current level (and do whatever this level offers) so the stairs do not jam
       const sameLv = rng() < 0.82;
@@ -9463,6 +9473,20 @@ class Sim {
     e.slot = si; this.slots[si].busy = e.id;
     const s = this.slots[si];
     e.path = route(e.x, e.z, e.lv, s.x, s.z, s.lv); e.st = 'walk'; e.anim = 1; e.stuck = 0; e.lastD = 1e9; e.rerouted = false;
+  }
+  // A guest of the computer at an object finishes the gesture and leaves within a few seconds when any player (or robot
+  // player) comes close, so the object is free again; every player gets this, not just the agent, so it gives nothing away.
+  makeWay() {
+    for (const p of this.ents) {
+      if (p.dead || (p.kind !== 'player' && p.kind !== 'bot') || p.lk) continue;
+      PROPS.forEach((m, pi) => {
+        const si = this.propSlot[pi]; if (si < 0) return;
+        const sl = this.slots[si]; if (sl.busy < 0 || sl.busy === p.id || Math.abs(p.y - LVY(m.lv)) > 0.5 || Math.hypot(p.x - sl.x, p.z - sl.z) > 2.2) return;
+        const g = this.ents[sl.busy]; if (!g || g.kind !== 'npc') return;
+        if (g.st === 'act') g.timer = Math.min(g.timer, 0.8 + this.rng() * 1.7);
+        else if (g.st === 'idle' && g.slot === si) g.timer = Math.min(g.timer, 0.4);
+      });
+    }
   }
   // is the entrance of stair li free for someone starting in direction dir?
   stairFree(li, dir, me) {
@@ -9570,6 +9594,7 @@ class Sim {
       if (this.t <= 0) { this.t = 0; this.end(this.mk[0] === this.agentId ? 's' : 'g', this.mk[0] === this.agentId ? 'time-marked' : 'time'); }
     }
     for (const e of this.ents) if (e.kind !== 'player') this.stepAI(e, dt);
+    if (this.ph === 'play' && (this.yieldT -= dt) <= 0) { this.yieldT = 0.5; this.makeWay(); }
     // keep people from overlapping
     const E = this.ents;
     for (let i = 0; i < E.length; i++) for (let j = i + 1; j < E.length; j++) {
