@@ -28,6 +28,8 @@ MIRA_CENARIOS.push({
       if (!o.dress) {
         // camisa aberta, sem gravata: o laço some na cor da camisa
         o.shirt = pk([0xf6f3ec, 0xf6f3ec, 0xbfd8ef, 0xf3d6c8, 0xe8f0e0]); o.tie = o.shirt; o.bow = false;
+        // metade deixa o paletó na cadeira: camisa de manga dobrada por dentro da calça de linho
+        if (((o.main ^ o.shirt ^ o.hair) >> 2) % 2) { o.camisa = true; o.pants = o.main === 0x22304e ? 0xece2c8 : o.main; o.main = o.shirt; o.shirt = 0xf6f3ec; o.pocket = 0; o.name = 'camisa ' + { 0xf6f3ec: 'branca', 0xbfd8ef: 'azul-clara', 0xf3d6c8: 'rosada', 0xe8f0e0: 'verde-clara' }[o.main] + ' de manga dobrada, calça ' + o.name.replace(/^(linho|blazer) /, '').replace(/^marinho/, 'areia'); }
         if (r() < 0.42) { o.hat = 'fedora'; o.hatColor = 0xeadfc0; o.hatBand = 0x1b1b1f; o.name += ', chapéu panamá'; }
         if (r() < 0.2) { o.scarf = pk([0x1f2a44, 0xc8322f, 0xf2c14e]); o.name += ', lenço no pescoço'; }
         if (r() < 0.25) { o.pocket = pk([0xc8322f, 0x2ec4b6, 0xf2c14e]); }

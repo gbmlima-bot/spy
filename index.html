@@ -1535,6 +1535,8 @@ MIRA_CENARIOS.push({
       if (!o.dress) {
         // camisa aberta, sem gravata: o laço some na cor da camisa
         o.shirt = pk([0xf6f3ec, 0xf6f3ec, 0xbfd8ef, 0xf3d6c8, 0xe8f0e0]); o.tie = o.shirt; o.bow = false;
+        // metade deixa o paletó na cadeira: camisa de manga dobrada por dentro da calça de linho
+        if (((o.main ^ o.shirt ^ o.hair) >> 2) % 2) { o.camisa = true; o.pants = o.main === 0x22304e ? 0xece2c8 : o.main; o.main = o.shirt; o.shirt = 0xf6f3ec; o.pocket = 0; o.name = 'camisa ' + { 0xf6f3ec: 'branca', 0xbfd8ef: 'azul-clara', 0xf3d6c8: 'rosada', 0xe8f0e0: 'verde-clara' }[o.main] + ' de manga dobrada, calça ' + o.name.replace(/^(linho|blazer) /, '').replace(/^marinho/, 'areia'); }
         if (r() < 0.42) { o.hat = 'fedora'; o.hatColor = 0xeadfc0; o.hatBand = 0x1b1b1f; o.name += ', chapéu panamá'; }
         if (r() < 0.2) { o.scarf = pk([0x1f2a44, 0xc8322f, 0xf2c14e]); o.name += ', lenço no pescoço'; }
         if (r() < 0.25) { o.pocket = pk([0xc8322f, 0x2ec4b6, 0xf2c14e]); }
@@ -5414,7 +5416,7 @@ MIRA_CENARIOS.push({
     sol: [0x9ab0f0, 0.36, -16, 26, 20], preenche: [0xffa860, 0.16], exposicao: 0.9, bloom: 0.62,
   },
   guardaRoupa: {
-    ternos: [[0xb0202a, 'suéter de tricô vermelho'], [0x1f3a6a, 'jaqueta azul-marinho'], [0xece6da, 'suéter de tricô creme'], [0x2f5a3a, 'suéter verde-pinheiro'], [0x6a4630, 'jaqueta de camurça'], [0x55585f, 'parka cinza'], [0xd9822a, 'jaqueta de esqui laranja'], [0x16161a, 'parka preta']],
+    ternos: [[0xb0202a, 'suéter de tricô vermelho'], [0x1f3a6a, 'suéter azul-marinho'], [0xece6da, 'suéter de tricô creme'], [0x2f5a3a, 'suéter verde-pinheiro'], [0x6a4630, 'suéter caramelo'], [0x55585f, 'suéter cinza'], [0xd9822a, 'suéter laranja'], [0x16161a, 'suéter preto de gola alta']],
     vestidos: [[0xf4f1ea, 'vestido de lã branco'], [0x7a1a22, 'vestido bordô'], [0x1b1b22, 'vestido preto'], [0x7a9ac8, 'vestido azul-gelo'], [0xb8a07a, 'vestido caramelo'], [0x5a2a4a, 'vestido ameixa']],
     vestidoChance: 0.4, longo: 0.5, tacas: ['tumbler', 'wine', 'tumbler', 'coupe'], drinks: [0x8a1a22, 0x5a3020, 0xf2c14e, 0xb3122e],
     extra(o, r) {
@@ -11171,7 +11173,7 @@ function makeChar(o, id) {
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
     m(CG.pelvis, pants, 0, 0, 0, B.Hips);
-    if (!o.tee && !o.knit) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); // a T-shirt or sweater ends at the waist
+    if (!o.tee && !o.knit && !o.camisa) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); // a T-shirt, sweater or tucked-in shirt ends at the waist
     m(CG.jacket, cloth, 0, -4, 0, B.Spine, true);
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
   }
@@ -11183,6 +11185,12 @@ function makeChar(o, id) {
   } else if (o.tee || o.knit) {
     // a T-shirt or a sweater: round neck in its own colour (a sweater's rolled higher), nothing on the chest
     const nb = m(CG.neckband, cloth, 0, o.knit ? 2.2 : 1.2, 0.3, B.Neck); nb.rotation.x = Math.PI / 2; if (o.knit) nb.scale.set(1.12, 1.12, 2.4);
+  } else if (o.camisa) {
+    // shirt sleeves, no jacket: collar points, the neck open, two buttons
+    const v = m(CG.vee, skin, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05; v.scale.set(0.6, 0.55, 1); v.position.y = 18;
+    for (const sg of [-1, 1]) { const c = m(CG.collar, cloth, sg * 4.6, 19.6, 9.6, B.Spine2); c.rotation.set(0.25, sg * 0.75, sg * -0.5); }
+    m(CG.neckband, cloth, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
+    m(CG.button, shirt, 0, 4, 11.6, B.Spine2); m(CG.button, shirt, 0, -6, 11.6, B.Spine2);
   } else if (!o.dress) {
     const v = m(CG.vee, o.vest ? mat(o.vest, { roughness: 0.5 }) : shirt, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05;
     // shirt collar points and the band round the neck
@@ -11229,6 +11237,7 @@ function makeChar(o, id) {
     const k = s[0];
     if (o.robe) { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.bellSleeve[k], cloth, 0, 0, 0, B[s + 'ForeArm']); }
     else if (o.dress) { m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
+    else if (o.camisa) { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); const rl = m(CG.cuff[k], cloth, 0, 0, 0, B[s + 'ForeArm']); rl.scale.set(0.5, 1.25, 1.25); rl.position.x = s === 'Left' ? -7 : 7; m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); } // sleeves rolled to the elbow
     else if (o.tee) { const sl = m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); sl.scale.set(0.5, 1.12, 1.12); m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
     else { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.foreArm[k], cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.cuff[k], o.knit ? cloth : shirt, 0, 0, 0, B[s + 'ForeArm']); }
     m(CG.hand[k], skin, 0, 0, 0, B[s + 'Hand']); m(CG.thumb, skin, s === 'Left' ? 4.2 : -4.2, 0.6, 3.4, B[s + 'Hand']);
