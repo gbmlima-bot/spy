@@ -8734,7 +8734,8 @@ function buildMap0Missions() {
 // stop at an object use the same gesture and the same span, so the gesture alone never gives the agent away.
 const GESTURES = {
   mexer: { anim: 2, d: [3.2, 6.0] }, // swap, hide, switch off, tip over... (long enough to cover the challenges)
-  largar: { anim: 2, d: [2.0, 3.0] }, // leave or drop something small
+  largar: { anim: 2, d: [2.0, 3.0] }, // leave or drop something small on a surface at hand height
+  agachar: { anim: 21, d: [2.2, 3.2] }, // kneel to leave something on the floor (or tip over something down there)
   marcar: { anim: 14, d: [2.6, 5.0] }, // chalk, stick, write
   foto: { anim: 18, d: [2.4, 4.5] }, // phone out: photograph, copy
   brinde: { anim: 6, d: [3.0, 4.4] }, // glass up: toast, spill, spike a drink
@@ -8749,11 +8750,15 @@ const GESTURE_RX = [
   ['marcar', /^(marcar|colar|pichar|riscar|pintar|assinar|arranhar|prender|escrever)\b/],
   ['largar', /^(deixar|largar|esquecer|soltar|jogar|enterrar)\b/],
 ];
+// does the act leave something on the floor? (an item spawned at most 25 cm above the level, or "no chão" in the label)
+const onFloor = (label, fx) => /no chão/.test(String(label).toLowerCase()) || [].concat(fx || []).some(f => f && f.k === 'spawn' && f.at && f.at[1] < 0.25);
 function gestureOf(label, fx) {
   if (fx && fx.k === 'host') return 'brinde';
   const l = String(label).toLowerCase();
-  for (const [g, rx] of GESTURE_RX) if (rx.test(l)) return g;
-  return 'mexer';
+  let g = 'mexer';
+  for (const [k, rx] of GESTURE_RX) if (rx.test(l)) { g = k; break; }
+  // leaving something on the floor (or anything the label places "no chão") is done kneeling
+  return (g === 'largar' && onFloor(label, fx)) || (g === 'mexer' && /no chão/.test(l)) ? 'agachar' : g;
 }
 // how long mission o takes for whoever does it: a draw inside its gesture's span (u in [0, 1))
 const actDur = (o, u) => { const d = GESTURES[MISSIONS[o].g].d; return d[0] + (d[1] - d[0]) * u; };
@@ -8796,6 +8801,10 @@ function challengeProgress(a) {
   return Math.min(1, a.t / a.d);
 }
 // flatten props into the mission list (each act is a mission; `p` points back at its prop)
+// the pose anyone takes for act o (its gesture's animation; 21 = kneeling to leave something on the floor)
+const actAnimFor = o => MISSIONS[o] ? MISSIONS[o].ga : 2;
+// the "working at an object" poses (fiddling and kneeling), held in place instead of walking
+const ACT_ANIM = new Set([2, 21]);
 function setMissions(props) {
   PROPS = props; MISSIONS = [];
   PROPS.forEach((P, pi) => { P.ms = []; for (const [label, fx] of P.acts) { const g = gestureOf(label, fx); P.ms.push(MISSIONS.length); MISSIONS.push({ k: P.key, label, where: P.where, s: P.s, l: P.l, lv: P.lv, p: pi, fx, host: fx && fx.k === 'host', g, ga: GESTURES[g].anim }); } });
@@ -9218,7 +9227,7 @@ class Sim {
   }
   stepAI(e, dt) {
     if (e.dead) return;
-    if (e.ov > 0) { e.ov -= dt; if (e.ov <= 0) e.anim = e.kind === 'static' ? 4 : e.anim === 6 ? 4 : e.anim; }
+    if (e.ov > 0) { e.ov -= dt; if (e.ov <= 0) e.anim = e.ovA !== undefined ? e.ovA : e.kind === 'static' ? 4 : e.anim === 6 ? 4 : e.anim; e.ovA = e.ov > 0 ? e.ovA : undefined; }
     if (e.kind === 'static') return;
     if (e.st === 'climb') {
       if (!this.stepLink(e, e.speed * 1.15, dt)) { e.st = 'walk'; e.stuck = 0; e.lastD = 1e9; const g = this.slots[e.slot]; if (!e.path.length) this.pickNext(e); else if (g && !e.path.some(w => w.link)) e.path = route(e.x, e.z, e.lv, g.x, g.z, g.lv); }
@@ -9260,8 +9269,11 @@ class Sim {
       }
     } else {
       if (e.trot !== undefined) e.rot = lerpAngle(e.rot, e.trot, 1 - Math.exp(-dt * 7));
+      // now and then a guest standing about kneels for a moment (a dropped napkin, a shoelace): the same pose as leaving
+      // something on the floor for a mission, so kneeling alone does not give the agent away
+      if (e.ov <= 0 && (e.anim === 0 || e.anim === 4) && this.ph !== 'reveal' && this.rng() < dt * 0.02) { e.ovA = e.anim; e.anim = 21; e.ov = 2.2 + this.rng() * 1.5; }
       e.timer -= dt;
-      if (e.timer <= 0) this.pickNext(e);
+      if (e.timer <= 0 && e.ov <= 0) this.pickNext(e);
     }
   }
   setPlayer(id, x, z, rot, anim, y = 0) {
@@ -11006,6 +11018,14 @@ function overridesFor(anim, u, t) {
   if (anim === 18) { o.push(...ARM('Right', 2.2, 0.6, 0.9), ['Head', E(-0.1, 0.3, 0.2)]); if (u.glass) o.push(...ARM('Left', 0.45, 0.12, 1.6)); return o; }
   if (anim === 19) { const w = 0.5 + Math.sin(t * 0.8) * 0.25; o.push(...ARM('Right', 0.7, 0.35, 0.9 + w * 0.3), ...ARM('Left', 0.3, 0.2, 0.6), ['Spine1', E(0.25, 0, 0)], ['Head', E(0.3, 0, 0)]); return o; }
   if (anim === 20) { const pl = Math.max(0, Math.sin((t + u.ph) * 2)); o.push(...ARM('Right', 1.15 + pl * 0.5, 0.15, 1.0), ...ARM('Left', 0.9, 0.1, 1.1), ['Head', E(0.1, 0, 0)]); return o; }
+  if (anim === 21) { // kneel on one knee and set something down on the floor in front, then look about
+    const r = Math.sin((t + u.ph) * 1.6) * 0.12;
+    o.push(['Spine', E(0.3, 0, 0)], ['Spine1', E(0.22, 0, 0)], ['Head', E(0.25, Math.sin((t + u.ph) * 0.9) * 0.35, 0)],
+      ['LeftUpLeg', E(-1.6, 0, 0.12)], ['LeftLeg', E(1.65, 0, 0)], ['LeftFoot', E(-0.1, 0, 0)],
+      ['RightUpLeg', E(-0.15, 0, -0.1)], ['RightLeg', E(1.75, 0, 0)], ['RightFoot', E(0.9, 0, 0)],
+      ...ARM('Right', 0.75 + r, 0.12, 0.35 + r), ...ARM('Left', 0.95, 0.25, 1.35));
+    return o;
+  }
   if (anim === 10) { o.push(...ARM('Left', 1.2, 0.35, 1.35), ...ARM('Right', 1.2, 0.35, 1.35), ['Head', E(0.2, 0, 0)], ['Spine1', E(0.1, 0, 0)]); return o; }
   // idle / talk / bar: hold the glass and sip now and then
   if (u.glass) o.push(...ARM('Right', 0.45 + sip * 0.95, 0.12, 1.6 + sip * 0.45), ['Head', E(sip * -0.12, 0, 0)]);
@@ -11042,13 +11062,14 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   let ry = 0, rx = 0, rz = 0;
   if (anim === 7 || anim === 9 || anim === 12 || anim === 17) ry = (u.seatHy !== undefined ? u.seatHy : 0.56) - 1.08;
   else if (anim === 15) ry = -0.72;
+  else if (anim === 21) ry = -0.46;
   else if (anim === 16) { rx = -1.0; ry = 0.22; rz = -0.05; }
   else if (anim === 8) { rx = -1.2; ry = 0.46; rz = -0.05; }
   else if (anim === 5) { rx = -Math.PI / 2; ry = 0.12; }
   u.ry += (ry - u.ry) * k; u.rx += (rx - u.rx) * k;
   rig.position.set(0, u.ry, anim === 8 || anim === 16 ? rz : 0); rig.rotation.x = u.rx;
   if (u.phone) u.phone.visible = anim === 18;
-  if (u.glass) u.glass.visible = anim !== 18 && anim !== 15;
+  if (u.glass) u.glass.visible = anim !== 18 && anim !== 15 && anim !== 21;
   // keep the drink upright whatever the hand does
   if (u.glass) { B.RightHand.updateWorldMatrix(true, false); c.getWorldQuaternion(QT); B.RightHand.getWorldQuaternion(QT2); u.glass.quaternion.copy(QT2.invert().multiply(QT)); }
 }
@@ -11711,7 +11732,7 @@ const G = {
 };
 const ctrl = { x: 0, z: 0, y: 0, lv: 0, lk: null, rot: 0, anim: 0, path: [], act: null, actSeq: 0, actDone: null, pose: null, keys: new Set(), vx: 0, vz: 0, goal: null, settle: null, stepT: 0 };
 const snip = { yaw: 0, pitch: -0.42, scoped: false, zoom: 6, marks: [], shotSent: false, aim: new T.Vector3(), lastPX: null, lastPY: null, breath: 0, hold: false, air: 1, gasp: 0, kick: 0, wind: 0, nbKey: '', radioSeen: 0 };
-const ANIM_LABEL = { 0: 'parado', 1: 'andando', 2: 'mexendo em algo', 3: 'dançando', 4: 'conversando', 5: 'caído', 6: 'pedindo um drinque', 7: 'sentado', 8: 'deitado', 9: 'ao piano', 10: 'perto da fogueira', 11: 'fazendo yoga', 12: 'jogando cartas', 13: 'tocando sax', 14: 'pintando', 15: 'na jacuzzi', 16: 'no pufe', 17: 'jogando xadrez', 18: 'tirando selfie', 19: 'regando', 20: 'no caça-níqueis' };
+const ANIM_LABEL = { 0: 'parado', 1: 'andando', 2: 'mexendo em algo', 21: 'agachado', 3: 'dançando', 4: 'conversando', 5: 'caído', 6: 'pedindo um drinque', 7: 'sentado', 8: 'deitado', 9: 'ao piano', 10: 'perto da fogueira', 11: 'fazendo yoga', 12: 'jogando cartas', 13: 'tocando sax', 14: 'pintando', 15: 'na jacuzzi', 16: 'no pufe', 17: 'jogando xadrez', 18: 'tirando selfie', 19: 'regando', 20: 'no caça-níqueis' };
 function windFor(st) { return st ? (((st.sd % 1000) * 7 + st.rd * 13) % 7) - 3 : 0; }
 
 function newBackdrop() { G.backdrop = new Sim({ seed: (rnd() * 1e9) >>> 0, demo: true }); }
@@ -12549,7 +12570,7 @@ function renderEnts(dt, st) {
     if (anim === 7 || anim === 9 || anim === 12 || anim === 17) {
       if (u.seatAnim !== anim || Math.hypot(u.x - u.seatX, u.z - u.seatZ) > 0.15) { u.seatAnim = anim; u.seatX = u.x; u.seatZ = u.z; u.seatHy = undefined; let bd = 0.6; for (const sl of SLOTS) { if (sl.lv !== lvOfY(u.y) || SEAT_ANIM[sl.type] !== anim) continue; const d = Math.hypot(sl.x - u.x, sl.z - u.z); if (d < bd) { bd = d; u.seatHy = sl.hy; } } }
     } else u.seatAnim = -1;
-    animChar(c, anim, t, anim !== 5 && anim !== 2 && sp > 0.4, dt, sp);
+    animChar(c, anim, t, anim !== 5 && !ACT_ANIM.has(anim) && sp > 0.4, dt, sp);
   }
   // rings
   const guest = G.screen === 'game' && G.role && G.role !== 's' && st.ph === 'play';
@@ -12706,5 +12727,7 @@ window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animC
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER });
+// characters: what the tests of the character area read
+Object.assign(window.__mira, { actAnimFor });
 })();
 </script>
