@@ -294,7 +294,10 @@ function MIRA_KIT(T, root, seed) {
     const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(wv.concat(wf), 3)); wg.translate(0, 0.13, 0); wg.computeVertexNormals(); body.deleteAttribute('color');
     const mat = new T.MeshStandardMaterial({ color: o.cor || 0x7a7e88, roughness: 0.85 }), mb = new T.InstancedMesh(body, mat, n), mw = new T.InstancedMesh(wg, mat, n);
     for (const m of [mb, mw]) { m.frustumCulled = false; m.userData.noCol = true; m.raycast = () => { }; m.castShadow = false; root.add(m); }
-    const P = []; for (let i = 0; i < n; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * raio, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d;
+    // o.eixo ('x' ou 'z'): em vez de um disco, ficam numa faixa estreita (o.larg) ao longo do eixo, como em cima de uma mureta
+    const lugar = () => { if (o.eixo) { const u = (r() * 2 - 1) * raio, v = (r() * 2 - 1) * (o.larg || 0.04); return o.eixo === 'x' ? [o.x + u, o.z + v] : [o.x + v, o.z + u]; }
+      const a = r() * 6.28, d = Math.sqrt(r()) * raio; return [o.x + Math.cos(a) * d, o.z + Math.sin(a) * d]; };
+    const P = []; for (let i = 0; i < n; i++) { const [x, z] = lugar();
       P.push({ hx: x, hz: z, x, y: y0, z, tx: x, tz: z, rot: r() * 6.28, idle: r() * 3, pk: r() * 6.28, dl: r() * 0.5, a0: r() * 6.28, rr: (o.voo || 5) * (0.75 + r() * 0.5), h: 4 + r() * 3.5, w: (0.55 + r() * 0.3) * (r() < 0.5 ? 1 : -1), f: 13 + r() * 5 }); }
     const q = new T.Object3D(), C = new T.Vector3(), L = new T.Vector3(), ease = (u) => u * u * (3 - 2 * u);
     let tv = -1, dur = 0, calma = 4, chk = 0, sozinho = 40 + r() * 50;
@@ -316,7 +319,7 @@ function MIRA_KIT(T, root, seed) {
         } else {
           p.y = y0; const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
           if (d > 0.02) { const s = Math.min(d, dt * 0.35); p.x += dx / d * s; p.z += dz / d * s; p.rot = Math.atan2(dx, dz); }
-          else if ((p.idle -= dt) <= 0) { p.idle = 1 + r() * 4; const a = r() * 6.28, dd = Math.sqrt(r()) * raio; p.tx = o.x + Math.cos(a) * dd; p.tz = o.z + Math.sin(a) * dd; }
+          else if ((p.idle -= dt) <= 0) { p.idle = 1 + r() * 4; [p.tx, p.tz] = lugar(); }
         }
         const anda = !voando && Math.hypot(p.tx - p.x, p.tz - p.z) > 0.02, bica = !voando && !anda ? Math.max(0, Math.sin(t * 3.1 + p.pk)) ** 6 * 0.7 : 0;
         q.position.set(p.x, p.y + (anda ? Math.abs(Math.sin(t * 14 + p.pk)) * 0.01 : 0), p.z); q.rotation.set(voando ? -0.15 : bica, p.rot, 0); q.scale.setScalar(o.tam || 1); q.updateMatrix(); mb.setMatrixAt(i, q.matrix);

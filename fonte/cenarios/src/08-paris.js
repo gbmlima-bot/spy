@@ -335,7 +335,10 @@ MIRA_CENARIOS.push({
     // flashes dos fotógrafos (estouros aleatórios)
     const flashes = [[-2.6, 8.9], [-1.7, 9.1], [-0.7, 7.2], [0.3, 7.8], [1.3, 7.4], [-2.4, 8.7], [0, 8.7], [1.2, 8.7], [-1.2, 8.7]].map(([x, z]) => { const h = K.halo(x, 1.75 + (z > 8.2 ? 0.25 : 0), z - 0.15, 0.5, 0xeef4ff, 3.2); h.visible = false; return { h, t: R() * 3 }; });
     const flashPool = K.pool(0, 4.3, 1.6, 0xeef4ff, 0.0, 0.54);
-    K.tick((dt) => { let any = 0; for (const f of flashes) { f.t -= dt; if (f.t < 0) { f.t = 0.4 + R() * 3.2; f.on = 0.08; } if (f.on > 0) { f.on -= dt; any = 1; } f.h.visible = f.on > 0; } flashPool.material.color.setScalar(any ? 0.6 : 0); });
+    // rajada: de vez em quando a imprensa toda dispara junto (alguém posou na ponta da passarela); espanta os pombos da frente
+    let rajada = 18;
+    K.tick((dt) => { let any = 0; rajada -= dt; if (rajada < 0) { rajada = 25 + R() * 25; flashes.forEach((f, i) => { f.t = i * 0.07 + R() * 0.15; }); assustaveis.forEach(b => b.assustar()); }
+      for (const f of flashes) { f.t -= dt; if (f.t < 0) { f.t = 0.4 + R() * 3.2; f.on = 0.08; } if (f.on > 0) { f.on -= dt; any = 1; } f.h.visible = f.on > 0; } flashPool.material.color.setScalar(any ? 0.6 : 0); });
     K.plight(0, 2.8, 7.2, 0xffe6cc, 1.0, 7);
 
     // ------------------------------------------------------------ backstage aberto (fundo à esquerda)
@@ -564,8 +567,39 @@ MIRA_CENARIOS.push({
     // fumacinha saindo de algumas chaminés
     const puffs = []; for (const [x, y, z] of [[-15.4, 3.0, -8.0], [15.4, 3.2, 6.0], [-22, 3.4, -26], [12, 3.6, -24]]) for (let k = 0; k < 4; k++) { const s = new T.Sprite(new T.SpriteMaterial({ map: K.radialTex, color: 0x8a90a8, transparent: true, opacity: 0.3, depthWrite: false })); s.position.set(x, y, z); K.root.add(s); puffs.push({ s, x, y, z, o: k / 4 }); }
     K.tick((dt, t) => puffs.forEach(p => { const u = (t * 0.15 + p.o) % 1; p.s.position.set(p.x + u * 1.2, p.y + u * 2.2, p.z - u * 0.5); p.s.scale.setScalar(0.4 + u * 1.4); p.s.material.opacity = 0.35 * (1 - u); }));
-    // pombos na platibanda
-    { const parts = []; for (const [x, z, ry] of [[-14.95, -6.2, 1], [-14.95, -5.8, 1.3], [14.95, 2.4, -1.2], [9.2, 10.0, 0.2], [-13.0, 10.0, 0.5], [6.6, -10.25, 3]]) { parts.push([K.at(new T.SphereGeometry(0.09, 8, 6).scale(1.5, 1, 1), x, 0.6, z, ry), 0x7a7e8a]); parts.push([K.at(new T.SphereGeometry(0.05, 8, 6).translate(0.13, 0.08, 0), x, 0.6, z, ry), 0x5a6070]); } K.merge(parts, K.vcol({ roughness: 0.9 })); }
+    // pombos na platibanda: andam em fila em cima da pedra, levantam voo quando alguém encosta na grade
+    // ou quando a imprensa dispara vários flashes de uma vez (os bandos perto do pódio)
+    const bandosP = [[-14.95, -6.0, 'z', 1.1, 5], [14.95, 2.4, 'z', 0.9, 4], [9.2, 10.0, 'x', 1.0, 4], [-12.6, 10.0, 'x', 1.0, 5]].map(([x, z, eixo, r, n]) =>
+      K.pombos({ x, z, y: 0.51, eixo, r, larg: 0.05, n, alerta: 1.0, voo: 4.5, tam: 0.95, cor: 0x50545e }));
+    const assustaveis = [bandosP[2], bandosP[3]];
+    // gato do vizinho: anda pela beira do telhado de zinco à direita, senta, lambe a pata, abana o rabo; quando os pombos
+    // voam, para, se encolhe e acompanha o bando com a cabeça
+    { const pelo = K.mat(0x2a2624, { roughness: 0.95 }), pelo2 = K.mat(0xd8d0c4, { roughness: 0.95 }), olho = K.glow(0xc8ff70, 1.6);
+      const cat = K.group(19.15, 1.67, 0); dyn(cat); const S = 1.25; cat.scale.setScalar(S);
+      const body = K.group(0, 0.16, 0, 0, cat); K.add(new T.SphereGeometry(0.1, 10, 8).scale(0.85, 0.85, 1.7), pelo, 0, 0, 0, { parent: body });
+      K.add(new T.SphereGeometry(0.06, 8, 6).scale(1, 0.8, 1.2), pelo2, 0, -0.035, 0.09, { parent: body, cast: false });
+      const head = K.group(0, 0.07, 0.17, 0, body); K.add(new T.SphereGeometry(0.065, 10, 8).scale(1, 0.9, 1), pelo, 0, 0, 0, { parent: head });
+      K.add(new T.SphereGeometry(0.03, 8, 6).scale(1, 0.75, 1), pelo2, 0, -0.022, 0.05, { parent: head, cast: false });
+      for (const sx of [-1, 1]) { K.add(new T.ConeGeometry(0.028, 0.06, 4), pelo, sx * 0.037, 0.06, -0.005, { parent: head, rz: -sx * 0.25 }); K.add(new T.SphereGeometry(0.011, 6, 4), olho, sx * 0.026, 0.012, 0.055, { parent: head, cast: false }); }
+      const legs = [[-0.045, 0.1], [0.045, 0.1], [-0.045, -0.1], [0.045, -0.1]].map(([x, z]) => { const l = K.group(x, 0.13, z, 0, cat); K.cyl(0.024, 0.02, 0.13, pelo, 0, -0.065, 0, { parent: l }, 6); return l; });
+      const tail = K.group(0, 0.03, -0.16, 0, body); let tp = tail; const tails = [];
+      for (let k = 0; k < 5; k++) { const sg = K.group(0, 0, 0, 0, tp); if (k) sg.position.y = 0.055; K.cyl(0.016 - k * 0.0015, 0.018 - k * 0.0015, 0.06, pelo, 0, 0.03, 0, { parent: sg }, 5); tails.push(sg); tp = sg; }
+      // trajeto: vai e volta pela beira (z), com paradas para sentar
+      const Z0 = -5.3, Z1 = 3.1, rc = K.rng(8808); let z = -1, dir = 1, estado = 'anda', te = 6, alvo = Z1;
+      K.tick((dt, t) => {
+        dt = Math.min(dt, 0.1); te -= dt; const assusta = K.bandos.some(b => b.voando());
+        if (estado === 'anda') { const v = 0.32 * dt * dir; z += v; if ((dir > 0 && z >= alvo) || (dir < 0 && z <= alvo) || te <= 0) { estado = 'senta'; te = 5 + rc() * 7; } }
+        else if (te <= 0) { estado = 'anda'; te = 8 + rc() * 8; if (rc() < 0.5 || z >= Z1 - 0.2 || z <= Z0 + 0.2) dir = z > (Z0 + Z1) / 2 ? -1 : 1; alvo = dir > 0 ? Z1 : Z0; }
+        const anda = estado === 'anda' && !assusta, senta = estado === 'senta' && !assusta; if (estado === 'anda' && assusta) z -= 0.32 * dt * dir;
+        cat.position.z = z; cat.rotation.y = dir > 0 ? 0 : Math.PI;
+        const ph = t * 7;
+        legs.forEach((l, i) => { l.rotation.x = anda ? Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.45 : senta && i < 2 ? -0.15 : 0; l.scale.y = senta && i >= 2 ? 0.45 : 1; });
+        body.rotation.x = senta ? -0.5 : 0; body.position.y = assusta ? 0.11 : senta ? 0.13 : 0.16 + (anda ? Math.abs(Math.sin(ph)) * 0.006 : 0); body.position.z = senta ? -0.04 : 0;
+        // cabeça: olha à frente andando; sentado vira para a festa (à esquerda) e às vezes lambe a pata; assustado mira os pombos no alto
+        const lado = dir > 0 ? -1 : 1, lambe = senta && (t % 9) < 2.2;
+        head.rotation.set(assusta ? -0.9 : lambe ? 0.9 + Math.sin(t * 9) * 0.15 : senta ? 0.5 : 0, assusta ? lado * Math.sin(t * 0.8) * 0.8 : senta && !lambe ? lado * 1.1 + Math.sin(t * 0.4) * 0.3 : 0, 0);
+        tails.forEach((sg, k) => { sg.rotation.x = (k ? 0.22 : senta ? -1.9 : -1.1) + (assusta ? 0.05 : 0); sg.rotation.z = Math.sin(t * (assusta ? 6 : 1.8) - k * 0.7) * (assusta ? 0.25 : 0.18) * (k + 1) * 0.5; });
+      }); }
 
 
     // ------------------------------------------------------------ junta as peças estáticas por material (menos draw calls; o WebGL por software agradece)
