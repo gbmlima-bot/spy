@@ -7954,6 +7954,49 @@ MIRA_CENARIOS.push({
     K.floor(-30, 13.1, 30, 17.3, platTex, { m: { roughness: 0.8 } });
     for (let x = -24; x <= 24; x += 8) { K.cyl(0.05, 0.07, 2.6, ironG, x, 1.3, 15.2, { cast: false }, 8); K.sphere(0.2, K.glow(0xffd9a0, 1.8), x, 2.75, 15.2, { cast: false }); K.pool(x, 15.2, 1.6, 0xffb060, 0.3); }
     for (let x = -20; x <= 20; x += 8) { K.box(1.8, 0.08, 0.45, teak, x + 4, 0.45, 15.6, { cast: false }); K.box(1.8, 0.4, 0.06, teak, x + 4, 0.7, 15.85, { cast: false }); }
+    // ------------------------------------------------------------ manobra no trilho de trás: uma locomotiva-tanque chega pela direita
+    // (o trecho de trilho que o sniper vê à direita da gare), freia soltando faíscas nas rodas, encosta no vagão-dormitório,
+    // fica bufando e volta. Tudo atrás dos vagões e à direita da festa. Ciclo de 80 s
+    { const rm = K.rng(1010), ZT = -14.6, YT = -0.98, PER = 80, XF = 20.5, XL = 58;
+      track(-14.6, 30, 64);
+      const loc = K.group(XL, YT, ZT), corpo = [], luz = [];
+      corpo.push([new T.CylinderGeometry(0.8, 0.8, 4.6, 14).rotateZ(PI / 2).translate(-1.2, 1.95, 0), 0x1e2a24]);
+      corpo.push([new T.BoxGeometry(4.4, 1.3, 2.3).translate(-1.2, 1.5, 0), 0x22302a]);
+      corpo.push([new T.BoxGeometry(7.6, 0.4, 2.4).translate(0, 0.75, 0), 0x121214]);
+      corpo.push([new T.CylinderGeometry(0.22, 0.28, 0.8, 10).translate(-2.9, 3.1, 0), 0x121214]);
+      corpo.push([new T.CylinderGeometry(0.3, 0.3, 0.4, 10).translate(-0.6, 2.85, 0), 0xc8a050]);
+      corpo.push([new T.BoxGeometry(2.6, 2.4, 2.5).translate(2.4, 2.1, 0), 0x1e2a24]);
+      corpo.push([new T.BoxGeometry(3.0, 0.12, 2.7).translate(2.4, 3.35, 0), 0x0e0e10]);
+      for (const sx of [-1, 1]) corpo.push([new T.BoxGeometry(0.25, 0.35, 2.5).translate(sx * 3.9, 0.75, 0), 0x8a1a14]);
+      for (const z of [-1, 1]) for (const x of [-2.4, -0.8, 0.8, 2.4]) corpo.push([new T.CylinderGeometry(0.5, 0.5, 0.1, 14).rotateX(PI / 2).translate(x, 0.5, z * 1.15), 0x7a1a14]);
+      corpo.push([new T.BoxGeometry(5.6, 0.06, 0.06).translate(-0.2, 1.4, 1.17), 0xc8a050]);
+      // vidros da cabine acesos (o maquinista é uma silhueta) e as lanternas das duas pontas
+      luz.push([new T.BoxGeometry(0.8, 0.6, 0.04).translate(2.4, 2.45, 1.26), 0xffb860]); luz.push([new T.BoxGeometry(0.04, 0.5, 0.6).translate(3.71, 2.45, 0.5), 0xffb860]);
+      corpo.push([new T.SphereGeometry(0.16, 8, 6).translate(2.25, 2.55, 1.28), 0x14100c]);
+      K.merge(corpo, K.vcol({ roughness: 0.55, metalness: 0.25 }), { parent: loc, cast: false });
+      K.merge(luz, new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }), { parent: loc, cast: false });
+      const far = [K.halo(-3.95, 1.3, 0.7, 0.9, 0xfff0c8, 1.3, loc), K.halo(-3.95, 1.3, -0.7, 0.9, 0xfff0c8, 1.3, loc), K.halo(3.95, 1.3, 0, 0.7, 0xff3020, 0.9, loc)];
+      // fumaça em baforadas no ritmo das rodas, vapor baixo parado e faíscas na frenagem (sprites reaproveitados)
+      const fum = [], fai = []; let acc = 0, chuf = 0;
+      for (let k = 0; k < 12; k++) { const sp = new T.Sprite(new T.SpriteMaterial({ map: K.radialTex, color: 0xb0b2b8, transparent: true, opacity: 0, depthWrite: false })); K.root.add(sp); fum.push({ sp, age: 9, x: 0, y: 0, z: 0, vx: 0 }); }
+      for (let k = 0; k < 14; k++) { const sp = new T.Sprite(new T.SpriteMaterial({ map: K.radialTex, color: new T.Color(0xffa040).multiplyScalar(2.4), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); K.root.add(sp); fai.push({ sp, life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0 }); }
+      const ease = (u) => u * u * (3 - 2 * u);
+      K.tick((dt, t) => {
+        dt = Math.min(dt, 0.1); const c = t % PER; let x, v = 0, freia = false;
+        if (c < 16) { const u = c / 16; x = XL + (XF - XL) * (1 - (1 - u) * (1 - u)); v = (XL - XF) * 2 * (1 - u) / 16; freia = u > 0.72; }
+        else if (c < 36) x = XF + (c < 16.4 ? (16.4 - c) * 0.3 : 0);
+        else if (c < 52) { const u = (c - 36) / 16; x = XF + (XL - XF) * u * u; v = (XL - XF) * 2 * u / 16; }
+        else x = XL + (t % 1) * 0.001;
+        loc.position.x = x; loc.visible = c < 52;
+        // baforadas: mais rápidas quanto mais rápido anda; parada, solta um fio de vapor de vez em quando
+        acc += dt * (v > 0.2 ? 0.6 + v * 0.5 : 0.35); if (acc >= 1 && loc.visible) { acc = 0; const f = fum[chuf++ % fum.length]; f.age = 0; f.x = x - 2.9; f.y = YT + 3.5; f.z = ZT; f.vx = (c < 16 ? -1 : 1) * v * 0.15; }
+        for (const f of fum) { f.age += dt; const u = f.age / 3.2; if (u >= 1) { f.sp.material.opacity = 0; continue; } f.x += (f.vx + 0.4) * dt; f.y += 1.3 * dt * (1 - u * 0.5); f.sp.position.set(f.x, f.y, f.z - u * 0.6); f.sp.scale.setScalar(0.6 + u * 2.6); f.sp.material.opacity = 0.55 * Math.min(1, u * 6) * (1 - u); }
+        for (const f of fai) { if (f.life > 0) { f.life -= dt; f.vy -= 9 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.sp.position.set(f.x, f.y, f.z); f.sp.material.opacity = Math.max(0, f.life * 3.5); }
+          else if (freia && rm() < dt * 22) { const wx = [-2.4, -0.8, 0.8, 2.4][Math.floor(rm() * 4)]; f.life = 0.2 + rm() * 0.2; f.x = x + wx; f.y = YT + 0.1; f.z = ZT + 1.2; f.vx = -v * 0.5 + (rm() - 0.5) * 2.5; f.vy = 0.8 + rm() * 2.2; f.sp.scale.setScalar(0.1 + rm() * 0.1); }
+          else f.sp.material.opacity = 0; }
+        far.forEach(h => h.visible = loc.visible);
+      });
+    }
     // vagões de carga parados ao longe (baixos)
     for (const [x, c] of [[-22, 0x4a2a1e], [-10, 0x3a3a34], [8, 0x4a2a1e], [20, 0x2a3a4a]]) { K.box(9, 1.6, 2.6, K.mat(c, { roughness: 0.9 }), x, -0.1 + 0.3, 30.5, { cast: false }); K.box(9.2, 0.12, 2.8, K.mat(0x1a1a1a), x, 1.15, 30.5, { cast: false }); }
 
