@@ -23,6 +23,9 @@ MIRA_CENARIOS.push({
       const C = (a) => a[Math.floor(r() * a.length)];
       const knit = [[0xc8322f, 'vermelho'], [0xf6f3ec, 'branco'], [0x1f3a6a, 'azul'], [0x2f6a3a, 'verde'], [0xe9b23b, 'mostarda'], [0xd96a8a, 'rosa'], [0x3a3a40, 'grafite']];
       o.shoe = C([0x4a2e1c, 0x2a1a12, 0x6a4a2a, 0x1b1b1f]);
+      // sweaters, jackets and parkas: no lapels or tie, sleeves to the wrist, trousers that do not match the top
+      if (!o.dress) { o.knit = true; o.bow = false; o.pocket = 0; o.vest = 0; o.pants = [0x2a3a5a, 0x3a3028, 0x1b1b1f, 0x4a4a52][(o.main >> 3) % 4]; }
+      else o.robe = 'round'; // wool dresses with sleeves, no straps in the snow
       if (o.dress) { if (r() < 0.75) { const [c, n] = C([[0xf4f1ea, 'casaco de pele branco'], [0x4a3022, 'casaco de lã marrom'], [0x16161a, 'casaco preto'], [0x6a1a22, 'casaco vinho'], [0xb8956a, 'casaco camelo'], [0x8a8f9a, 'casaco cinza-prata']]); o.coat = c; o.name += ', ' + n; } }
       else if (r() < 0.38) { o.stripes = C([0xf6f3ec, 0xc8322f, 0x1f3a6a]); o.name += ', padrão norueguês'; }
       else if (r() < 0.2) { o.coat = C([0x3a2a22, 0x1b1b22, 0x55585f]); o.name += ', sobretudo'; }
