@@ -15,9 +15,10 @@ MIRA_CENARIOS.push({
   escadas: [{ de: 0, para: 1, a: [10.3, -2.9], b: [10.3, -8.8], rotulo: 'flybridge' }],
   convidados: 28,
   inicio: [0.0, 1.2, 0],
+  // cores de luz e neblina em valores lineares (o motor não converte): 0xc2412e sai na tela como um salmão (226, 138, 118)
   ambiente: {
-    ceu: ['#2a2452', '#5e3a78', '#b8577e', '#ee8a62', '#ffc47e'], neblina: [0xe39a82, 85, 320], hemi: [0xffc0a0, 0x3a3050, 0.3],
-    sol: [0xffa458, 1.35, -26, 13, 7], preenche: [0x7a70c8, 0.3], exposicao: 0.8, bloom: 0.5,
+    ceu: ['#2a2452', '#5e3a78', '#b8577e', '#ee8a62', '#ffc47e'], neblina: [0xc2412e, 40, 235], hemi: [0x7a3a78, 0x1a1020, 0.6],
+    sol: [0xff6720, 2.4, -30, 9, 4], preenche: [0x283093, 0.5], exposicao: 0.85, bloom: 0.6,
   },
   // o que os convidados fazem parados em cada tipo de vaga (anims do jogo: 22 mãos para trás, 23 braços cruzados, 24 esfregando as mãos, 25 reverência)
   rotinas: { view: [23, 22, 0] },
@@ -805,6 +806,8 @@ MIRA_CENARIOS.push({
     K.glints({ x0: -40, x1: 40, z0: 22, z1: 46, y0: WY + 0.05, n: 140, cor: [0xffc080, 0xffe0b0, 0xff9a60], tam: 0.22, pisca: 1.6 });
     K.glints({ x0: -30, x1: -14, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
     K.glints({ x0: 14, x1: 30, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
+    // menos reflexo da sala neutra: o lado da sombra fica lilás (céu) e o do sol, dourado
+    K.reflexo(0.2);
   },
   // ninho do sniper: sacada da suíte do Hôtel Belvédère. Balaustrada de mármore com veios, corrimão de latão polido,
   // marca de copo e o cartão do quarto; buganvília num vaso à direita e o balde de champanhe à esquerda
