@@ -1152,8 +1152,52 @@ window.MIRA_COBERTURA = function (K, LEVELS) {
   // ============================================================ céu: gaivotas de dia, fogos atrás da torre à noite
   {
     const birds = K.birds({ x: 0, y: 36, z: -30, r: 24, n: 9, cor: 0xe8e4dc, tam: 0.45, vel: 0.16 });
-    const fw = K.fireworks({ x0: -40, x1: 40, y: 40, dy: 8, z: -112, dz: 16, raio: 9, tam: 1.0, cada: 2.1, n: 4, cores: [0xffc860, 0xff4aa4, 0x35d8ff, 0xffa24a, 0xf6f1e8] });
+    const fw = K.fireworks({ x0: -40, x1: 40, y: 31, dy: 6, z: -112, dz: 16, raio: 9, tam: 1.0, cada: 2.1, n: 4, cores: [0xffc860, 0xff4aa4, 0x35d8ff, 0xffa24a, 0xf6f1e8] });
     K.tick(() => { birds.visible = !K.noite; if (!K.noite) for (const sh of fw) sh.pts.visible = false; });
+  }
+
+  // ============================================================ cidade à noite: janelas que acendem e apagam, holofotes, avião
+  {
+    const T = K.T, cena = K.root.parent, rj = K.rng(7070);
+    // janelas: quadrinhos encostados na face dos prédios virada para o sniper, alinhados com a grade de janelas da textura
+    // acesa (8 vãos de 2,5 m por 16 andares de 3 m em cada ladrilho de 20 x 48 m). Os que caem numa janela apagada acendem
+    // de vez em quando; os que caem numa acesa a apagam. Uma malha só; esconder um quadrinho = juntar os seis vértices.
+    const quads = [], P = [], C = [], v = new T.Vector3();
+    const predios = cena ? cena.children.filter(o => o.isMesh && o.geometry && o.geometry.type === 'BoxGeometry' && o.material && o.material.emissiveMap && o.material.emissiveMap.image && o.material.emissiveMap.image.height === 1280 && o.position.z < 30) : [];
+    for (const b of predios) {
+      const { width: w, height: h, depth: d } = b.geometry.parameters, em = b.material.emissiveMap, img = em.image, ctx = img.getContext && img.getContext('2d'); if (!ctx) continue;
+      b.updateMatrixWorld(true); const ox = em.offset.x, oy = em.offset.y, rx = w / 20, ry = h / 48;
+      for (let n = 0; n < 14; n++) {
+        // um vão e um andar ao acaso dentro da face: centros das janelas em U*8 = k + 0,5 e V*16 = q + 0,55 (textura virada)
+        const k0 = Math.ceil(ox * 8 - 0.5) + 1, k1 = Math.floor((ox + rx) * 8 - 0.5) - 1, q0 = Math.ceil(oy * 16 - 0.55) + 1, q1 = Math.floor((oy + ry) * 16 - 0.55) - 1;
+        if (k1 < k0 || q1 < q0) break;
+        const kk = k0 + Math.floor(rj() * (k1 - k0 + 1)), qq = q0 + Math.floor(rj() * (q1 - q0 + 1)), U = (kk + 0.5) / 8, V = (qq + 0.55) / 16;
+        const x = (U - ox) / rx * w - w / 2, y = (V - oy) / ry * h - h / 2;
+        const px = Math.floor((((U % 1) + 1) % 1) * 512), py = Math.floor((1 - (((V % 1) + 1) % 1)) * 1280), lit = ctx.getImageData(px, py, 1, 1).data[0] > 40;
+        const cor = new T.Color(lit ? 0x161b29 : rj() < 0.75 ? 0xffc078 : 0xc8dcff).multiplyScalar(lit ? 1 : 1.25), base = P.length;
+        for (const [qx, qy] of [[-0.74, -0.76], [0.74, -0.76], [0.74, 0.76], [-0.74, -0.76], [0.74, 0.76], [-0.74, 0.76]]) { v.set(x + qx, y + qy, d / 2 + 0.12).applyMatrix4(b.matrixWorld); P.push(v.x, v.y, v.z); C.push(cor.r, cor.g, cor.b); }
+        quads.push({ base, on: false, t: 3 + rj() * 40 });
+      }
+    }
+    if (quads.length) {
+      const pos = new Float32Array(P), orig = pos.slice(), g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(C, 3));
+      const jan = new T.Mesh(g, new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false })); jan.renderOrder = 1; jan.frustumCulled = false; jan.userData.noCol = true; jan.raycast = () => { }; cena.add(jan);
+      const mostra = (q, on) => { q.on = on; for (let k = 0; k < 18; k++) pos[q.base + k] = on ? orig[q.base + k] : orig[q.base + k % 3]; };
+      quads.forEach(q => mostra(q, false)); g.attributes.position.needsUpdate = true;
+      K.tick((dt) => { jan.visible = K.noite; if (!K.noite) return; let mud = false;
+        for (const q of quads) { q.t -= dt; if (q.t <= 0) { mostra(q, !q.on); q.t = q.on ? 8 + rj() * 50 : 4 + rj() * 30; mud = true; } }
+        if (mud) g.attributes.position.needsUpdate = true; });
+    }
+    // holofotes de uma inauguração do outro lado da cidade: dois fachos varrendo o céu atrás da torre
+    const fachoM = new T.MeshBasicMaterial({ color: new T.Color(0xcfe0ff).multiplyScalar(0.22), transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false });
+    const fachos = [[-62, -170, 0], [-38, -180, 2.1]].map(([x, z, f]) => { const g = new T.Group(); g.position.set(x, -60, z); cena.add(g);
+      const c = new T.Mesh(new T.ConeGeometry(7, 260, 16, 1, true).translate(0, -130, 0).rotateX(Math.PI), fachoM); c.renderOrder = 2; g.add(c); g.visible = false; return { g, f }; });
+    // avião bem alto cruzando o céu: luz vermelha, verde e o estrobo branco
+    const aviao = new T.Group(); cena.add(aviao); aviao.visible = false;
+    const lv = K.halo(-1.6, 0, 0, 2.2, 0xff2020, 1.6, aviao), lg = K.halo(1.6, 0, 0, 2.2, 0x20ff60, 1.6, aviao), le = K.halo(0, 0.3, 0, 3.2, 0xffffff, 2.2, aviao);
+    K.tick((dt, t) => { const n = K.noite;
+      fachos.forEach(h => { h.g.visible = n; h.g.rotation.set(-0.1 + Math.sin(t * 0.21 + h.f) * 0.25, 0, Math.sin(t * 0.33 + h.f * 1.7) * 0.5); });
+      const u = (t % 95) / 70; aviao.visible = n && u < 1; aviao.position.set(-260 + u * 520, 58 + u * 6, -260); le.visible = (t % 1.3) < 0.08; lv.visible = lg.visible = (t % 1.0) < 0.6; });
   }
 };
 </script>
