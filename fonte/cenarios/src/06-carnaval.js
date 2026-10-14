@@ -125,7 +125,19 @@ MIRA_CENARIOS.push({
     K.floor(-45, 8.4, 45, 10.1, calcTex([22, 0.85], 'onda'), { y: 0.06, m: { roughness: 0.8 } }); K.box(90, 0.12, 0.14, stoneM, 0, 0.03, 8.4, { cast: false });
     // mureta da frente (o morro cai logo depois)
     K.box(90, 0.75, 0.32, plaster, 0, 0.4, 10.28); K.box(90, 0.08, 0.42, K.mat(0xd9cbb0, { roughness: 0.8 }), 0, 0.8, 10.28);
-    K.box(90, 6, 0.4, K.mat(0x8a7d6c, { roughness: 1 }), 0, -2.95, 10.6, { cast: false });
+    { // muro de arrimo de pedra, com musgo escorrendo e trepadeira caindo da mureta
+      const pedra = K.canvasTex(512, 256, (g, w, h) => { g.fillStyle = '#3a3428'; g.fillRect(0, 0, w, h);
+        let y = 0; while (y < h) { const rh = 26 + R() * 30; let x = -R() * 40; while (x < w) { const rw = 40 + R() * 70, v = 110 + R() * 50; g.fillStyle = `rgb(${v},${v - 10},${v - 28})`; g.fillRect(x + 2, y + 2, rw - 4, rh - 4); x += rw; } y += rh; }
+        for (let k = 0; k < 40; k++) { const x = R() * w, l = 30 + R() * 120, gr = g.createLinearGradient(0, 0, 0, l); gr.addColorStop(0, 'rgba(60,90,40,.7)'); gr.addColorStop(1, 'rgba(60,90,40,0)'); g.fillStyle = gr; g.save(); g.translate(x, 0); g.fillRect(0, 0, 6 + R() * 16, l); g.restore(); }
+        K.grain(g, w, h, 18); }, [18, 1.2]);
+      K.box(90, 6, 0.4, K.texMat(pedra, { roughness: 1 }), 0, -2.95, 10.6, { cast: false });
+      const leaf = new T.PlaneGeometry(0.22, 0.16).translate(0, -0.08, 0), vines = [[], [], []];
+      for (let x = -40; x < 40; x += 0.9 + R() * 2.4) { const len = 0.6 + R() * 2.6; for (let y = 0; y > -len; y -= 0.13) vines[(R() * 3) | 0].push([x + (R() - 0.5) * 0.3 + Math.sin(y * 3) * 0.08, 0.02 + y, 10.82 + R() * 0.03, (R() - 0.5) * 0.8, 0.7 + R() * 0.6, 0, (R() - 0.5) * 1.2]); }
+      [0x2f6a2a, 0x3f8a34, 0x245a28].forEach((c, i) => K.inst(leaf, K.mat(c, { roughness: 0.8, side: T.DoubleSide }), vines[i], { cast: false }));
+      // buganvílias floridas em alguns trechos
+      const flor = []; for (let k = 0; k < 160; k++) { const x = -30 + R() * 60; if (Math.sin(x * 0.4) < 0.4) continue; flor.push([x, -R() * 1.2, 10.86 + R() * 0.04, R() * 6, 0.5 + R() * 0.5]); }
+      K.inst(new T.IcosahedronGeometry(0.08, 0), K.mat(0xd02a8a, { roughness: 0.7 }), flor, { cast: false });
+    }
     // bueiros, tampas e marcas na rua
     for (const [x, z] of [[-6.5, -4.3], [9.5, -4.3], [-12, 8.1]]) { K.box(0.8, 0.02, 0.3, darkM, x, 0.015, z, { cast: false }); for (let k = 0; k < 6; k++) K.box(0.03, 0.025, 0.24, K.mat(0x0a0a0a), x - 0.3 + k * 0.12, 0.02, z, { cast: false }); }
     K.cyl(0.32, 0.32, 0.02, K.metal(0x4a4a4e, 0.6), -1.2, 0.012, 1.0, { cast: false }, 18);
@@ -645,7 +657,7 @@ MIRA_CENARIOS.push({
 
     // ------------------------------------------------------------ fundo: encosta de Santa Teresa, casinhas, a Baía e o Pão de Açúcar
     const lump = (geo, k = 0.12) => { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = 1 + (Math.sin(x * 3.1 + y * 1.7) * Math.cos(z * 2.3 + x * 1.1) + Math.sin(y * 5.3 + z * 2.9) * 0.5) * k; p.setXYZ(i, x * n, y * n, z * n); } geo.computeVertexNormals(); return geo; };
-    const forest = K.mat(0x3a6a30, { roughness: 1, flatShading: true }), forest2 = K.mat(0x2c5428, { roughness: 1, flatShading: true }), granite = K.mat(0x8a8078, { roughness: 0.9, flatShading: true });
+    const forest = K.mat(0x3a6a30, { roughness: 1, flatShading: true }), forest2 = K.mat(0x2c5428, { roughness: 1, flatShading: true });
     // muro de arrimo atrás do mirante e a encosta que desce até a água
     K.box(18.8, 7, 0.6, K.mat(0x9a8a70, { roughness: 1 }), 0, L1 - 3.6, -13.25, { cast: false });
     { const g = new T.PlaneGeometry(220, 52, 30, 10); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, (R() - 0.5) * 1.6); g.computeVertexNormals(); K.add(g.rotateX(-Math.PI / 2), K.mat(0x4a6a34, { roughness: 1, flatShading: true }), 0, -13.5, -36, { rx: -0.5, cast: false }); }
@@ -658,34 +670,66 @@ MIRA_CENARIOS.push({
       const tr = [[], []]; for (let k = 0; k < 160; k++) { const x = (R() - 0.5) * 140, s = R(); tr[k % 2].push([x, -3.2 - s * 25 + 1.2, -15 - s * 44, R() * 3, 1.2 + R() * 2.2]); } K.inst(new T.IcosahedronGeometry(1, 1), forest, tr[0], { cast: false }); K.inst(new T.IcosahedronGeometry(1, 1), forest2, tr[1], { cast: false });
     }
     // a cidade lá embaixo e a baía
-    { const parts = []; for (let k = 0; k < 90; k++) { const x = -120 + R() * 240, z = -62 - R() * 30, w = 4 + R() * 8, h = 4 + R() * 26; parts.push([K.at(new T.BoxGeometry(w, h, w), x, -28 + h / 2, z), [0xe8dcc8, 0xc8c0b0, 0xa8b0b8, 0xf0e6d6, 0xd8c8b0][k % 5]]); } K.merge(parts, K.vcol({ roughness: 0.8, emissive: 0x2a1a10, emissiveIntensity: 0.2 }), { cast: false }); }
-    const waterTex = K.canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#4a7aa0'; g.fillRect(0, 0, w, h); for (let k = 0; k < 900; k++) { g.strokeStyle = `rgba(${220 + R() * 35},${190 + R() * 50},${150 + R() * 60},${0.05 + R() * 0.15})`; g.lineWidth = 1 + R() * 1.5; const x = R() * w, y = R() * h, l = 6 + R() * 24; g.beginPath(); g.moveTo(x, y); g.lineTo(x + l, y); g.stroke(); } }, [40, 30]);
-    K.add(new T.PlaneGeometry(1400, 900).rotateX(-Math.PI / 2), new T.MeshStandardMaterial({ color: 0x8ab0c8, map: waterTex, roughness: 0.18, metalness: 0.3, envMapIntensity: 1.0, emissive: 0x3a2a30, emissiveIntensity: 0.4 }), 0, -28.5, -490, { cast: false });
+    // como os morros: sem neblina, com o sol baixo e a bruma pintados por vértice (com a neblina virava uma faixa bege lisa)
+    { const parts = []; for (let k = 0; k < 90; k++) { const x = -120 + R() * 240, z = -62 - R() * 30, w = 4 + R() * 8, h = 4 + R() * 26; parts.push([K.at(new T.BoxGeometry(w, h, w), x, -28 + h / 2, z), [0xd8c4a8, 0xb0a494, 0x8e96a0, 0xe0cfb4, 0xc0a888][k % 5]]); }
+      const cid = K.merge(parts, new T.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), { cast: false }), ga = cid.geometry.attributes, cc = new T.Color(), sun = new T.Vector3(-20, 15, 17).normalize(), nv = new T.Vector3(), bru = new T.Color(0xc88a8a);
+      for (let i = 0; i < ga.position.count; i++) { nv.fromBufferAttribute(ga.normal, i); const k = 0.42 + Math.max(0, nv.dot(sun)) * 0.55 + Math.max(0, nv.y) * 0.1, hy = Math.min(1, (ga.position.getY(i) + 28) / 30);
+        cc.fromBufferAttribute(ga.color, i).multiplyScalar(k * (0.75 + hy * 0.25)).lerp(bru, 0.28).convertSRGBToLinear(); ga.color.setXYZ(i, cc.r, cc.g, cc.b); } }
+    const waterTex = K.canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#d8e2ea'; g.fillRect(0, 0, w, h); for (let k = 0; k < 900; k++) { g.strokeStyle = `rgba(${220 + R() * 35},${190 + R() * 50},${150 + R() * 60},${0.05 + R() * 0.15})`; g.lineWidth = 1 + R() * 1.5; const x = R() * w, y = R() * h, l = 6 + R() * 24; g.beginPath(); g.moveTo(x, y); g.lineTo(x + l, y); g.stroke(); } }, [40, 30]);
+    // a baía também sem neblina (de longe ela virava a faixa bege atrás das casas): azul perto, o rosa do céu refletido no horizonte
+    { const wg = new T.PlaneGeometry(1400, 900, 1, 30).rotateX(-Math.PI / 2), wp = wg.attributes.position, wc = new Float32Array(wp.count * 3), perto = new T.Color(0x2e5878), longe = new T.Color(0xb48ea8), cc = new T.Color();
+      for (let i = 0; i < wp.count; i++) { const d = Math.min(1, Math.max(0, (-490 + wp.getZ(i) + 60) / -440)); cc.copy(perto).lerp(longe, Math.pow(d, 0.7)).convertSRGBToLinear(); wc.set([cc.r, cc.g, cc.b], i * 3); }
+      wg.setAttribute('color', new T.BufferAttribute(wc, 3)); K.add(wg, new T.MeshBasicMaterial({ vertexColors: true, map: waterTex, fog: false, toneMapped: false }), 0, -28.5, -490, { cast: false }); }
     K.tick((dt, t) => { waterTex.offset.set(t * 0.003, Math.sin(t * 0.05) * 0.02); });
     for (let k = 0; k < 7; k++) { const b = K.group(-60 + R() * 140, -28.4, -120 - R() * 200, R() * 6); K.box(3 + R() * 3, 0.6, 1.2, M.white, 0, 0.3, 0, { parent: b, cast: false }); if (k % 2) K.add(new T.ConeGeometry(1.2, 4, 3), M.white, 0, 2.4, 0, { parent: b, cast: false }); }
     // Pão de Açúcar, Morro da Urca e o bondinho; Niterói ao longe; morros verdes dos lados; Corcovado
-    K.add(lump(new T.SphereGeometry(1, 28, 18), 0.04), granite, 62, -28, -240, { s: [26, 92, 30], rz: -0.12, cast: false });
-    K.add(lump(new T.SphereGeometry(1, 20, 12), 0.08), forest, 62, -28, -240, { s: [44, 26, 40], cast: false });
-    K.add(lump(new T.SphereGeometry(1, 22, 14), 0.06), granite, 26, -28, -212, { s: [32, 40, 30], cast: false });
-    K.add(lump(new T.SphereGeometry(1, 20, 12), 0.08), forest, 26, -28, -212, { s: [40, 22, 36], cast: false });
+    // os morros de longe não levam a neblina nem a luz do motor (com elas ficavam cor de areia): a luz do sol baixo, a
+    // sombra e a bruma do fim de tarde vêm pintadas por vértice, mata atlântica embaixo e granito nu em cima
+    const haze = new T.Color(0xc88a8a), sunD = new T.Vector3(-20, 15, 17).normalize();
+    const morro = (geo, x, y, z, s, o) => { const p = geo.attributes.position, nr = geo.attributes.normal, col = new Float32Array(p.count * 3), cc = new T.Color(), nv = new T.Vector3();
+      const tone = (lit, dark, k) => cc.copy(dark).lerp(lit, k);
+      const rl = new T.Color(o.rocha[0]), rd = new T.Color(o.rocha[1]), ml = new T.Color(o.mata[0]), md = new T.Color(o.mata[1]);
+      for (let i = 0; i < p.count; i++) { const yy = p.getY(i), xx = p.getX(i), zz = p.getZ(i), n = Math.sin(xx * 7.1 + zz * 3.3) * 0.12 + Math.sin(xx * 2.3 - zz * 5.7 + yy * 4) * 0.08, u = (yy - (o.base || 0)) / (o.alto || 1);
+        nv.set(nr.getX(i) / s[0], nr.getY(i) / s[1], nr.getZ(i) / s[2]).normalize(); const k = Math.max(0, nv.dot(sunD)) * 0.8 + Math.max(0, nv.y) * 0.2;
+        if (u < o.mata_ate + n) tone(ml, md, k); else tone(rl, rd, k).multiplyScalar(0.94 + ((i * 13) % 7) * 0.02);
+        cc.lerp(haze, o.bruma).convertSRGBToLinear(); col.set([cc.r, cc.g, cc.b], i * 3); } // cores pensadas como na tela
+      geo.setAttribute('color', new T.BufferAttribute(col, 3)); return K.add(geo, new T.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), x, y, z, Object.assign({ s, cast: false }, o.add)); };
+    const ROCHA = [0x9a8288, 0x463e52], MATA = [0x4a6a3a, 0x1e3428], MATA_FUNDO = [0x3e5a34, 0x1a2c24];
+    morro(lump(new T.SphereGeometry(1, 32, 22), 0.04), 62, -28, -240, [26, 92, 30], { rocha: ROCHA, mata: MATA, bruma: 0.22, base: -1, alto: 2, mata_ate: 0.5, add: { rz: -0.12 } });
+    morro(lump(new T.SphereGeometry(1, 20, 12), 0.08), 62, -28, -240, [44, 26, 40], { rocha: MATA, mata: MATA, bruma: 0.22, mata_ate: 2 });
+    morro(lump(new T.SphereGeometry(1, 24, 16), 0.06), 26, -28, -212, [32, 40, 30], { rocha: ROCHA, mata: MATA, bruma: 0.18, base: -1, alto: 2, mata_ate: 0.7 });
+    morro(lump(new T.SphereGeometry(1, 20, 12), 0.08), 26, -28, -212, [40, 22, 36], { rocha: MATA, mata: MATA, bruma: 0.18, mata_ate: 2 });
     wire([26, 12, -212], [60, 63, -240], 2.5, new T.LineBasicMaterial({ color: 0x3a3a44 })); K.box(1.2, 0.9, 1.2, K.mat(0xe8e2d2), 43, 34.5, -226, { cast: false });
-    for (const [x, z, sx, sy] of [[-160, -470, 90, 40], [-40, -500, 70, 55], [60, -480, 60, 34], [180, -460, 110, 48]]) K.add(lump(new T.SphereGeometry(1, 18, 10), 0.08), K.mat(0x6a7a9a, { roughness: 1, flatShading: true }), x, -28, z, { s: [sx, sy, 40], cast: false });
+    for (const [x, z, sx, sy] of [[-160, -470, 90, 40], [-40, -500, 70, 55], [60, -480, 60, 34], [180, -460, 110, 48]]) morro(lump(new T.SphereGeometry(1, 18, 10), 0.08), x, -28, z, [sx, sy, 40], { rocha: [0x7a7a9a, 0x3e3e5e], mata: [0x5a6a7a, 0x34405a], bruma: 0.5, base: -1, alto: 2, mata_ate: 0.6 });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest2, -95, -30, -95, { s: [55, 70, 50], cast: false });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest, 120, -30, -80, { s: [60, 62, 45], cast: false });
-    K.add(lump(new T.ConeGeometry(1, 1, 14, 6), 0.06), granite, -170, -30, -190, { s: [50, 140, 50], cast: false });
-    K.add(lump(new T.SphereGeometry(1, 20, 12), 0.1), forest2, -170, -30, -190, { s: [80, 70, 70], cast: false });
-    { const cr = K.group(-170, 110.5, -190, 0.4); K.box(0.9, 5, 0.8, K.mat(0xf2efe6), 0, 2.5, 0, { parent: cr, cast: false }); K.box(5.5, 0.7, 0.6, K.mat(0xf2efe6), 0, 4, 0, { parent: cr, cast: false }); }
+    morro(lump(new T.ConeGeometry(1, 1, 16, 8), 0.06), -170, -30, -190, [50, 140, 50], { rocha: ROCHA, mata: MATA_FUNDO, bruma: 0.3, base: -0.5, alto: 1, mata_ate: 0.6 });
+    morro(lump(new T.SphereGeometry(1, 20, 12), 0.1), -170, -30, -190, [80, 70, 70], { rocha: MATA_FUNDO, mata: MATA_FUNDO, bruma: 0.3, mata_ate: 2 });
+    // o Cristo no topo do Corcovado
+    { const cr = K.group(-170, 39.5, -190, 0.4); K.box(0.9, 5, 0.8, K.mat(0xf2efe6), 0, 2.5, 0, { parent: cr, cast: false }); K.box(5.5, 0.7, 0.6, K.mat(0xf2efe6), 0, 4, 0, { parent: cr, cast: false }); }
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest, -78, -12, -10, { s: [40, 32, 60], cast: false });
     K.add(lump(new T.SphereGeometry(1, 22, 14), 0.1), forest2, 80, -14, 5, { s: [44, 30, 60], cast: false });
 
     // ------------------------------------------------------------ frente: o vale e o morro da igrejinha (poleiro do sniper)
     K.add(new T.PlaneGeometry(400, 60).rotateX(-Math.PI / 2), K.mat(0x3a5a2a, { roughness: 1 }), 0, -9, 40, { cast: false });
-    K.add(new T.PlaneGeometry(400, 7).rotateX(-Math.PI / 2), K.mat(0x4a6a34, { roughness: 1 }), 0, -4.5, 13.6, { rx: 0.9, cast: false });
+    { const mato = K.canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#2f4a24'; g.fillRect(0, 0, w, h); for (let k = 0; k < 500; k++) { g.fillStyle = ['#3e5e2c', '#26401e', '#4a6e34', '#344f26'][(R() * 4) | 0]; g.beginPath(); g.ellipse(R() * w, R() * h, 4 + R() * 12, 3 + R() * 7, R() * 3, 0, 7); g.fill(); } }, [60, 1.2]);
+      K.add(new T.PlaneGeometry(400, 7).rotateX(-Math.PI / 2), K.texMat(mato, { roughness: 1 }), 0, -4.5, 13.6, { rx: 0.9, cast: false }); }
     { const parts = [], tr = [[], []], hc = [0xf2c14e, 0xe8869a, 0x4f8fc0, 0xf6f3ec, 0x9ac46a, 0xd77a4a, 0xe8d8b8];
       for (let k = 0; k < 70; k++) { const x = (R() - 0.5) * 110, z = 14 + R() * 26, w = 3 + R() * 4, h = 2.5 + R() * 2.5, y = z < 17 ? -9 + (17 - z) * 0.9 - 2 : -9; if (y + h > -3.5) continue; parts.push([K.at(new T.BoxGeometry(w, h, w * 0.8), x, y + h / 2, z, R()), hc[k % hc.length]]); parts.push([K.at(new T.ConeGeometry(w * 0.75, 1.4, 4), x, y + h + 0.7, z, Math.PI / 4 + R() * 0.2), 0xa8583a]); }
       K.merge(parts, K.vcol({ roughness: 0.85 }), { cast: false });
-      for (let k = 0; k < 150; k++) { const x = (R() - 0.5) * 130, z = 12.5 + R() * 34, base = z < 17 ? -9 + (17 - z) * 0.9 : -9, s = 1.2 + R() * 2; if (base + s * 1.4 > -1) continue; tr[k % 2].push([x, base + s * 0.8, z, R() * 3, s]); }
+      // mata da encosta: copas em três verdes, ipês amarelos e quaresmeiras roxas florindo, e bananeiras perto do muro
+      tr.push([], [], []); const ground = (z) => z < 17 ? -9 + (17 - z) * 0.9 : -9;
+      for (let k = 0; k < 190; k++) { const x = (R() - 0.5) * 130, z = 12.5 + R() * 34, base = ground(z), s = 1.2 + R() * 2; if (base + s * 1.4 > -1) continue; const r = R(); tr[r < 0.07 ? 3 : r < 0.12 ? 4 : k % 3 === 2 ? 2 : k % 2].push([x, base + s * 0.8, z, R() * 3, [s, s * (0.75 + R() * 0.3), s]]); }
       K.inst(new T.IcosahedronGeometry(1, 1), forest, tr[0], { cast: false }); K.inst(new T.IcosahedronGeometry(1, 1), forest2, tr[1], { cast: false });
+      K.inst(new T.IcosahedronGeometry(1, 1), K.mat(0x4f7e36, { roughness: 1, flatShading: true }), tr[2], { cast: false });
+      K.inst(new T.IcosahedronGeometry(1, 1), K.mat(0xe8b820, { roughness: 0.9, flatShading: true }), tr[3], { cast: false });
+      K.inst(new T.IcosahedronGeometry(1, 1), K.mat(0x8a4ab0, { roughness: 0.9, flatShading: true }), tr[4], { cast: false });
+      const folha = new T.PlaneGeometry(0.45, 1.7, 1, 3).translate(0, 0.85, 0); { const p = folha.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.pow(p.getY(i) / 1.7, 2) * 0.7); folha.rotateX(0.75).computeVertexNormals(); } // abre para fora e verga na ponta
+      const caule = [], folhas = [];
+      for (let k = 0; k < 46; k++) { const x = (R() - 0.5) * 80, z = 11.3 + R() * 2.4, base = ground(z), h = 1.2 + R() * 0.8; if (base + h + 1.2 > -1.2) continue; caule.push([x, base + h / 2, z, 0, [1, h, 1]]);
+        for (let j = 0; j < 5; j++) folhas.push([x, base + h - 0.1, z, j * 1.26 + R() * 0.5, 0.8 + R() * 0.4]); }
+      K.inst(new T.CylinderGeometry(0.09, 0.13, 1, 6), K.mat(0x6a7a3a, { roughness: 1 }), caule, { cast: false });
+      K.inst(folha, K.mat(0x5a9a3a, { roughness: 0.8, side: T.DoubleSide }), folhas, { cast: false });
     }
     // morro e igrejinha colonial (a torre é o poleiro do sniper)
     K.add(lump(new T.SphereGeometry(34, 26, 16), 0.04), K.mat(0x4f7a38, { roughness: 1, flatShading: true }), -2, -26.5, 64, { cast: false });
