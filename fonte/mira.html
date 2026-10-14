@@ -3577,15 +3577,15 @@ MIRA_CENARIOS.push({
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)];
       const [obi, obiN] = pk([[0xd9a441, 'obi dourado'], [0xc8322f, 'obi vermelho'], [0xf2c14e, 'obi amarelo'], [0x16161a, 'obi preto'], [0xff8ab0, 'obi rosa'], [0x2e4fa8, 'obi azul'], [0xf2efe8, 'obi branco']]);
-      o.sash = obi; o.shoe = 0x7a5a3a; o.clutch = false; o.necklace = false; o.bow = false; o.pocket = 0;
+      o.sash = obi; o.shoe = 0x7a5a3a; o.robe = 'cross'; // sleeves and a crossed collar, no straps or tie o.clutch = false; o.necklace = false; o.bow = false; o.pocket = 0;
       if (o.dress) {
         o.gown = true; o.satin = false; o.hairStyle = r() < 0.7 ? 'bun' : 'bob'; o.name += ', ' + obiN;
-        if (r() < 0.25) { o.skirt = o.main; }
+        r(); // (was a second skirt over the yukata; the draw stays so the rest of the wardrobe is unchanged)
         if (r() < 0.45) { o.hat = 'flower'; o.hatColor = pk([0xff5d8f, 0xf6f3ec, 0xffd23f, 0xc8322f]); o.name += ', kanzashi de flor'; }
       } else {
         o.pants = o.main; o.tie = o.main; o.shirt = o.main;
         if (r() < 0.2) { o.main = o.pants = o.shirt = o.tie = 0x1e3a8b; o.stripes = 0xf2efe8; o.sash = 0xc8322f; o.name = 'casaco happi azul'; }
-        else if (/yukata/.test(o.name) && r() < 0.6) { o.coat = o.main; o.name += ', ' + obiN; }
+        else if (/yukata/.test(o.name) && r() < 0.6) { o.robeLong = true; o.name += ', ' + obiN; }
         if (r() < 0.12) { o.hat = 'turban'; o.hatColor = 0xf2efe8; o.name += ', hachimaki'; }
       }
       if (r() < 0.14) { o.mask = 'kitsune'; o.name += ', máscara kitsune'; }
@@ -6575,7 +6575,7 @@ MIRA_CENARIOS.push({
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)];
       if (!o.dress) {
-        o.coat = o.main; o.pants = o.main; o.shoe = r() < 0.6 ? 0xe9c33b : 0xf0e6cf; o.bow = false; o.pocket = 0;
+        o.robe = 'round'; o.robeLong = true; o.pants = o.main; // djellaba: long robe with sleeves o.shoe = r() < 0.6 ? 0xe9c33b : 0xf0e6cf; o.bow = false; o.pocket = 0;
         const h = r();
         if (h < 0.34) { o.hat = 'fez'; o.hatColor = r() < 0.8 ? 0xa8172a : 0x16161a; o.name += o.hatColor === 0x16161a ? ', fez preto' : ', fez vermelho'; }
         else if (h < 0.54) { o.hat = 'beanie'; o.hatColor = 0xf6f3ec; o.name += ', solidéu branco'; }
@@ -6583,6 +6583,7 @@ MIRA_CENARIOS.push({
         if (r() < 0.2) { o.sash = 0xd9a441; o.name += ', faixa dourada'; }
         if (r() < 0.3) o.beard = true;
       } else {
+        o.robe = 'round'; o.collar = 0xd9a441; // kaftan: sleeves and a gold trimmed neck
         o.accent = 0xd9a441; o.earring = true; o.necklace = r() < 0.75; o.clutch = false; o.shoe = pk([0xd9a441, 0xc9ced6, o.main]);
         if (r() < 0.7) { o.sash = r() < 0.8 ? 0xd9a441 : 0xc9ced6; o.name += o.sash === 0xd9a441 ? ', cinto dourado' : ', cinto prateado'; }
         if (r() < 0.3) { o.scarf = pk([0xf2e6c8, 0xe0a020, 0x1aa0a0, 0xb0207a]); o.name += ', lenço no pescoço'; }
@@ -10928,6 +10929,9 @@ CG.sclera = (() => { const g = new T.SphereGeometry(1.75, 8, 6); g.scale(1.25, 1
 CG.collar = new T.BoxGeometry(5, 3.2, 1); CG.neckband = new T.TorusGeometry(5.2, 1.0, 5, 14);
 CG.lens = new T.BoxGeometry(4.4, 2.7, 1.0); CG.bridge = new T.BoxGeometry(1.6, 0.6, 0.6); CG.temple = new T.BoxGeometry(0.5, 0.6, 11);
 CG.watchBand = new T.TorusGeometry(4.9, 0.7, 5, 14); CG.watchFace = new T.CylinderGeometry(2.3, 2.3, 1.1, 10); CG.bracelet = new T.TorusGeometry(4.3, 0.6, 5, 14);
+// robes (yukata, kimono, kaftan, djellaba): a bell sleeve over the forearm and a long straight robe skirt
+CG.bellSleeve = { L: segGeo(24, 5.0, 8.6, 'x'), R: segGeo(24, 5.0, 8.6, '-x') };
+CG.robeSkirt = lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80], [20.5, -96]], 0.82);
 CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.1, 6, 5);
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
 CG.fringe = (() => { const g = new T.CylinderGeometry(11.9, 11.7, 7.5, 14, 1, true, -0.8, 1.6); g.scale(0.96, 1, 1.03); return g; })();
@@ -10951,14 +10955,23 @@ function makeChar(o, id) {
   if (o.dress) {
     m(CG.bodice, cloth, 0, -3, 0, B.Spine, true);
     m(o.gown ? CG.gown : CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
-    m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
-    for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 9 : -9, 16, 6, B.Spine2); }
+    if (!o.robe) {
+      m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
+      for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 9 : -9, 16, 6, B.Spine2); }
+    } else for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
     m(CG.pelvis, pants, 0, 0, 0, B.Hips);
-    m(CG.hem, cloth, 0, 0, 0, B.Hips);
+    m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong);
     m(CG.jacket, cloth, 0, -4, 0, B.Spine, true);
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
+  }
+  if (o.robe) {
+    // a robe closes at the neck: crossed collar (left over right) or a plain round neck
+    const cm = mat(o.collar ?? new T.Color(o.main).multiplyScalar(0.55).getHex(), { roughness: 0.6 });
+    if (o.robe === 'cross') { const v = m(CG.vee, cm, 0, 16, o.dress ? 10.4 : 12.0, B.Spine2); v.rotation.x = o.dress ? -0.2 : -0.12; v.scale.set(0.8, 0.85, 1); }
+    m(CG.neckband, cm, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
+  } else if (!o.dress) {
     const v = m(CG.vee, o.vest ? mat(o.vest, { roughness: 0.5 }) : shirt, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05;
     // shirt collar points and the band round the neck
     for (const sg of [-1, 1]) { const c = m(CG.collar, shirt, sg * 4.2, 19.6, 9.6, B.Spine2); c.rotation.set(0.25, sg * 0.75, sg * -0.35); }
@@ -11002,7 +11015,8 @@ function makeChar(o, id) {
   let glass = null, clutch = null;
   for (const s of ['Left', 'Right']) {
     const k = s[0];
-    if (o.dress) { m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
+    if (o.robe) { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.bellSleeve[k], cloth, 0, 0, 0, B[s + 'ForeArm']); }
+    else if (o.dress) { m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
     else { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.foreArm[k], cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.cuff[k], shirt, 0, 0, 0, B[s + 'ForeArm']); }
     m(CG.hand[k], skin, 0, 0, 0, B[s + 'Hand']); m(CG.thumb, skin, s === 'Left' ? 4.2 : -4.2, 0.6, 3.4, B[s + 'Hand']);
     if (s === 'Left' && o.watch) { m(CG.watchBand, mat(o.watch === 'gold' ? 0x3a2a1a : 0x15151a, { roughness: 0.5 }), 25.2, 0, 0, B.LeftForeArm).rotation.y = Math.PI / 2; m(CG.watchFace, o.watch === 'gold' ? gold : mat(0xd0d4da, { metalness: 0.9, roughness: 0.2 }), 25.2, 4.6, 0, B.LeftForeArm); }

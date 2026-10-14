@@ -27,15 +27,15 @@ MIRA_CENARIOS.push({
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)];
       const [obi, obiN] = pk([[0xd9a441, 'obi dourado'], [0xc8322f, 'obi vermelho'], [0xf2c14e, 'obi amarelo'], [0x16161a, 'obi preto'], [0xff8ab0, 'obi rosa'], [0x2e4fa8, 'obi azul'], [0xf2efe8, 'obi branco']]);
-      o.sash = obi; o.shoe = 0x7a5a3a; o.clutch = false; o.necklace = false; o.bow = false; o.pocket = 0;
+      o.sash = obi; o.shoe = 0x7a5a3a; o.robe = 'cross'; // sleeves and a crossed collar, no straps or tie o.clutch = false; o.necklace = false; o.bow = false; o.pocket = 0;
       if (o.dress) {
         o.gown = true; o.satin = false; o.hairStyle = r() < 0.7 ? 'bun' : 'bob'; o.name += ', ' + obiN;
-        if (r() < 0.25) { o.skirt = o.main; }
+        r(); // (was a second skirt over the yukata; the draw stays so the rest of the wardrobe is unchanged)
         if (r() < 0.45) { o.hat = 'flower'; o.hatColor = pk([0xff5d8f, 0xf6f3ec, 0xffd23f, 0xc8322f]); o.name += ', kanzashi de flor'; }
       } else {
         o.pants = o.main; o.tie = o.main; o.shirt = o.main;
         if (r() < 0.2) { o.main = o.pants = o.shirt = o.tie = 0x1e3a8b; o.stripes = 0xf2efe8; o.sash = 0xc8322f; o.name = 'casaco happi azul'; }
-        else if (/yukata/.test(o.name) && r() < 0.6) { o.coat = o.main; o.name += ', ' + obiN; }
+        else if (/yukata/.test(o.name) && r() < 0.6) { o.robeLong = true; o.name += ', ' + obiN; }
         if (r() < 0.12) { o.hat = 'turban'; o.hatColor = 0xf2efe8; o.name += ', hachimaki'; }
       }
       if (r() < 0.14) { o.mask = 'kitsune'; o.name += ', máscara kitsune'; }
