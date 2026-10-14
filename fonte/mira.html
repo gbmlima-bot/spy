@@ -7683,6 +7683,76 @@ MIRA_CENARIOS.push({
     const palm = (x, z, y, h) => { K.cyl(0.12, 0.18, h, K.mat(0x5a4030, { roughness: 1 }), x, y + h / 2, z, { cast: false }, 6); for (let k = 0; k < 9; k++) { const f = K.add(new T.PlaneGeometry(0.5, 2.4, 1, 4).translate(0, 1.2, 0), K.mat(0x2a4a2a, { side: T.DoubleSide, roughness: 1 }), x, y + h, z, { cast: false }); f.rotation.set(-1.1 - (k % 3) * 0.25, k * 0.7, 0, 'YXZ'); } };
     palm(-30, 18, -4.2, 9); palm(31, 22, -4.2, 10); palm(-18, -22, -4.2, 14); palm(16, -26, -4.2, 15); palm(-46, -70, -4.2, 12); palm(-35, -82, -4.2, 13);
 
+    // ------------------------------------------------------------ cegonhas: ninho no alto de uma ruína de taipa atrás do riad
+    // (como nas muralhas do El Badi). O casal bate o bico (cabeça jogada para trás, matraca) de tempos em tempos e se
+    // revezam: um sai, plana em círculos largos sobre os telhados do fundo e volta ao ninho
+    { const rc = K.rng(9091), branco = K.mat(0xf2efe8, { roughness: 0.9 }), preto = K.mat(0x1a1818, { roughness: 0.9 }), bico = K.mat(0xd84a28, { roughness: 0.6 });
+      const NX = 6.5, NZ = -17.5, NY = 15.2, taipa = K.mat(0xb06a44, { roughness: 1 });
+      K.box(1.5, NY + 4.2, 1.5, taipa, NX, (NY - 4.2) / 2, NZ, { cast: false });
+      for (const [dx, dz] of [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]]) K.box(0.4, 0.45, 0.4, taipa, NX + dx, NY + 0.22, NZ + dz, { cast: false });
+      // ninho: monte de gravetos (cilindro largo e um aro mais escuro), com palhas soltas
+      K.cyl(0.95, 0.7, 0.4, K.mat(0x5a4028, { roughness: 1 }), NX, NY + 0.3, NZ, { cast: false }, 10);
+      K.add(new T.TorusGeometry(0.8, 0.14, 5, 14).rotateX(PI / 2), K.mat(0x4a321e, { roughness: 1 }), NX, NY + 0.48, NZ, { cast: false });
+      for (let k = 0; k < 14; k++) { const a = k / 14 * PI * 2 + rc() * 0.3; K.cyl(0.015, 0.015, 0.7, K.mat(0x6a5030, { roughness: 1 }), NX + Math.cos(a) * 0.85, NY + 0.35, NZ + Math.sin(a) * 0.85, { cast: false, rz: (rc() - 0.5) * 1.2, ry: a, rx: 1.2 }, 3); }
+      const cegonha = (voa) => {
+        const g = K.group(NX, NY + 0.5, NZ), corpo = K.group(0, 0.42, 0, 0, g);
+        // peças paradas de cada parte numa malha só (cor por vértice): menos chamadas de desenho
+        const vc = K.vcol({ roughness: 0.9 });
+        K.merge([[new T.SphereGeometry(0.2, 10, 8).scale(0.85, 0.8, 1.7), 0xf2efe8], [new T.BoxGeometry(0.14, 0.03, 0.18).translate(0, 0.02, -0.38), 0xf2efe8]], vc, { parent: corpo });
+        const asas = [-1, 1].map(sx => { const a = K.group(sx * 0.15, 0.05, 0.05, 0, corpo); K.merge([[new T.BoxGeometry(0.05, 0.15, 0.4).translate(0, 0, -0.05), 0xf2efe8], [new T.BoxGeometry(0.05, 0.09, 0.3).translate(0, -0.03, -0.32), 0x1a1818]], vc, { parent: a });
+          // asa aberta (só a que voa): outro grupo, mostrado no voo no lugar da asa dobrada
+          if (voa) { const ab = K.group(0, 0, 0, 0, a); ab.visible = false; a.userData.ab = ab;
+            const pa = [[new T.BoxGeometry(0.9, 0.03, 0.42).translate(sx * 0.45, 0, 0), 0xf2efe8], [new T.BoxGeometry(0.55, 0.03, 0.4).translate(sx * 1.15, 0, -0.02), 0x1a1818]];
+            for (let f = 0; f < 4; f++) pa.push([K.at(new T.BoxGeometry(0.24, 0.02, 0.06), sx * (1.5 + f * 0.03), 0, 0.14 - f * 0.11, -sx * (0.1 + f * 0.12)), 0x1a1818]);
+            K.merge(pa, vc, { parent: ab }); }
+          return a; });
+        const pesc = K.group(0, 0.12, 0.25, 0, corpo); K.cyl(0.05, 0.065, 0.42, branco, 0, 0.2, 0, { parent: pesc }, 7);
+        const cab = K.group(0, 0.42, 0, 0, pesc); K.sphere(0.075, branco, 0, 0, 0, { parent: cab }, 9, 7);
+        const bSup = K.group(0, 0.01, 0.05, 0, cab); K.add(new T.ConeGeometry(0.025, 0.36, 6).rotateX(PI / 2).translate(0, 0.012, 0.18), bico, 0, 0, 0, { parent: bSup });
+        const bInf = K.group(0, -0.012, 0.05, 0, cab); K.add(new T.ConeGeometry(0.02, 0.33, 6).rotateX(PI / 2).translate(0, -0.01, 0.165), bico, 0, 0, 0, { parent: bInf });
+        const pernas = [-1, 1].map(sx => { const l = K.group(sx * 0.07, -0.1, 0.02, 0, corpo); K.cyl(0.018, 0.016, 0.36, bico, 0, -0.18, 0, { parent: l }, 5); return l; });
+        g.scale.setScalar(1.45); return { g, corpo, asas, pesc, cab, bInf, pernas };
+      };
+      const A = cegonha(false), B = cegonha(true); A.g.position.x -= 0.28; A.g.rotation.y = 0.6; B.g.position.x += 0.3; B.g.rotation.y = 2.4;
+      // B sai do ninho em ciclos de 90 s: 0–55 s no ninho, 55–85 s voando (decola, círculos largos, pousa), depois de novo no ninho
+      const CX = 2, CZ = -33, RV = 14, HV = 13.5, ninhoB = new T.Vector3(NX + 0.3, NY + 0.5, NZ), P = new T.Vector3(), Q = new T.Vector3(), ease = (u) => u * u * (3 - 2 * u);
+      const voo = (v) => { const a = 1.2 + v * 0.42; return P.set(CX + Math.cos(a) * RV, HV + Math.sin(v * 0.9) * 1.2, CZ + Math.sin(a) * RV); };
+      const pose = (c, t, matraca, fase) => {
+        // matraca: pescoço jogado para trás até o bico apontar para o céu, mandíbula batendo rápido, asas meio abertas
+        const k = matraca ? Math.min(1, matraca * 3, (1 - matraca) * 3) : 0;
+        c.pesc.rotation.x = 0.25 - k * 1.1 + (k ? 0 : Math.sin(t * 0.7 + fase) * 0.12); c.cab.rotation.x = k ? -k * 1.0 : 0.35; c.cab.rotation.y = k ? 0 : Math.sin(t * 0.37 + fase) * 0.6;
+        c.bInf.rotation.x = k > 0.5 ? Math.max(0, Math.sin(t * 34)) * 0.35 : 0;
+        c.asas.forEach((a, i) => { a.rotation.z = (i ? -1 : 1) * k * 0.5; });
+      };
+      let pc = 4 + rc() * 6, mt = -1;
+      K.tick((dt, t) => {
+        dt = Math.min(dt, 0.1); pc -= dt;
+        if (pc <= 0 && mt < 0) { mt = 0; pc = 18 + rc() * 14; }
+        const mm = mt >= 0 ? mt / 2.6 : 0; if (mt >= 0) { mt += dt; if (mt > 2.6) mt = -1; }
+        // respiração: o grupo todo se mexe sempre um pouco, e assim o motor não o junta às peças paradas
+        A.g.position.y = NY + 0.5 + Math.sin(t * 1.3) * 0.006; pose(A, t, mm, 0);
+        const c = t % 90, voando = c > 55 && c < 85;
+        if (!voando) { B.g.position.copy(ninhoB); B.g.position.y += Math.sin(t * 1.3 + 1) * 0.006; B.g.rotation.set(0, 2.4, 0); B.corpo.rotation.set(0, 0, 0); pose(B, t, mm, 2); B.asas.forEach(a => { a.userData.ab.visible = false; a.children.forEach(m => { if (m !== a.userData.ab) m.visible = true; }); }); B.pernas.forEach(l => l.rotation.x = 0); return; }
+        // em voo: asas abertas, pescoço e pernas esticados, planando com batidas raras
+        const v = c - 55; B.asas.forEach((a, i) => { a.userData.ab.visible = true; a.children.forEach(m => { if (m !== a.userData.ab) m.visible = false; }); a.rotation.z = (i ? 1 : -1) * (v % 7 < 1.2 ? Math.sin(v * 9) * 0.35 : 0.05); });
+        B.pesc.rotation.x = 1.15; B.cab.rotation.set(0.35, 0, 0); B.bInf.rotation.x = 0; B.pernas.forEach(l => l.rotation.x = -1.35);
+        const ida = Math.min(1, v / 4), volta = Math.max(0, (v - 26) / 4); voo(v); Q.copy(P);
+        if (ida < 1) P.lerpVectors(ninhoB, Q, ease(ida)); else if (volta > 0) P.lerpVectors(Q, ninhoB, ease(volta));
+        const dx = P.x - B.g.position.x, dz = P.z - B.g.position.z; B.g.position.copy(P); if (dx * dx + dz * dz > 1e-8) B.g.rotation.set(0, Math.atan2(dx, dz), 0);
+        B.corpo.rotation.set(0, 0, ida >= 1 && volta === 0 ? -0.25 : 0);
+      });
+    }
+    // fumaça das grelhas da praça (Jemaa el-Fna) subindo entre os telhados do fundo, acesa de laranja por baixo
+    { const rf = K.rng(9137), plumes = [];
+      for (const [x, z, y0] of [[-23, -24, 9.5], [15, -33, 11]]) {
+        K.halo(x, y0 + 0.4, z, 6, 0xff8a3a, 0.6);
+        for (let k = 0; k < 8; k++) { const sm = new T.SpriteMaterial({ map: K.radialTex, color: 0xb8aaa0, transparent: true, opacity: 0, depthWrite: false }); const sp = new T.Sprite(sm); K.root.add(sp); plumes.push({ sp, x, z, y0, ph: k / 8 + rf() * 0.05, w: rf() * 6 }); }
+      }
+      const quente = new T.Color(0xff9a50), frio = new T.Color(0x9a9298);
+      K.tick((dt, t) => plumes.forEach(p => { const u = (t * 0.06 + p.ph) % 1; p.sp.position.set(p.x + u * 3.2 + Math.sin(t * 0.5 + p.w) * 0.4 * u, p.y0 + u * 9, p.z - u * 1.5); p.sp.scale.setScalar(1.2 + u * 4.5);
+        p.sp.material.opacity = 0.6 * Math.min(1, u * 6) * (1 - u); p.sp.material.color.copy(quente).lerp(frio, Math.min(1, u * 2.5)); }));
+    }
+
     // ------------------------------------------------------------ minarete do bairro (poleiro do sniper)
     const minTex = (w0, h0, seed) => K.canvasTex(w0, h0, (g, w, h) => {
       const r = K.rng(seed); g.fillStyle = '#c47a52'; g.fillRect(0, 0, w, h);
