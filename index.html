@@ -971,7 +971,7 @@ window.MIRA_KIT = MIRA_KIT;
     if (o.skirt) m(G.skirt, mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips);
     if (o.lei) m(G.lei, mat(o.lei, { roughness: 0.8 }), 0, 16, 5, B.Spine2).rotation.x = Math.PI / 2 + 0.4;
     // horizontal bands round the shirt, each fitted to the torso's width at its height (the torso is 0.62 as deep as it is wide)
-    if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k, 1.4, k * 0.62); }
+    if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k * (o.bw || 1), 1.4, k * 0.62); }
     if (o.gloves) for (const s of ['Left', 'Right']) m(G.glove, mat(o.gloves, { roughness: 0.6 }), s === 'Left' ? 5 : -5, 0, 0, B[s + 'Hand']).scale.set(1.5, 0.75, 1);
     if (o.prop2) hand(T, o.prop2, B, 'R', m, mat, glow, o);
     if (o.propL) hand(T, o.propL, B, 'L', m, mat, glow, o);
@@ -9572,11 +9572,18 @@ const DRESSES = [[0xc8322f, 'vestido vermelho'], [0xe9c33b, 'vestido amarelo'], 
 const SKIN = [0xf3d0b0, 0xe6b48f, 0xcf946c, 0xa36d4b, 0x7a4e33, 0x5a3725];
 const HAIR = [[0x1a1411, ''], [0x3b2a1e, ''], [0x6b4a2b, ''], [0xd9b46a, ', cabelo loiro'], [0xa9a9a9, ', cabelo grisalho'], [0x8a3a22, ', cabelo ruivo']];
 const TIES = [0x8b1e2d, 0x1e3a8b, 0x111111, 0xc9a227, 0x2c6e49, 0x6b3f8c];
+// height and build vary by guest (from their own little random stream, so the rest of the outfit is unchanged);
+// the fixed cast keeps h = 1, bw = 1 since their poses are placed by hand
 function outfitFor(seed, id, st) {
+  const o = outfitFor0(seed, id, st);
+  if (o.h === undefined) { const r = mulberry32((seed * 3571 + id * 2659 + 17) >>> 0); o.h = o.dress ? 0.94 + r() * 0.07 : 0.97 + r() * 0.08; o.bw = 0.94 + r() * 0.12; }
+  return o;
+}
+function outfitFor0(seed, id, st) {
   const base = { satin: false, accent: 0xd9a441, shoe: 0x1b1b1f, necklace: false, earring: false, clutch: false, beard: false, bow: false, pocket: 0, glass: false, drink: 0xf2c14e, gown: false };
   if (st && id === st.bm) return Object.assign(base, { dress: false, main: 0x141418, pants: 0x141418, shirt: 0xf4f1ea, tie: 0x111111, bow: true, skin: SKIN[3], hair: 0x1a1411, hairStyle: 'short', name: 'barman' });
   if (st && id === st.ho) return Object.assign(base, { dress: false, main: 0xf3ede0, pants: 0x1b1b1f, shirt: 0xffffff, tie: 0x111111, bow: true, skin: SKIN[1], hair: 0xa9a9a9, hairStyle: 'quiff', glass: 'coupe', drink: 0xffe2a0, pocket: 0xc8322f, name: 'anfitrião de smoking branco' });
-  if (st && st.sx) { const k = st.sx.indexOf(id); if (k >= 0 && STATICS[k]) { const o = Object.assign({ shirt: 0xf6f3ec, tie: 0x111111, hairStyle: 'short', hair: 0x1a1411 }, base, STATICS[k].outfit); o.skin = typeof o.skin === 'number' && o.skin < 10 ? SKIN[o.skin] : (o.skin ?? SKIN[1]); return o; } }
+  if (st && st.sx) { const k = st.sx.indexOf(id); if (k >= 0 && STATICS[k]) { const o = Object.assign({ shirt: 0xf6f3ec, tie: 0x111111, hairStyle: 'short', hair: 0x1a1411, h: 1, bw: 1 }, base, STATICS[k].outfit); o.skin = typeof o.skin === 'number' && o.skin < 10 ? SKIN[o.skin] : (o.skin ?? SKIN[1]); return o; } }
   const r = mulberry32((seed * 7919 + id * 104729) >>> 0); r(); r();
   if (SCEN.id) {
     // the scenario's wardrobe (see guardaRoupa in each scenario): its suits, dresses, glasses and extras such as masks and hats
@@ -11433,7 +11440,7 @@ CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeo
 CG.fringe = (() => { const g = new T.CylinderGeometry(11.9, 11.7, 7.5, 14, 1, true, -0.8, 1.6); g.scale(0.96, 1, 1.03); return g; })();
 CG.sideQuiff = (() => { const g = new T.SphereGeometry(7.5, 10, 6); g.scale(1.25, 0.5, 1.15); return g; })();
 function makeChar(o, id) {
-  const root = new T.Group(); const rig = new T.Group(); rig.scale.setScalar(RS); root.add(rig);
+  const root = new T.Group(); const rig = new T.Group(); const hs = o.h || 1, bw = o.bw || 1; rig.scale.setScalar(RS * hs); root.add(rig);
   const B = {}; for (const b of RIG.bones) { const ob = new T.Object3D(); ob.name = b.n; ob.position.fromArray(b.pos); B[b.n] = ob; (b.p ? B[b.p] : rig).add(ob); }
   const m = (geo, mm, x, y, z, parent, cast = false) => { const me = new T.Mesh(geo, mm); me.position.set(x, y, z); me.castShadow = cast; me.userData.eid = id; parent.add(me); return me; };
   const skin = mat(o.skin, { roughness: 0.6 }), hair = mat(o.hair, { roughness: 0.55 });
@@ -11452,7 +11459,7 @@ function makeChar(o, id) {
   }
   // torso
   if (o.dress) {
-    m(CG.bodice, cloth, 0, -3, 0, B.Spine, true);
+    m(CG.bodice, cloth, 0, -3, 0, B.Spine, true).scale.x = bw;
     m(o.gown ? CG.gown : CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
     if (!o.robe) {
       m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
@@ -11460,9 +11467,10 @@ function makeChar(o, id) {
     } else for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
-    m(CG.pelvis, pants, 0, 0, 0, B.Hips);
-    if (!o.tee && !o.knit && !o.camisa) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); // a T-shirt, sweater or tucked-in shirt ends at the waist
-    m(CG.jacket, cloth, 0, -4, 0, B.Spine, true);
+    m(CG.pelvis, pants, 0, 0, 0, B.Hips).scale.x = bw;
+    if (!o.tee && !o.knit && !o.camisa) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong).scale.x = bw; // a T-shirt, sweater or tucked-in shirt ends at the waist
+    // build: the torso is a little wider or narrower (width only, so everything on the chest stays put)
+    m(CG.jacket, cloth, 0, -4, 0, B.Spine, true).scale.x = bw;
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
   }
   if (o.robe) {
@@ -11547,7 +11555,7 @@ function makeChar(o, id) {
   if (o.prop === 'brush') { const br = m(new T.CylinderGeometry(0.4, 0.5, 14, 5), walnut, -7, -1, 4, B.RightHand); br.rotation.x = Math.PI / 2; m(new T.ConeGeometry(0.9, 2.5, 6), mat(0xc8322f), 0, 8, 0, br); const pal = m(new T.CylinderGeometry(9, 9, 0.6, 12), mat(0xd8c8a0, { roughness: 0.9 }), 9, -2, 2, B.LeftHand); pal.scale.z = 0.75; [0xc8322f, 0x2e5fa8, 0xe9c33b, 0x3f8a3a, 0xf6f1e8].forEach((c, i) => m(new T.CylinderGeometry(1.4, 1.4, 0.6, 8), mat(c), -4 + i * 2.2, 0.5, (i % 2 ? -3 : 3), pal)); }
   if (window.MIRA_VESTIR) { try { MIRA_VESTIR(T, o, B, m, mat, glow, headG); } catch (e) { console.warn('vestir', e); } }
   batchChar(root, B, [glass, clutch, phone, sh]);
-  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, tray: o.prop === 'tray', x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
+  root.userData = { parts: B, rig, bones: B, id, ph: Math.random() * 10, glass, clutch, phone, tray: o.prop === 'tray', hs, x: 0, z: 0, rot: 0, init: false, shadow: sh, clip: 'idle', ct: Math.random() * 3, prev: null, pt: 0, blend: 1, ovr: {}, ry: 0, rx: 0, hipsY: 103 };
   return root;
 }
 const CLIP_PP = { samba: true };
@@ -11650,12 +11658,14 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   if (u.look && u.look.w > 0.002) { QT.setFromEuler(EU.set(0, u.look.yaw, 0, 'XYZ')); QT2.copy(B.Head.quaternion).multiply(QT); B.Head.quaternion.slerp(QT2, u.look.w * 0.75); QT2.copy(B.Neck.quaternion).multiply(QT); B.Neck.quaternion.slerp(QT2, u.look.w * 0.3); }
   // whole-body placement: sitting drops the hips, lying tilts the rig, dead lies flat
   let ry = 0, rx = 0, rz = 0;
-  if (anim === 7 || anim === 9 || anim === 12 || anim === 17) ry = (u.seatHy !== undefined ? u.seatHy : 0.56) - 1.08;
-  else if (anim === 15) ry = -0.72;
-  else if (anim === 21) ry = -0.46;
-  else if (anim === 16) { rx = -1.0; ry = 0.22; rz = -0.05; }
-  else if (anim === 8) { rx = -1.2; ry = 0.46; rz = -0.05; }
-  else if (anim === 5) { rx = -Math.PI / 2; ry = 0.12; }
+  // (hips sit on the seat whatever the guest's height; the other drops scale with it)
+  const hs = u.hs;
+  if (anim === 7 || anim === 9 || anim === 12 || anim === 17) ry = (u.seatHy !== undefined ? u.seatHy : 0.56) - 1.08 * hs;
+  else if (anim === 15) ry = -0.72 * hs;
+  else if (anim === 21) ry = -0.46 * hs;
+  else if (anim === 16) { rx = -1.0; ry = 0.22 * hs; rz = -0.05; }
+  else if (anim === 8) { rx = -1.2; ry = 0.46 * hs; rz = -0.05; }
+  else if (anim === 5) { rx = -Math.PI / 2; ry = 0.12 * hs; }
   u.ry += (ry - u.ry) * k; u.rx += (rx - u.rx) * k;
   rig.position.set(0, u.ry, anim === 8 || anim === 16 ? rz : 0); rig.rotation.x = u.rx;
   if (u.phone) u.phone.visible = anim === 18;

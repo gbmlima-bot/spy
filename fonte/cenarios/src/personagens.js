@@ -137,7 +137,7 @@
     if (o.skirt) m(G.skirt, mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips);
     if (o.lei) m(G.lei, mat(o.lei, { roughness: 0.8 }), 0, 16, 5, B.Spine2).rotation.x = Math.PI / 2 + 0.4;
     // horizontal bands round the shirt, each fitted to the torso's width at its height (the torso is 0.62 as deep as it is wide)
-    if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k, 1.4, k * 0.62); }
+    if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k * (o.bw || 1), 1.4, k * 0.62); }
     if (o.gloves) for (const s of ['Left', 'Right']) m(G.glove, mat(o.gloves, { roughness: 0.6 }), s === 'Left' ? 5 : -5, 0, 0, B[s + 'Hand']).scale.set(1.5, 0.75, 1);
     if (o.prop2) hand(T, o.prop2, B, 'R', m, mat, glow, o);
     if (o.propL) hand(T, o.propL, B, 'L', m, mat, glow, o);
