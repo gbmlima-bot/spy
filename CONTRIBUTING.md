@@ -51,6 +51,10 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   Rode antes e depois de mudar o sniper de IA, as missões ou os convidados e ponha os números no PR.
 - Missões: `t11.js` confere gesto, duração e conclusão das missões do agente; `rotulos.js <url> <arquivo>`
   lista os rótulos das missões de todos os mapas.
+- Tempo das missões: `node fonte/testes/t16.js <url> [rodadas] [mapas]` calcula, por mapa, quanto um agente
+  eficiente leva para fazer 4 missões (caminho com escadas na velocidade do jogador, minidesafio no ritmo de uma
+  pessoa, a encomenda antes da entrega, sem o sniper). `best` planeja a melhor ordem e `greedy` vai sempre à mais
+  próxima. O combinado é caber em 3,5 minutos (210 s) com folga; rode ao mudar o sorteio das missões ou os desafios.
 - Visibilidade dos pontos de missão: `node fonte/testes/t12.js <url> [mapas]`. Um ponto é válido se, do olho
   do sniper, há linha livre até a cabeça (1,6 m) ou o peito (1,2 m) de quem está no ponto de pé, sem nada que
   bloqueie o tiro (a lista que o anfitrião confere) nem nada opaco que tape a visão. Sai com código 1 se algum

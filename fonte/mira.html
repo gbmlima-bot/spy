@@ -74,7 +74,7 @@ label{display:grid;gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04e
 #mini .seq{display:flex;gap:6px}#mini .seq b{font:600 18px/1 var(--f-mono);width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--paper);opacity:.55}
 #mini .seq b.ok{opacity:.25;border-color:transparent}#mini .seq b.cur{opacity:1;border-color:var(--brass);color:var(--brass)}#mini .seq.err b.cur{border-color:#e05a4a;color:#e05a4a}
 #mini .dial{position:relative;width:220px;height:14px;background:rgba(255,255,255,.12);border-radius:3px}#mini .dial s{position:absolute;top:0;bottom:0;background:rgba(201,162,90,.55);border-radius:3px}#mini .dial u{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1px;background:var(--paper)}
-#mini .dial.miss{box-shadow:0 0 0 1px #e05a4a}#mini .pads{display:flex;gap:6px}#mini .pads button{width:44px;height:40px;font-size:18px}#mini small{color:var(--muted,#9aa)}#mini small.warn{color:#e0a84a}
+#mini .dial.miss{box-shadow:0 0 0 1px #e05a4a}#mini .beat{width:34px;height:34px;border:2px solid var(--brass);border-radius:50%;display:grid;place-items:center}#mini .beat i{width:30px;height:30px;border-radius:50%;background:rgba(201,162,90,.7)}#mini .beat.miss{border-color:#e05a4a}#mini .pads{display:flex;gap:6px}#mini .pads button{width:44px;height:40px;font-size:18px}#mini small{color:var(--muted,#9aa)}#mini small.warn{color:#e0a84a}
 kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--paper)}
 #touch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom,0px));display:grid;gap:8px}
 #touch button{width:96px;padding:12px 8px;pointer-events:auto}
@@ -9165,7 +9165,10 @@ const playerActDur = (o, rd) => actDur(o, mulberry32(((rd || 1) * 7919 + o * 104
 //   calma  hold still: the bar only fills while the sniper's laser is away from you (a photo, a phone)
 //   segurar  just wait (quick drops, a toast, a word with someone)
 // The challenge is drawn per round and mission, so the same mission plays differently from one round to the next.
-const CHALLENGES = { mexer: ['seq', 'ponto'], foto: ['calma'], marcar: ['ponto', 'seq'], largar: ['segurar'], brinde: ['segurar'], conversa: ['segurar'], regar: ['segurar'] };
+// each gesture has more than one challenge, so the same act does not always ask for the same thing from one round to the next:
+// seq = arrows in order, ponto = needle in the band, calma = steady hand (only with the laser away), girar = turn by
+// alternating left and right, pulso = press on the beat a few times in a row, segurar = just hold on
+const CHALLENGES = { mexer: ['seq', 'ponto', 'girar'], foto: ['calma', 'ponto'], marcar: ['ponto', 'seq', 'pulso'], largar: ['segurar', 'calma'], agachar: ['segurar', 'calma'], brinde: ['segurar', 'pulso'], conversa: ['segurar', 'pulso'], regar: ['segurar', 'girar'] };
 const ARROWS = ['←', '↑', '→', '↓'], ARROW_KEYS = { arrowleft: 0, a: 0, arrowup: 1, w: 1, arrowright: 2, d: 2, arrowdown: 3, s: 3 };
 const LASER_NEAR = 3; // metres: the laser this close to you makes your hands shake
 function makeChallenge(o, rd) {
@@ -9174,10 +9177,14 @@ function makeChallenge(o, rd) {
   if (k === 'seq') return { k, keys: Array.from({ length: 3 + (r() < 0.5 ? 1 : 0) }, () => Math.floor(r() * 4)), i: 0, err: 0 };
   if (k === 'ponto') return { k, need: 2, hits: 0, ph: r() * 6.28, sp: 2.2 + r() * 1.4, c: 0.3 + r() * 0.4, w: 0.2, miss: 0 };
   if (k === 'calma') return { k, p: 0, near: false };
+  if (k === 'girar') return { k, n: 6 + (r() < 0.5 ? 2 : 0), i: 0, last: -1, err: 0 };
+  if (k === 'pulso') return { k, need: 3, hits: 0, per: 0.75 + r() * 0.35, ph: r(), w: 0.26, miss: 0, lb: -1 };
   return { k };
 }
 // where the needle of a `ponto` challenge is (0..1) after t seconds
 const needleAt = (ch, t) => 0.5 + 0.5 * Math.sin(ch.ph + t * ch.sp);
+// where a `pulso` challenge is in its beat (0 just after a beat, 1 on the next one)
+const beatAt = (ch, t) => (t / ch.per + ch.ph) % 1;
 // how long a robot player takes on an act: the same challenge a person gets, solved at a person's pace and with a
 // person's slips (a wrong arrow, a missed needle, a shaky hand), and never quicker than the gesture's span
 function botActTime(o, rd, rng) {
@@ -9185,6 +9192,8 @@ function botActTime(o, rd, rng) {
   if (ch.k === 'seq') { t = 0.6; for (let i = 0; i < ch.keys.length; i++) t += 0.45 + rng() * 0.4 + (rng() < 0.15 ? 1.0 : 0); }
   else if (ch.k === 'ponto') { const per = Math.PI * 2 / ch.sp; t = 0.5; for (let h = 0; h < ch.need; h++) { t += per * (0.3 + rng() * 0.7); while (rng() < 0.25) t += per * 0.6; } }
   else if (ch.k === 'calma') t = d * (1 + rng() * 0.8);
+  else if (ch.k === 'girar') { t = 0.5; for (let i = 0; i < ch.n; i++) t += 0.22 + rng() * 0.15 + (rng() < 0.08 ? 0.6 : 0); }
+  else if (ch.k === 'pulso') { t = 0.5 + ch.per; for (let h = 0; h < ch.need; h++) { t += ch.per; if (rng() < 0.2) { h = -1; t += ch.per; } if (t > 30) break; } }
   return Math.max(t, GESTURES[MISSIONS[o].g].d[0]) + 0.2;
 }
 // how far the challenge is (0..1); the act ends when it is complete and a minimum time has passed
@@ -9193,6 +9202,8 @@ function challengeProgress(a) {
   if (ch.k === 'seq') return ch.i / ch.keys.length;
   if (ch.k === 'ponto') return ch.hits / ch.need;
   if (ch.k === 'calma') return ch.p;
+  if (ch.k === 'girar') return ch.i / ch.n;
+  if (ch.k === 'pulso') return ch.hits / ch.need;
   return Math.min(1, a.t / a.d);
 }
 // flatten props into the mission list (each act is a mission; `p` points back at its prop)
@@ -12821,6 +12832,19 @@ function challengeKey(k) {
     else { ch.hits = Math.max(0, ch.hits - 1); ch.miss = 0.45; tone(140, 0.12, 0.04, 'square'); }
     return true;
   }
+  if (ch.k === 'girar' && k in ARROW_KEYS) {
+    const d = ARROW_KEYS[k]; if (ch.i >= ch.n || (d !== 0 && d !== 2)) return true;
+    if (d !== ch.last) { ch.i++; ch.last = d; ch.err = 0; tone(300 + ch.i * 40, 0.05, 0.025, 'triangle'); }
+    else { ch.err = 0.3; tone(140, 0.1, 0.03, 'square'); }
+    return true;
+  }
+  if (ch.k === 'pulso' && (k === 'e' || k === ' ' || k === 'enter')) {
+    if (ch.hits >= ch.need || ch.miss > 0) return true;
+    const f = beatAt(ch, a.t), beat = Math.round(a.t / ch.per + ch.ph);
+    if (Math.min(f, 1 - f) <= ch.w / 2 && beat !== ch.lb) { ch.hits++; ch.lb = beat; tone(520 + ch.hits * 130, 0.07, 0.03, 'triangle'); }
+    else { ch.hits = 0; ch.miss = 0.45; tone(140, 0.12, 0.04, 'square'); }
+    return true;
+  }
   return k === 'e'; // E again does not restart the act
 }
 function cancelAct() { if (ctrl.act) { ctrl.act = null; toast('Ação interrompida.'); } }
@@ -12858,6 +12882,19 @@ function drawMini() {
     const key = 'calma' + ch.near;
     if (key === miniKey) return; miniKey = key;
     box.innerHTML = ch.near ? '<small class="warn">A mira está perto: sua mão treme</small>' : '<small>Mão firme: só avança com a mira longe</small>';
+  } else if (ch.k === 'girar') {
+    const key = 'girar' + a.o + ':' + ch.i + ':' + ch.last + ':' + (ch.err > 0);
+    if (key === miniKey) return; miniKey = key;
+    const nx = ch.last === 0 ? 2 : ch.last === 2 ? 0 : -1;
+    box.innerHTML = `<div class="seq${ch.err > 0 ? ' err' : ''}">${[0, 2].map(d => `<b class="${nx < 0 || nx === d ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
+      + (touch ? `<div class="pads">${[0, 2].map(d => `<button data-d="${d}">${ARROWS[d]}</button>`).join('')}</div>` : '') + `<small>Gire: ${ARROWS[0]} e ${ARROWS[2]} alternando · ${ch.i}/${ch.n}</small>`;
+    box.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => challengeKey(+b.dataset.d === 0 ? 'arrowleft' : 'arrowright'));
+  } else if (ch.k === 'pulso') {
+    const key = 'pulso' + a.o;
+    if (key !== miniKey) { miniKey = key; box.innerHTML = '<div class="beat"><i></i></div><small></small>'; }
+    box.querySelector('i').style.transform = `scale(${(0.15 + 0.85 * beatAt(ch, a.t)).toFixed(3)})`;
+    box.querySelector('.beat').classList.toggle('miss', ch.miss > 0);
+    const tx = `${touch ? 'Toque em Agora' : 'Aperte E'} quando o círculo encher · ${ch.hits}/${ch.need} seguidas`; const sm = box.querySelector('small'); if (sm.textContent !== tx) sm.textContent = tx;
   }
 }
 function finishAct(st) {
@@ -12971,7 +13008,7 @@ function updateLocal(dt, st) {
     else show('#prompt', false);
     drawMini();
     // on touch screens the act button doubles as the "now" of a needle challenge
-    const pt = ctrl.act && ctrl.act.ch && ctrl.act.ch.k === 'ponto', bl = pt ? 'Agora' : it && it.label;
+    const pt = ctrl.act && ctrl.act.ch && (ctrl.act.ch.k === 'ponto' || ctrl.act.ch.k === 'pulso'), bl = pt ? 'Agora' : it && it.label;
     const ab = $('#actBtn'); ab.hidden = !(bl && matchMedia('(pointer:coarse)').matches); if (bl && ab.textContent !== bl) ab.textContent = bl;
   } else { show('#prompt', false); if (ctrl.act) ctrl.act = null; drawMini(); }
 }
@@ -13359,7 +13396,7 @@ Net.init().then(ok => {
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
-Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction });
+Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS });
 // characters: what the tests of the character area read

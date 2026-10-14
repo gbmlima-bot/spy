@@ -35,6 +35,8 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
         const t1 = performance.now();
         while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; const x = 0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp); if (Math.abs(x - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); c.act && (c.act.t += 0.5); } }
       } else if (kind === 'calma') ch.p = 0.99;
+      else if (kind === 'girar') for (let i = 0; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft');
+      else if (kind === 'pulso') for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 1 - ch.ph) * ch.per; key('e'); }
       const mini = document.querySelector('#mini').innerHTML.slice(0, 80);
       const t0 = performance.now(); while (c.act && performance.now() - t0 < 90000) await new Promise(r => setTimeout(r, 100));
       return { act, anim, kind, wrong, mini, done: S.dn.includes(o), dn: S.dn.length };
@@ -45,7 +47,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
   const kinds = await p.evaluate(() => { const M = window.__mira, st = M.G.sim.snapshot ? M.G.sim.snapshot() : null, rd = M.G.sim.round, S = M.G.sim, out = {};
     M.PROPS.forEach((P, pi) => { if (P.ms.some(o => S.ms.includes(o)) || (S.ts && pi === S.ts[1])) return; const o = M.missionAtProp(pi, { ms: S.ms, dn: S.dn, rd }); const k = M.makeChallenge(o, rd).k; if (!(k in out)) out[k] = { pi, o }; }); return out; });
   console.log('kinds', JSON.stringify(kinds));
-  for (const k of ['seq', 'ponto', 'calma']) {
+  for (const k of ['seq', 'ponto', 'calma', 'girar', 'pulso']) {
     if (!kinds[k]) { console.log('sem', k); continue; }
     const r = await p.evaluate(async ({ pi, o, k }) => {
       const M = window.__mira, S = M.G.sim, c = M.ctrl, pr = M.PROPS[pi], e = S.ents[M.G.myEid];
@@ -60,6 +62,10 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
       res.mini = document.querySelector('#mini').hidden ? '' : document.querySelector('#mini').textContent.slice(0, 60);
       if (k === 'seq') { key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][(ch.keys[0] + 1) % 4]); res.afterWrong = ch.i; for (const d of ch.keys) key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][d]); }
       if (k === 'ponto') { const t1 = performance.now(); while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; if (Math.abs(0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp) - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); if (c.act) c.act.t += 0.5; } } }
+      if (k === 'girar') { key('ArrowLeft'); key('ArrowLeft'); res.afterSame = ch.i; for (let i = 1; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft'); }
+      if (k === 'pulso') { // off the beat breaks the streak; then three on the beat
+        c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 0.5 - ch.ph) * ch.per; key('e'); res.offBeat = ch.hits + (ch.miss > 0 ? 'm' : ''); ch.miss = 0;
+        for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph) + 1 - ch.ph) * ch.per; key('e'); } }
       if (k === 'calma') { // laser on the player: no progress; laser away: it fills
         S.ai && (S.ai.aim.set(c.x, c.y + 1.4, c.z)); for (let i = 0; i < 6; i++) await frame(); res.nearP = +ch.p.toFixed(2); res.near = ch.near;
         S.ai && S.ai.aim.set(c.x + 30, c.y, c.z + 30); ch.p = Math.max(ch.p, 0.98); }
@@ -70,7 +76,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
   }
   const base = res.filter(r => !r.ch), chs = res.filter(r => r.ch).map(r => r.ch);
   const ok = base.every((r, i) => r.act && r.act.o === M0[i].o && r.anim === M0[i].ga && r.done) && base.every(r => r.wrong === null || r.wrong === 0)
-    && chs.length === 3 && chs.every(c => c.notYet && c.finished) && chs.every(c => c.k !== 'seq' || c.afterWrong === 0) && chs.every(c => c.k !== 'calma' || (c.near && c.nearP < 0.05)) && new Set(base.map(r => r.act.d)).size > 1;
+    && chs.length === 5 && chs.every(c => c.notYet && c.finished) && chs.every(c => c.k !== 'girar' || c.afterSame === 1) && chs.every(c => c.k !== 'pulso' || c.offBeat === '0m') && chs.every(c => c.k !== 'seq' || c.afterWrong === 0) && chs.every(c => c.k !== 'calma' || (c.near && c.nearP < 0.05)) && new Set(base.map(r => r.act.d)).size > 1;
   console.log(ok ? 'OK' : 'FALHOU');
   await b.close();
 })();
