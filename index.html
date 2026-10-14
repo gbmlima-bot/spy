@@ -879,8 +879,12 @@ window.MIRA_KIT = MIRA_KIT;
 //     | 'mic' | 'torch' | 'book' | 'baton' | 'shaker' | 'lantern' | 'cigar' | 'flute' | 'tablet' | 'radio' | 'ski' | 'pole' | 'tambourine' | 'whistle' | 'map' | 'magnifier' | 'gavel' | 'skewer' | 'scroll'
 (function () {
   const G = {};
+  // perfil girado ([raio, y] em cm) e achatado na profundidade, como o lathe do makeChar
+  function lathe(T, pts, sz) { const g = new T.LatheGeometry(pts.slice().reverse().map(([r, y]) => new T.Vector2(r, y)), 18); g.scale(1, 1, sz); return g; }
   function geos(T) {
     if (G.ok) return G;
+    // um pedaço de cone na frente do corpo (meia abertura a, em radianos), achatado como o tronco; topo no y 0
+    const arc = (rt, rb, h, a, sz) => new T.CylinderGeometry(rt, rb, h, 10, 1, true, -a, 2 * a).scale(1, 1, sz).translate(0, -h / 2, 0);
     const cyl = (rt, rb, h, s = 14) => new T.CylinderGeometry(rt, rb, h, s);
     Object.assign(G, {
       ok: true,
@@ -903,10 +907,13 @@ window.MIRA_KIT = MIRA_KIT;
       beak: (() => { const g = new T.ConeGeometry(3.6, 18, 8); g.rotateX(Math.PI / 2); g.translate(0, 0, 9); return g; })(),
       snout: (() => { const g = new T.ConeGeometry(4.5, 9, 6); g.rotateX(Math.PI / 2); g.translate(0, 0, 4.5); return g; })(), ear: new T.ConeGeometry(3, 7, 4),
       lens: cyl(2.6, 2.6, 0.8, 12), monocle: new T.TorusGeometry(2.6, 0.35, 4, 12), bridge: new T.BoxGeometry(3, 0.6, 0.6), goggle: new T.BoxGeometry(20, 5, 2),
-      apron: new T.BoxGeometry(26, 48, 1.2), apronBib: new T.BoxGeometry(18, 18, 1.2), scarf: new T.TorusGeometry(7, 2.6, 6, 14), scarfTail: new T.BoxGeometry(5, 22, 1.4),
-      sash: (() => { const g = new T.CylinderGeometry(14.4, 14.4, 6, 16, 1, true); return g; })(), sashBow: new T.BoxGeometry(14, 8, 4),
+      // aventais, faixa, casaco e saia seguem o corpo: o tronco do terno é 0,62 tão fundo quanto largo, o do vestido 0,66 e a
+      // saia longa 0,82 (lathe do makeChar); peças redondas ou chapadas saíam do corpo na frente, atrás ou nos lados
+      apron: { suit: arc(15.9, 19, 48, 0.9, 0.64), dress: arc(15, 21, 48, 0.85, 0.84) }, apronBib: { suit: arc(17.5, 17.2, 18, 0.55, 0.64), dress: arc(15.2, 14.6, 18, 0.62, 0.68) }, scarf: new T.TorusGeometry(7, 2.6, 6, 14), scarfTail: new T.BoxGeometry(5, 22, 1.4),
+      sash: { suit: new T.CylinderGeometry(15.3, 15.3, 6, 18, 1, true).scale(1, 1, 0.64), dress: new T.CylinderGeometry(13.5, 13.5, 6, 18, 1, true).scale(1, 1, 0.69) }, sashBow: new T.BoxGeometry(14, 8, 4),
       cape: (() => { const g = new T.CylinderGeometry(17, 30, 90, 16, 1, true, Math.PI * 0.62, Math.PI * 1.76); g.translate(0, -45, -2); return g; })(),
-      coat: new T.CylinderGeometry(15, 22, 62, 14, 1, true).translate(0, -31, 0), skirt: new T.CylinderGeometry(14, 40, 62, 18, 1, true).translate(0, -31, 0),
+      coat: { suit: lathe(T, [[16.2, 4], [17.2, -2], [19.4, -14], [22, -34], [25, -58]], 0.76), dress: lathe(T, [[14.9, 6], [16, 0], [18.6, -14], [20.8, -34], [21.6, -52], [22.4, -58]], 0.84) },
+      skirt: { suit: lathe(T, [[16.2, 4], [16.6, -2], [24, -18], [33, -38], [40, -58]], 0.7), dress: lathe(T, [[14.4, 8], [15.4, 0], [24, -18], [33, -38], [40, -58]], 0.84) },
       stripe: (() => { const g = new T.TorusGeometry(15.2, 0.9, 4, 18); g.rotateX(Math.PI / 2); return g; })(), glove: new T.SphereGeometry(5, 8, 6), lei: new T.TorusGeometry(9, 2.2, 6, 18),
       tray: cyl(15, 15, 1, 18), trayGlass: cyl(1.8, 1.0, 5, 8), camBody: new T.BoxGeometry(12, 8, 6), camLens: cyl(3, 3.4, 7, 10),
       violin: (() => { const g = new T.SphereGeometry(7, 10, 8); g.scale(1, 1.6, 0.35); return g; })(), neck: new T.BoxGeometry(2, 22, 1.5), bow: new T.BoxGeometry(0.6, 50, 0.6),
@@ -999,12 +1006,13 @@ window.MIRA_KIT = MIRA_KIT;
       case 'monocle': m(G.monocle, mat(0xd9a441, { metalness: 0.9, roughness: 0.2 }), 3.9, 1.3, 11.7, headG); break;
       case 'goggles': m(G.goggle, mat(o.maskColor ?? 0xff9a3c, { roughness: 0.1, metalness: 0.5, emissive: 0x552200, emissiveIntensity: 0.4 }), 0, 2, 9.5, headG); break;
     }
-    if (o.apron) { m(G.apron, mat(o.apron, { roughness: 0.85 }), 0, -12, 12, B.Hips); m(G.apronBib, mat(o.apron, { roughness: 0.85 }), 0, 6, 12.6, B.Spine2); }
+    const fit = o.dress ? 'dress' : 'suit', bw = o.bw || 1;
+    if (o.apron) { const am = mat(o.apron, { roughness: 0.85, side: T.DoubleSide }); m(G.apron[fit], am, 0, 12, 0, B.Hips).scale.x = bw; m(G.apronBib[fit], am, 0, 15, 2.37, B.Spine2).scale.x = bw; }
     if (o.scarf) { m(G.scarf, mat(o.scarf, { roughness: 0.9 }), 0, 4, 1, B.Neck).rotation.x = Math.PI / 2; m(G.scarfTail, mat(o.scarf, { roughness: 0.9 }), 4, 10, 13, B.Spine2).rotation.z = 0.15; }
-    if (o.sash) { m(G.sash, mat(o.sash, { roughness: 0.6 }), 0, 4, 0, B.Spine); m(G.sashBow, mat(o.sash, { roughness: 0.6 }), 0, 4, -14, B.Spine); }
+    if (o.sash) { const sm = mat(o.sash, { roughness: 0.6, side: T.DoubleSide }); m(G.sash[fit], sm, 0, 4, 0, B.Spine).scale.x = bw; m(G.sashBow, sm, 0, 4, o.dress ? -9.6 : -10.4, B.Spine).scale.set(1, 1, 0.6); }
     if (o.cape) m(G.cape, mat(o.cape, { side: T.DoubleSide, roughness: 0.7 }), 0, 22, -4, B.Spine2);
-    if (o.coat) m(G.coat, mat(o.coat, { side: T.DoubleSide, roughness: 0.8 }), 0, 4, 0, B.Hips);
-    if (o.skirt) m(G.skirt, mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips);
+    if (o.coat) m(G.coat[fit], mat(o.coat, { side: T.DoubleSide, roughness: 0.8 }), 0, 0, 0, B.Hips).scale.x = bw;
+    if (o.skirt) m(G.skirt[fit], mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips).scale.x = bw;
     if (o.lei) m(G.lei, mat(o.lei, { roughness: 0.8 }), 0, 16, 5, B.Spine2).rotation.x = Math.PI / 2 + 0.4;
     // horizontal bands round the shirt, each fitted to the torso's width at its height (the torso is 0.62 as deep as it is wide)
     if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k * (o.bw || 1), 1.4, k * 0.62); }
@@ -11816,7 +11824,7 @@ function sampleHipsY(clip, t, pingpong) {
 const EU = new T.Euler();
 const E = (x, y, z) => new T.Quaternion().setFromEuler(EU.set(x, y, z, 'XYZ'));
 // segment geometry from a bone origin along an axis; r0 at the joint, r1 at the far end
-function segGeo(len, r0, r1, axis, seg = 10) {
+function segGeo(len, r0, r1, axis, seg = 14) {
   const g = new T.CylinderGeometry(r1, r0, len, seg, 1); g.translate(0, len / 2, 0);
   if (axis === 'x') g.rotateZ(-Math.PI / 2); else if (axis === '-x') g.rotateZ(Math.PI / 2); else if (axis === '-y') g.rotateX(Math.PI); else if (axis === 'z') g.rotateX(Math.PI / 2);
   return g;
@@ -11826,12 +11834,12 @@ const CG = {
   foreArm: { L: segGeo(28.3, 4.8, 3.6, 'x'), R: segGeo(28.3, 4.8, 3.6, '-x') }, bareFore: { L: segGeo(28.3, 3.8, 3.1, 'x'), R: segGeo(28.3, 3.8, 3.1, '-x') },
   cuff: { L: new T.CylinderGeometry(4.6, 4.6, 3, 8).rotateZ(-Math.PI / 2).translate(26, 0, 0), R: new T.CylinderGeometry(4.6, 4.6, 3, 8).rotateZ(Math.PI / 2).translate(-26, 0, 0) },
   hand: { L: (() => { const g = new T.SphereGeometry(4.6, 8, 6); g.scale(1.5, 0.6, 0.9); g.translate(5.5, 0, 0); return g; })(), R: (() => { const g = new T.SphereGeometry(4.6, 8, 6); g.scale(1.5, 0.6, 0.9); g.translate(-5.5, 0, 0); return g; })() },
-  elbow: new T.SphereGeometry(4.9, 8, 6), bareElbow: new T.SphereGeometry(3.9, 8, 6),
-  shoulder: (() => { const g = new T.SphereGeometry(7.6, 10, 8); g.scale(1, 0.75, 0.9); return g; })(), bareShoulder: new T.SphereGeometry(5.6, 10, 8),
+  elbow: new T.SphereGeometry(4.9, 12, 8), bareElbow: new T.SphereGeometry(3.9, 12, 8),
+  shoulder: (() => { const g = new T.SphereGeometry(7.6, 16, 12); g.scale(1, 0.75, 0.9); return g; })(), bareShoulder: new T.SphereGeometry(5.6, 16, 12),
   thigh: segGeo(44.4, 8.2, 6.4, '-y'), shin: segGeo(44.4, 6.4, 4.8, '-y'), bareThigh: segGeo(44.4, 6.8, 5.2, '-y'), bareShin: segGeo(44.4, 5.2, 3.6, '-y'),
-  knee: new T.SphereGeometry(6.0, 8, 6), bareKnee: new T.SphereGeometry(4.9, 8, 6),
+  knee: new T.SphereGeometry(6.0, 12, 8), bareKnee: new T.SphereGeometry(4.9, 12, 8),
   shoe: new T.BoxGeometry(10, 7, 25).translate(0, -4.3, 4.5), heel: new T.BoxGeometry(7.5, 5, 20).translate(0, -5, 4), heelBlock: new T.BoxGeometry(4, 6, 4).translate(0, -5.5, -4.5),
-  pelvis: new T.BoxGeometry(27, 16, 16).translate(0, -5, 0),
+  pelvis: new T.CylinderGeometry(13.6, 13.4, 16, 14).scale(1, 1, 0.62).translate(0, -5, 0), // oval like the hem round it, so no corner pokes through
   hem: null, jacket: null, bodice: null, // built below with rbox
   neck: segGeo(9.6, 4.8, 5.2, 'y', 8),
   head: (() => { const g = new T.SphereGeometry(11.3, 16, 12); g.scale(0.93, 1.12, 1.0); return g; })(),
@@ -11847,7 +11855,8 @@ const CG = {
   vee: (() => { const s = new T.Shape(); s.moveTo(-7.5, 0); s.lineTo(7.5, 0); s.lineTo(0, -27); s.lineTo(-7.5, 0); return new T.ShapeGeometry(s); })(),
   lapel: (() => { const s = new T.Shape(); s.moveTo(0, 0); s.lineTo(5, 0); s.lineTo(0, -28); s.lineTo(-1.2, -5); s.lineTo(0, 0); return new T.ShapeGeometry(s); })(),
   tie: new T.BoxGeometry(4, 23, 1.2).translate(0, -11.5, 0), bow: new T.BoxGeometry(11, 4, 2), button: new T.SphereGeometry(1.2, 6, 4),
-  belt: new T.CylinderGeometry(14, 14, 3.5, 12), strap: new T.BoxGeometry(1.8, 10, 1.8),
+  belt: new T.CylinderGeometry(14, 14, 3.5, 16).scale(1, 1, 0.68), // as deep as the bodice at the waist
+  strap: new T.TorusGeometry(5, 0.8, 4, 10, Math.PI).rotateY(Math.PI / 2).scale(1, 0.42, 1), // over the shoulder, front to back
   gown: new T.CylinderGeometry(13.5, 36, 100, 14, 1, true).translate(0, -50, 0), cocktail: new T.CylinderGeometry(13.5, 29, 50, 14, 1, true).translate(0, -25, 0),
   clutch: new T.BoxGeometry(3.5, 9, 16),
   wineBowl: new T.CylinderGeometry(3.5, 1.8, 6, 10), wineStem: new T.CylinderGeometry(0.4, 0.4, 7, 4), coupe: new T.CylinderGeometry(4.5, 1.2, 3, 10), tumbler: new T.CylinderGeometry(3.2, 3.0, 7.5, 10),
@@ -11931,7 +11940,7 @@ function makeChar(o, id) {
     } else m(CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
     if (!o.robe) {
       m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
-      for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 9 : -9, 16, 6, B.Spine2); }
+      for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 8.6 : -8.6, 13.4, 2.6, B.Spine2); }
     } else for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
@@ -11952,20 +11961,20 @@ function makeChar(o, id) {
   } else if (o.camisa) {
     // shirt sleeves, no jacket: collar points, the neck open, two buttons
     const v = m(CG.vee, skin, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05; v.scale.set(0.6, 0.55, 1); v.position.y = 18;
-    for (const sg of [-1, 1]) { const c = m(CG.collar, cloth, sg * 4.6, 19.6, 9.6, B.Spine2); c.rotation.set(0.25, sg * 0.75, sg * -0.5); }
+    for (const sg of [-1, 1]) { const c = m(CG.collar, cloth, sg * 3.6, 17.7, 4.8, B.Spine2); c.rotation.set(-1.05, sg * 0.6, sg * -0.45); }
     m(CG.neckband, cloth, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
     m(CG.button, shirt, 0, 4, 11.6, B.Spine2); m(CG.button, shirt, 0, -6, 11.6, B.Spine2);
   } else if (!o.dress) {
     const v = m(CG.vee, o.vest ? mat(o.vest, { roughness: 0.5 }) : shirt, 0, 16, 11.3, B.Spine2); v.rotation.x = -0.05;
     // shirt collar points and the band round the neck
-    for (const sg of [-1, 1]) { const c = m(CG.collar, shirt, sg * 4.2, 19.6, 9.6, B.Spine2); c.rotation.set(0.25, sg * 0.75, sg * -0.35); }
+    for (const sg of [-1, 1]) { const c = m(CG.collar, shirt, sg * 3.4, 17.7, 4.8, B.Spine2); c.rotation.set(-1.05, sg * 0.6, sg * -0.35); } // lying on the shoulders, round the neckband
     m(CG.neckband, shirt, 0, 1.2, 0.3, B.Neck).rotation.x = Math.PI / 2;
     const lapM = mat(new T.Color(o.main).multiplyScalar(o.main > 0xd00000 ? 0.86 : 0.62).getHex(), { roughness: 0.5 });
     const l1 = m(CG.lapel, lapM, 7.5, 16, 11.6, B.Spine2); l1.rotation.x = -0.05;
     const l2 = m(CG.lapel, lapM, -7.5, 16, 11.6, B.Spine2); l2.rotation.set(-0.05, 0, 0); l2.scale.x = -1;
     if (o.bow) m(CG.bow, mat(o.tie), 0, 13, 12, B.Spine2); else m(CG.tie, mat(o.tie, { roughness: 0.45 }), 0, 14, 11.9, B.Spine2);
     m(CG.button, dark, 0, -10, 11.5, B.Spine2); m(CG.button, dark, 0, -17, 11.8, B.Spine2);
-    if (o.pocket) m(new T.BoxGeometry(6, 2.2, 1), mat(o.pocket), 12, 2, 11.4, B.Spine2);
+    if (o.pocket) m(new T.BoxGeometry(6, 2.2, 1), mat(o.pocket), 11.6, 2, 9.4, B.Spine2).rotation.y = 0.55; // flat on the chest, which curves away here
   }
   m(CG.neck, skin, 0, 0, 0, B.Neck);
   // head: the Head bone sits at the base of the skull

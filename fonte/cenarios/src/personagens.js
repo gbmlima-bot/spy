@@ -9,8 +9,12 @@
 //     | 'mic' | 'torch' | 'book' | 'baton' | 'shaker' | 'lantern' | 'cigar' | 'flute' | 'tablet' | 'radio' | 'ski' | 'pole' | 'tambourine' | 'whistle' | 'map' | 'magnifier' | 'gavel' | 'skewer' | 'scroll'
 (function () {
   const G = {};
+  // perfil girado ([raio, y] em cm) e achatado na profundidade, como o lathe do makeChar
+  function lathe(T, pts, sz) { const g = new T.LatheGeometry(pts.slice().reverse().map(([r, y]) => new T.Vector2(r, y)), 18); g.scale(1, 1, sz); return g; }
   function geos(T) {
     if (G.ok) return G;
+    // um pedaço de cone na frente do corpo (meia abertura a, em radianos), achatado como o tronco; topo no y 0
+    const arc = (rt, rb, h, a, sz) => new T.CylinderGeometry(rt, rb, h, 10, 1, true, -a, 2 * a).scale(1, 1, sz).translate(0, -h / 2, 0);
     const cyl = (rt, rb, h, s = 14) => new T.CylinderGeometry(rt, rb, h, s);
     Object.assign(G, {
       ok: true,
@@ -33,10 +37,13 @@
       beak: (() => { const g = new T.ConeGeometry(3.6, 18, 8); g.rotateX(Math.PI / 2); g.translate(0, 0, 9); return g; })(),
       snout: (() => { const g = new T.ConeGeometry(4.5, 9, 6); g.rotateX(Math.PI / 2); g.translate(0, 0, 4.5); return g; })(), ear: new T.ConeGeometry(3, 7, 4),
       lens: cyl(2.6, 2.6, 0.8, 12), monocle: new T.TorusGeometry(2.6, 0.35, 4, 12), bridge: new T.BoxGeometry(3, 0.6, 0.6), goggle: new T.BoxGeometry(20, 5, 2),
-      apron: new T.BoxGeometry(26, 48, 1.2), apronBib: new T.BoxGeometry(18, 18, 1.2), scarf: new T.TorusGeometry(7, 2.6, 6, 14), scarfTail: new T.BoxGeometry(5, 22, 1.4),
-      sash: (() => { const g = new T.CylinderGeometry(14.4, 14.4, 6, 16, 1, true); return g; })(), sashBow: new T.BoxGeometry(14, 8, 4),
+      // aventais, faixa, casaco e saia seguem o corpo: o tronco do terno é 0,62 tão fundo quanto largo, o do vestido 0,66 e a
+      // saia longa 0,82 (lathe do makeChar); peças redondas ou chapadas saíam do corpo na frente, atrás ou nos lados
+      apron: { suit: arc(15.9, 19, 48, 0.9, 0.64), dress: arc(15, 21, 48, 0.85, 0.84) }, apronBib: { suit: arc(17.5, 17.2, 18, 0.55, 0.64), dress: arc(15.2, 14.6, 18, 0.62, 0.68) }, scarf: new T.TorusGeometry(7, 2.6, 6, 14), scarfTail: new T.BoxGeometry(5, 22, 1.4),
+      sash: { suit: new T.CylinderGeometry(15.3, 15.3, 6, 18, 1, true).scale(1, 1, 0.64), dress: new T.CylinderGeometry(13.5, 13.5, 6, 18, 1, true).scale(1, 1, 0.69) }, sashBow: new T.BoxGeometry(14, 8, 4),
       cape: (() => { const g = new T.CylinderGeometry(17, 30, 90, 16, 1, true, Math.PI * 0.62, Math.PI * 1.76); g.translate(0, -45, -2); return g; })(),
-      coat: new T.CylinderGeometry(15, 22, 62, 14, 1, true).translate(0, -31, 0), skirt: new T.CylinderGeometry(14, 40, 62, 18, 1, true).translate(0, -31, 0),
+      coat: { suit: lathe(T, [[16.2, 4], [17.2, -2], [19.4, -14], [22, -34], [25, -58]], 0.76), dress: lathe(T, [[14.9, 6], [16, 0], [18.6, -14], [20.8, -34], [21.6, -52], [22.4, -58]], 0.84) },
+      skirt: { suit: lathe(T, [[16.2, 4], [16.6, -2], [24, -18], [33, -38], [40, -58]], 0.7), dress: lathe(T, [[14.4, 8], [15.4, 0], [24, -18], [33, -38], [40, -58]], 0.84) },
       stripe: (() => { const g = new T.TorusGeometry(15.2, 0.9, 4, 18); g.rotateX(Math.PI / 2); return g; })(), glove: new T.SphereGeometry(5, 8, 6), lei: new T.TorusGeometry(9, 2.2, 6, 18),
       tray: cyl(15, 15, 1, 18), trayGlass: cyl(1.8, 1.0, 5, 8), camBody: new T.BoxGeometry(12, 8, 6), camLens: cyl(3, 3.4, 7, 10),
       violin: (() => { const g = new T.SphereGeometry(7, 10, 8); g.scale(1, 1.6, 0.35); return g; })(), neck: new T.BoxGeometry(2, 22, 1.5), bow: new T.BoxGeometry(0.6, 50, 0.6),
@@ -129,12 +136,13 @@
       case 'monocle': m(G.monocle, mat(0xd9a441, { metalness: 0.9, roughness: 0.2 }), 3.9, 1.3, 11.7, headG); break;
       case 'goggles': m(G.goggle, mat(o.maskColor ?? 0xff9a3c, { roughness: 0.1, metalness: 0.5, emissive: 0x552200, emissiveIntensity: 0.4 }), 0, 2, 9.5, headG); break;
     }
-    if (o.apron) { m(G.apron, mat(o.apron, { roughness: 0.85 }), 0, -12, 12, B.Hips); m(G.apronBib, mat(o.apron, { roughness: 0.85 }), 0, 6, 12.6, B.Spine2); }
+    const fit = o.dress ? 'dress' : 'suit', bw = o.bw || 1;
+    if (o.apron) { const am = mat(o.apron, { roughness: 0.85, side: T.DoubleSide }); m(G.apron[fit], am, 0, 12, 0, B.Hips).scale.x = bw; m(G.apronBib[fit], am, 0, 15, 2.37, B.Spine2).scale.x = bw; }
     if (o.scarf) { m(G.scarf, mat(o.scarf, { roughness: 0.9 }), 0, 4, 1, B.Neck).rotation.x = Math.PI / 2; m(G.scarfTail, mat(o.scarf, { roughness: 0.9 }), 4, 10, 13, B.Spine2).rotation.z = 0.15; }
-    if (o.sash) { m(G.sash, mat(o.sash, { roughness: 0.6 }), 0, 4, 0, B.Spine); m(G.sashBow, mat(o.sash, { roughness: 0.6 }), 0, 4, -14, B.Spine); }
+    if (o.sash) { const sm = mat(o.sash, { roughness: 0.6, side: T.DoubleSide }); m(G.sash[fit], sm, 0, 4, 0, B.Spine).scale.x = bw; m(G.sashBow, sm, 0, 4, o.dress ? -9.6 : -10.4, B.Spine).scale.set(1, 1, 0.6); }
     if (o.cape) m(G.cape, mat(o.cape, { side: T.DoubleSide, roughness: 0.7 }), 0, 22, -4, B.Spine2);
-    if (o.coat) m(G.coat, mat(o.coat, { side: T.DoubleSide, roughness: 0.8 }), 0, 4, 0, B.Hips);
-    if (o.skirt) m(G.skirt, mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips);
+    if (o.coat) m(G.coat[fit], mat(o.coat, { side: T.DoubleSide, roughness: 0.8 }), 0, 0, 0, B.Hips).scale.x = bw;
+    if (o.skirt) m(G.skirt[fit], mat(o.skirt, { side: T.DoubleSide, roughness: 0.75 }), 0, 0, 0, B.Hips).scale.x = bw;
     if (o.lei) m(G.lei, mat(o.lei, { roughness: 0.8 }), 0, 16, 5, B.Spine2).rotation.x = Math.PI / 2 + 0.4;
     // horizontal bands round the shirt, each fitted to the torso's width at its height (the torso is 0.62 as deep as it is wide)
     if (o.stripes) for (let i = 0; i < 4; i++) { const k = ([14.6, 15.2, 16.2, 17.2][i] + 0.4) / 15.2; m(G.stripe, mat(o.stripes, { roughness: 0.7 }), 0, 6 + i * 7, 0, B.Spine).scale.set(k * (o.bw || 1), 1.4, k * 0.62); }
