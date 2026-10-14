@@ -152,6 +152,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 }
 #roleCard.min > :not(.eyebrow):not(h2){display:none}
 #hud{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#mini .tt{font-family:var(--f-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--brass)}
 #mini .pads button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @media (pointer:coarse){#mini .pads{gap:10px}#mini .pads button{width:54px;height:48px;font-size:20px}}
 #coach{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;font-size:14px;max-width:calc(100% - 24px);z-index:5;animation:tin .25s ease-out}
@@ -9554,15 +9555,112 @@ const playerActDur = (o, rd) => actDur(o, mulberry32(((rd || 1) * 7919 + o * 104
 const CHALLENGES = { mexer: ['seq', 'ponto', 'girar'], foto: ['calma', 'ponto'], marcar: ['ponto', 'seq', 'pulso'], largar: ['segurar', 'calma'], agachar: ['segurar', 'calma'], brinde: ['segurar', 'pulso'], conversa: ['segurar', 'pulso'], regar: ['segurar', 'girar'] };
 const ARROWS = ['←', '↑', '→', '↓'], ARROW_KEYS = { arrowleft: 0, a: 0, arrowup: 1, w: 1, arrowright: 2, d: 2, arrowdown: 3, s: 3 };
 const LASER_NEAR = 3; // metres: the laser this close to you makes your hands shake
+// the challenges with the face of each place: in the extra scenarios, an act whose label matches asks (most rounds)
+// for that place's version of one of the five kinds, with its own title and pace; the other rounds keep the gesture's
+// usual challenge, so the same act still varies. p: len = arrows in a sequence, n = turns, need/per = beats and their
+// period, need/sp/w = needle hits, speed and band width
+const THEMES = {
+  veneza: [
+    [/gôndola|píer/i, 'pulso', 'Reme no ritmo da gôndola', { per: 1.1, need: 4 }],
+    [/relógio/i, 'girar', 'Gire os ponteiros', { n: 10 }],
+    [/quarteto|partitura/i, 'pulso', 'Vire a página no compasso', { per: 0.85 }],
+    [/lustre|murano/i, 'calma', 'Vidro de Murano: mão firme'],
+    [/máscara/i, 'seq', 'Combine as máscaras', { len: 4 }],
+    [/champanhe|drinque|aperol/i, 'calma', 'Sem derrubar a torre de taças'],
+    [/leão/i, 'ponto', 'Enquadre o leão alado', { w: 0.17 }]],
+  iate: [
+    [/amarra|cunho|bandeira|mastro/i, 'girar', 'Enrole o cabo', { n: 10 }],
+    [/radar|timão|comando/i, 'seq', 'Sequência do painel', { len: 5 }],
+    [/holofote/i, 'ponto', 'Mire o facho', { w: 0.16 }],
+    [/dj|disco/i, 'pulso', 'Na batida da DJ', { per: 0.7, need: 4 }],
+    [/guarda-sol/i, 'girar', 'Gire a manivela do guarda-sol'],
+    [/balde|garrafa|taça/i, 'calma', 'Sem balançar com o mar'],
+    [/sushi|hashi/i, 'ponto', 'Pegue com o hashi', { sp: 3.2 }]],
+  toscana: [
+    [/taça|garrafa|safra|adega/i, 'calma', 'Sirva sem derramar'],
+    [/torneira|tonel/i, 'girar', 'Abra a torneira devagar', { n: 10 }],
+    [/cata-vento/i, 'girar', 'Gire o cata-vento'],
+    [/bolo/i, 'calma', 'Mão firme no bolo'],
+    [/fita|alianças/i, 'ponto', 'Corte na marca', { w: 0.16 }],
+    [/pomba|gaiola/i, 'calma', 'Sem assustar a pomba'],
+    [/freio|carroça/i, 'girar', 'Solte a manivela do freio'],
+    [/mapa de mesas|cavalete/i, 'seq', 'Ache o lugar no mapa de mesas', { len: 4 }]],
+  museu: [
+    [/vitrine|gemas|estrela/i, 'seq', 'Código da vitrine', { len: 5 }],
+    [/rastreador|crânio/i, 'ponto', 'Encaixe o rastreador', { w: 0.16 }],
+    [/telão|lance|projeção/i, 'seq', 'Lance no teclado', { len: 4 }],
+    [/cabo|guincho|baleia/i, 'girar', 'Gire o guincho', { n: 10 }],
+    [/meteorito|luz/i, 'ponto', 'Corte a luz no instante certo'],
+    [/magnum|champanhe/i, 'calma', 'Garrafa de 1907: mão firme'],
+    [/púlpito|catálogo/i, 'pulso', 'No ritmo do martelo do leiloeiro', { per: 0.9 }]],
+  kyoto: [
+    [/sino/i, 'pulso', 'Toque o sino no tempo', { per: 1.25 }],
+    [/omikuji|amarrar|árvore/i, 'girar', 'Dê o nó'],
+    [/tiro ao alvo|shateki/i, 'ponto', 'Mire a rolha', { w: 0.15, sp: 3.0 }],
+    [/peixe|pescaria/i, 'ponto', 'Pegue o peixe com o puçá', { sp: 3.2 }],
+    [/lanterna|riacho/i, 'calma', 'Sem apagar a chama'],
+    [/polvo|takoyaki/i, 'girar', 'Vire as bolinhas de takoyaki', { n: 8 }],
+    [/omamori|amuletos|máscara/i, 'seq', 'Na ordem dos amuletos', { len: 4 }]],
+  carnaval: [
+    [/surdo|bateria/i, 'pulso', 'No ritmo do surdo', { per: 0.75, need: 4 }],
+    [/estandarte|fitas/i, 'girar', 'Enrole as fitas'],
+    [/bonde/i, 'girar', 'Solte o freio do bonde', { n: 10 }],
+    [/pipa/i, 'ponto', 'Solte na rajada de vento'],
+    [/grafite|muro/i, 'seq', 'Desenhe a assinatura', { len: 5 }],
+    [/caipirinha/i, 'pulso', 'Macere no ritmo', { per: 0.8 }],
+    [/churrasquinho|brasa|copo/i, 'calma', 'Sem se queimar'],
+    [/carro de som|fio/i, 'ponto', 'Corte o fio certo', { w: 0.16 }]],
+  alpes: [
+    [/esqui/i, 'seq', 'Combinação do cadeado do rack', { len: 4 }],
+    [/trenó|lanterna/i, 'calma', 'Mãos geladas: firmes'],
+    [/rádio/i, 'ponto', 'Sintonize a frequência', { w: 0.15 }],
+    [/lareira|fogueira/i, 'pulso', 'Atice o fogo no ritmo', { per: 0.9 }],
+    [/holofote|gôndola/i, 'seq', 'Pisque o sinal em código', { len: 5 }],
+    [/glühwein|caldeirão|caneca/i, 'girar', 'Mexa o caldeirão', { n: 10 }],
+    [/jacuzzi|aquecedor/i, 'girar', 'Gire o registro'],
+    [/boneco de neve/i, 'calma', 'Sem desmontar o boneco']],
+  paris: [
+    [/câmera|filme|fotógrafo|pódio/i, 'ponto', 'Foque a lente', { w: 0.16 }],
+    [/spot|torre de luz/i, 'ponto', 'Aponte o spot'],
+    [/macaron/i, 'calma', 'Sem derrubar a torre de macarons'],
+    [/claraboia/i, 'girar', 'Gire a manivela da claraboia', { n: 10 }],
+    [/letreiro|força/i, 'seq', 'Disjuntores na ordem', { len: 5 }],
+    [/lenço|echarpe|vestido|arara|manequim/i, 'girar', 'Dê o laço'],
+    [/primeira fila|cadeira/i, 'pulso', 'Entre os flashes', { per: 0.95 }]],
+  marrakech: [
+    [/chá|bule/i, 'calma', 'Sirva o chá do alto sem derramar'],
+    [/tapete/i, 'seq', 'Ache o padrão do tapete', { len: 4 }],
+    [/porta|portão|destrancar/i, 'seq', 'Gire a fechadura na ordem', { len: 5 }],
+    [/incensário/i, 'calma', 'Sem espalhar a brasa'],
+    [/páprica|especiarias/i, 'ponto', 'Empurre no ponto certo'],
+    [/fonte/i, 'girar', 'Gire a torneira da fonte'],
+    [/tajine|jantar/i, 'calma', 'Tampa quente: devagar'],
+    [/lanterna|arco/i, 'pulso', 'Entre as sombras da lanterna', { per: 1.0 }]],
+  expresso: [
+    [/relógio/i, 'girar', 'Dê corda no relógio', { n: 12 }],
+    [/sinal/i, 'ponto', 'Puxe a alavanca no ponto'],
+    [/válvula|vapor|locomotiva/i, 'girar', 'Feche a válvula', { n: 10 }],
+    [/palhetas|painel/i, 'seq', 'Letras do destino', { len: 5 }],
+    [/mala|baú|etiqueta|bagagem/i, 'seq', 'Segredo do cadeado', { len: 4 }],
+    [/jornal|banca/i, 'calma', 'Disfarce atrás do jornal'],
+    [/abajur|mesa 3/i, 'calma', 'Sem balançar com o vagão'],
+    [/istambul|placa/i, 'pulso', 'No balanço dos trilhos', { per: 1.0 }]]
+};
+const themeOf = o => { const sc = SCEN.sc && THEMES[SCEN.sc.id]; return sc && MISSIONS[o] ? sc.find(t => t[0].test(MISSIONS[o].label)) : null; };
 function makeChallenge(o, rd) {
-  const r = mulberry32(((rd || 1) * 31337 + o * 7907) >>> 0), opts = CHALLENGES[MISSIONS[o].g] || ['segurar'];
-  const k = opts[Math.floor(r() * opts.length)];
-  if (k === 'seq') return { k, keys: Array.from({ length: 3 + (r() < 0.5 ? 1 : 0) }, () => Math.floor(r() * 4)), i: 0, err: 0 };
-  if (k === 'ponto') return { k, need: 2, hits: 0, ph: r() * 6.28, sp: 2.2 + r() * 1.4, c: 0.3 + r() * 0.4, w: 0.2, miss: 0 };
-  if (k === 'calma') return { k, p: 0, near: false };
-  if (k === 'girar') return { k, n: 6 + (r() < 0.5 ? 2 : 0), i: 0, last: -1, err: 0 };
-  if (k === 'pulso') return { k, need: 3, hits: 0, per: 0.75 + r() * 0.35, ph: r(), w: 0.26, miss: 0, lb: -1 };
-  return { k };
+  const seed = ((rd || 1) * 31337 + o * 7907) >>> 0, r = mulberry32(seed), opts = CHALLENGES[MISSIONS[o].g] || ['segurar'];
+  let k = opts[Math.floor(r() * opts.length)];
+  // the place's version, three rounds in four (its own draw, so the usual challenge of other acts is unchanged)
+  const th = themeOf(o), useTh = th && mulberry32(seed ^ 0x5bd1e995)() < 0.75, p = useTh ? th[3] || {} : {};
+  if (useTh) k = th[1];
+  const ch = k === 'seq' ? { k, keys: Array.from({ length: p.len || 3 + (r() < 0.5 ? 1 : 0) }, () => Math.floor(r() * 4)), i: 0, err: 0 }
+    : k === 'ponto' ? { k, need: p.need || 2, hits: 0, ph: r() * 6.28, sp: p.sp || 2.2 + r() * 1.4, c: 0.3 + r() * 0.4, w: p.w || 0.2, miss: 0 }
+    : k === 'calma' ? { k, p: 0, near: false }
+    : k === 'girar' ? { k, n: p.n || 6 + (r() < 0.5 ? 2 : 0), i: 0, last: -1, err: 0 }
+    : k === 'pulso' ? { k, need: p.need || 3, hits: 0, per: p.per || 0.75 + r() * 0.35, ph: r(), w: 0.26, miss: 0, lb: -1 }
+    : { k };
+  if (useTh) ch.tt = th[2];
+  return ch;
 }
 // where the needle of a `ponto` challenge is (0..1) after t seconds
 const needleAt = (ch, t) => 0.5 + 0.5 * Math.sin(ch.ph + t * ch.sp);
@@ -13354,33 +13452,34 @@ function drawMini() {
   const box = $('#mini'), a = ctrl.act, ch = a && a.ch;
   if (!ch || ch.k === 'segurar') { if (!box.hidden) { box.hidden = true; box.innerHTML = ''; miniKey = ''; } return; }
   box.hidden = false;
+  const tt = ch.tt ? `<div class="tt">${esc(ch.tt)}</div>` : ''; // the place's version of the challenge names itself
   const touch = matchMedia('(pointer:coarse)').matches;
   if (ch.k === 'seq') {
     const key = 'seq' + a.o + ':' + ch.i + ':' + (ch.err > 0);
     if (key === miniKey) return; miniKey = key;
-    box.innerHTML = `<div class="seq${ch.err > 0 ? ' err' : ''}">${ch.keys.map((d, i) => `<b class="${i < ch.i ? 'ok' : i === ch.i ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
+    box.innerHTML = tt + `<div class="seq${ch.err > 0 ? ' err' : ''}">${ch.keys.map((d, i) => `<b class="${i < ch.i ? 'ok' : i === ch.i ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
       + (touch ? `<div class="pads">${ARROWS.map((s, d) => `<button data-d="${d}">${s}</button>`).join('')}</div><small>Toque nas setas na ordem · tocar no chão desiste</small>` : '<small>setas ou WASD · Esc sai</small>');
     box.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => challengeKey(Object.keys(ARROW_KEYS)[[0, 2, 4, 6][+b.dataset.d]]));
   } else if (ch.k === 'ponto') {
     const key = 'ponto' + a.o;
-    if (key !== miniKey) { miniKey = key; box.innerHTML = `<div class="dial"><s style="left:${(ch.c - ch.w / 2) * 100}%;width:${ch.w * 100}%"></s><u></u></div><small></small>`; }
+    if (key !== miniKey) { miniKey = key; box.innerHTML = tt + `<div class="dial"><s style="left:${(ch.c - ch.w / 2) * 100}%;width:${ch.w * 100}%"></s><u></u></div><small></small>`; }
     box.querySelector('u').style.left = (needleAt(ch, a.t) * 100).toFixed(1) + '%';
     box.querySelector('.dial').classList.toggle('miss', ch.miss > 0);
     const tx = `${touch ? 'Toque em Agora' : 'Aperte E'} com o ponteiro na faixa · ${ch.hits}/${ch.need}`; const sm = box.querySelector('small'); if (sm.textContent !== tx) sm.textContent = tx;
   } else if (ch.k === 'calma') {
-    const key = 'calma' + ch.near;
+    const key = 'calma' + a.o + ch.near;
     if (key === miniKey) return; miniKey = key;
-    box.innerHTML = ch.near ? '<small class="warn">A mira está perto: sua mão treme</small>' : '<small>Mão firme: só avança com a mira longe</small>';
+    box.innerHTML = tt + (ch.near ? '<small class="warn">A mira está perto: sua mão treme</small>' : '<small>Mão firme: só avança com a mira longe</small>');
   } else if (ch.k === 'girar') {
     const key = 'girar' + a.o + ':' + ch.i + ':' + ch.last + ':' + (ch.err > 0);
     if (key === miniKey) return; miniKey = key;
     const nx = ch.last === 0 ? 2 : ch.last === 2 ? 0 : -1;
-    box.innerHTML = `<div class="seq${ch.err > 0 ? ' err' : ''}">${[0, 2].map(d => `<b class="${nx < 0 || nx === d ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
+    box.innerHTML = tt + `<div class="seq${ch.err > 0 ? ' err' : ''}">${[0, 2].map(d => `<b class="${nx < 0 || nx === d ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
       + (touch ? `<div class="pads">${[0, 2].map(d => `<button data-d="${d}">${ARROWS[d]}</button>`).join('')}</div>` : '') + `<small>Gire: ${ARROWS[0]} e ${ARROWS[2]} alternando · ${ch.i}/${ch.n}</small>`;
     box.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => challengeKey(+b.dataset.d === 0 ? 'arrowleft' : 'arrowright'));
   } else if (ch.k === 'pulso') {
     const key = 'pulso' + a.o;
-    if (key !== miniKey) { miniKey = key; box.innerHTML = '<div class="beat"><i></i></div><small></small>'; }
+    if (key !== miniKey) { miniKey = key; box.innerHTML = tt + '<div class="beat"><i></i></div><small></small>'; }
     box.querySelector('i').style.transform = `scale(${(0.15 + 0.85 * beatAt(ch, a.t)).toFixed(3)})`;
     box.querySelector('.beat').classList.toggle('miss', ch.miss > 0);
     const tx = `${touch ? 'Toque em Agora' : 'Aperte E'} quando o círculo encher · ${ch.hits}/${ch.need} seguidas`; const sm = box.querySelector('small'); if (sm.textContent !== tx) sm.textContent = tx;
@@ -13928,7 +14027,7 @@ Net.init().then(ok => {
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
-Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress });
+Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO });
 // characters: what the tests of the character area read

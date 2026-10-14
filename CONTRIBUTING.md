@@ -55,6 +55,9 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   há texto de tecla, que o cartão de missões não cobre o meio da tela nem o painel do desafio, que todos os
   minidesafios têm botões de pelo menos 44 px e que o toque conta. A cópia servida precisa das duas meta tags do
   index.html (charset e viewport); capturas em `fonte/testes/out/cel/`.
+- Minidesafios de cada cenário: `THEMES` no `fonte/mira.html` dá a cada cenário extra versões com a cara do lugar
+  (título, tipo e ritmo próprios) para os atos cujo rótulo casa com a expressão. `node fonte/testes/t18.js <url>`
+  confere que todo tema acha atos no seu mapa, que vale em cerca de 3 de 4 rodadas e que os parâmetros seguem jogáveis.
 - Tempo das missões: `node fonte/testes/t16.js <url> [rodadas] [mapas]` calcula, por mapa, quanto um agente
   eficiente leva para fazer 4 missões (caminho com escadas na velocidade do jogador, minidesafio no ritmo de uma
   pessoa, a encomenda antes da entrega, sem o sniper). `best` planeja a melhor ordem e `greedy` vai sempre à mais

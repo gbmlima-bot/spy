@@ -31,10 +31,9 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
         // one wrong arrow first: it must undo a step, not finish anything
         const bad = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][(ch.keys[0] + 1) % 4]; key(bad); wrong = ch.i;
         for (const d of ch.keys) key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][d]);
-      } else if (kind === 'ponto') {
-        const t1 = performance.now();
-        while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; const x = 0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp); if (Math.abs(x - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); c.act && (c.act.t += 0.5); } }
-      } else if (kind === 'calma') ch.p = 0.99;
+      } else if (kind === 'ponto') { // at exact moments of the act clock: software rendering draws a few frames a second
+        for (let h = 0; h < ch.need && c.act; h++) { const b = Math.asin(2 * ch.c - 1), now = c.act.t * ch.sp + ch.ph, k = Math.floor((now - b) / (2 * Math.PI) + 1e-6) + 1; c.act.t = (b + 2 * Math.PI * k - ch.ph) / ch.sp; key('e'); }
+      } else if (kind === 'calma') { if (S.ai) S.ai.aim.set(c.x + 30, c.y, c.z + 30); ch.p = 0.99; }
       else if (kind === 'girar') for (let i = 0; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft');
       else if (kind === 'pulso') for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 1 - ch.ph) * ch.per; key('e'); }
       const mini = document.querySelector('#mini').innerHTML.slice(0, 80);
@@ -61,7 +60,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
       await frame(); await frame(); res.notYet = !!c.act; // the challenge is not solved yet, so the act goes on
       res.mini = document.querySelector('#mini').hidden ? '' : document.querySelector('#mini').textContent.slice(0, 60);
       if (k === 'seq') { key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][(ch.keys[0] + 1) % 4]); res.afterWrong = ch.i; for (const d of ch.keys) key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][d]); }
-      if (k === 'ponto') { const t1 = performance.now(); while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; if (Math.abs(0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp) - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); if (c.act) c.act.t += 0.5; } } }
+      if (k === 'ponto') for (let h = 0; h < ch.need && c.act; h++) { const b = Math.asin(2 * ch.c - 1), now = c.act.t * ch.sp + ch.ph, k = Math.floor((now - b) / (2 * Math.PI) + 1e-6) + 1; c.act.t = (b + 2 * Math.PI * k - ch.ph) / ch.sp; key('e'); }
       if (k === 'girar') { key('ArrowLeft'); key('ArrowLeft'); res.afterSame = ch.i;
         // holding an arrow turns, it does not walk the player off the object
         const x0 = c.x, z0 = c.z; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); for (let i = 0; i < 4; i++) await frame(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
