@@ -371,6 +371,12 @@ function MIRA_KIT(T, root, seed) {
   // brilho do ambiente (reflexo da sala neutra) em todo o cenário: abaixo de 1 a sombra pega a cor do céu e do chão (hemi)
   // em vez de um cinza claro por igual. Chamar no fim do build, depois de criados os materiais.
   K.reflexo = (k) => { const vistos = new Set(); root.traverse(o => (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m && m.envMapIntensity !== undefined && !vistos.has(m)) { vistos.add(m); m.envMapIntensity *= k; } })); };
+  // luzes quentes vivas: vela, lampião e fogueira oscilam um pouco, cada uma no seu ritmo. Multiplica a intensidade que estiver
+  // valendo, então quem acende ou apaga uma luz por conta própria (missões, ciclos) continua mandando nela. Chamar no fim do build.
+  K.tremular = (o = {}) => {
+    const amp = o.amp ?? 0.1, ls = K.lights.filter(l => l.isPointLight && l.color.r > l.color.b * 1.4 && (!o.filtro || o.filtro(l))).map(l => ({ l, f: 1, ph: R() * 50, sp: 0.8 + R() * 0.6 }));
+    K.tick((dt, t) => { for (const q of ls) { const f = 1 + amp * (Math.sin(t * 7.3 * q.sp + q.ph) * 0.5 + Math.sin(t * 13.1 * q.sp + q.ph * 1.7) * 0.3 + Math.sin(t * 2.1 + q.ph) * 0.2); q.l.intensity *= f / q.f; q.f = f; } });
+  };
   K.halo = (x, y, z, r, color, k, parent = root) => { const s = new T.Sprite(new T.SpriteMaterial({ map: radialTex, color: new T.Color(color).multiplyScalar(k), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); s.position.set(x, y, z); s.scale.set(r * 2, r * 2, 1); parent.add(s); return s; };
   K.blob = (x, z, sx, sz, op = 0.5, parent = root) => { const m = new T.Mesh(UNIT, new T.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: op, toneMapped: false })); m.scale.set(sx, 1, sz); m.position.set(x, 0.014, z); m.renderOrder = 1; parent.add(m); return m; };
   // chama de vela/tocha que tremula sozinha
@@ -1489,6 +1495,8 @@ MIRA_CENARIOS.push({
     K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });
     // menos reflexo da sala neutra: à noite o palazzo fica no azul da lua e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.1 });
   },
   // ninho do sniper: janela do campanário de San Vidal. Peitoril de pedra da Ístria gasto (musgo, iniciais riscadas,
   // marcas de pombo), pilares de tijolo com capitel, a corda do sino e gerânios espiando por cima da borda
@@ -2328,6 +2336,14 @@ MIRA_CENARIOS.push({
     K.glints({ x0: 14, x1: 30, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
     // menos reflexo da sala neutra: o lado da sombra fica lilás (céu) e o do sol, dourado
     K.reflexo(0.2);
+    // reflexo do sol na água dançando no espelho de popa e nos costados (faixas de luz que correm devagar)
+    { const ond = K.canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.lineCap = 'round';
+        for (let k = 0; k < 46; k++) { const y = R() * h, x = R() * w, L = 18 + R() * 50; g.strokeStyle = `rgba(255,${200 + R() * 40},${140 + R() * 50},${0.35 + R() * 0.5})`; g.lineWidth = 2 + R() * 3.5; g.beginPath(); g.moveTo(x, y); g.bezierCurveTo(x + L * 0.3, y - 4, x + L * 0.6, y + 4, x + L, y); g.stroke(); } }, [3, 1]);
+      const om = new T.MeshBasicMaterial({ map: ond, color: new T.Color(1.7, 1.4, 1.05), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0.8 });
+      const ms = [K.add(new T.PlaneGeometry(25.4, 1.9), om, 0, WY + 0.75, 9.68, { cast: false })];
+      for (const sx of [-1, 1]) ms.push(K.add(new T.PlaneGeometry(35, 1.9), om, sx * 12.86, WY + 0.75, -8.2, { cast: false, ry: sx * Math.PI / 2 }));
+      ms.forEach(m => { m.renderOrder = 2; m.userData.noCol = true; m.raycast = () => { }; });
+      K.tick((dt, t) => { ond.offset.set(Math.sin(t * 0.4) * 0.06 + t * 0.015, Math.sin(t * 0.9) * 0.08); om.opacity = 0.7 + Math.sin(t * 1.3) * 0.15; }); }
   },
   // ninho do sniper: sacada da suíte do Hôtel Belvédère. Balaustrada de mármore com veios, corrimão de latão polido,
   // marca de copo e o cartão do quarto; buganvília num vaso à direita e o balde de champanhe à esquerda
@@ -3100,6 +3116,10 @@ MIRA_CENARIOS.push({
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);
     // menos reflexo da sala neutra: a sombra pega o azul do céu e o lado do sol fica dourado
     K.reflexo(0.25);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.08 });
+    // poeira dourada flutuando na luz baixa sobre o pátio
+    K.particles({ modo: 'paira', x0: -14, x1: 14, z0: -10, z1: 10, y0: 0.6, y1: 4.5, n: 90, cor: [0xffd890, 0xfff0c8, 0xffc070], tam: 0.03, vel: 0.15, balanco: 0.4, add: true, opacity: 0.5, pisca: 0.7 });
   },
   // ninho do sniper: ameias da torre de vigia medieval. Pedra arenítica irregular com argamassa, líquen laranja e uma
   // lagartixa tomando sol; mísulas de pedra na frente e hera subindo pela ameia da direita
@@ -4728,6 +4748,8 @@ MIRA_CENARIOS.push({
     K.particles({ modo: 'cai', x0: -15.5, x1: -11.5, z0: -4.6, z1: 0.6, y0: 0.05, y1: 4.2, n: 46, cor: [0xf6b8cc, 0xf8d0dc, 0xe890b0], tam: 0.07, vel: 0.35, balanco: 0.45 });
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.1 });
   },
   // ninho do sniper: último andar do pagode. Corrimão de laca vermelha gasta (o preto aparece nas bordas), pétalas de
   // sakura, beiral de telhas escuras logo abaixo, uma lanterna de papel acesa e um sino de vento (fūrin) que balança
@@ -6320,6 +6342,8 @@ MIRA_CENARIOS.push({
     K.slot(10.2, -3.2, 7.8, -5.6, 'talk'); K.slot(5.4, -3.2, 7.8, -5.6, 'talk');
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.12 });
   },
   // ninho do sniper: janela da cabine do teleférico. Peitoril de madeira coberto de neve fofa (sombras azuladas, pegadas
   // de passarinho, agulhas de pinheiro), pingentes de gelo na frente e a plaquinha esmaltada da estação no batente
@@ -7922,6 +7946,8 @@ MIRA_CENARIOS.push({
     K.root.traverse(m => { if (!m.isMesh || !m.castShadow || m.isInstancedMesh) return; m.geometry.computeBoundingSphere(); m.getWorldScale(sc); if (m.geometry.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < 0.16) m.castShadow = false; });
     // ------------------------------------------------------------ ambiente vivo: mariposas rodeando a grande lanterna perfurada
     K.particles({ modo: 'paira', x0: -0.9, x1: 0.9, z0: -8.9, z1: -7.6, y0: 1.9, y1: 3.0, n: 14, cor: [0xffe0a0], tam: 0.04, vel: 2.2, balanco: 0.35, add: true, pisca: 3 });
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.12 });
   },
   // ninho do sniper: varanda do minarete. Zellige verde, branco e ocre com estrelas de oito pontas, poeira de areia,
   // pilares de azulejo e uma lanterna de latão vazada balançando
@@ -8806,6 +8832,8 @@ MIRA_CENARIOS.push({
     K.pool(-4, 0, 6, 0xffb070, 0.12); K.pool(5, -2, 6, 0xffb070, 0.12);
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.05 });
   },
   // ninho do sniper: atrás do relógio da torre da estação. Granito com fuligem, chapa de ferro rebitada na borda, a
   // plaqueta de latão da companhia e, nas laterais, as engrenagens do mecanismo do relógio girando devagar

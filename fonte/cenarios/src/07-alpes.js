@@ -742,6 +742,8 @@ MIRA_CENARIOS.push({
     K.slot(10.2, -3.2, 7.8, -5.6, 'talk'); K.slot(5.4, -3.2, 7.8, -5.6, 'talk');
     // menos reflexo da sala neutra: à noite a sombra fica no azul do céu e só acende onde há luz
     K.reflexo(0.3);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.12 });
   },
   // ninho do sniper: janela da cabine do teleférico. Peitoril de madeira coberto de neve fofa (sombras azuladas, pegadas
   // de passarinho, agulhas de pinheiro), pingentes de gelo na frente e a plaquinha esmaltada da estação no batente

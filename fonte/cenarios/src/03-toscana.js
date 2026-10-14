@@ -742,6 +742,10 @@ MIRA_CENARIOS.push({
     K.pool(-1.2, -3.2, 4.2, 0xffc080, 0.18); K.pool(10.6, -6.2, 2.2, 0xffd0a0, 0.2); K.pool(-9.6, 3.6, 2.2, 0xffb070, 0.15); K.pool(-11.0, -7.8, 2.4, 0xffb060, 0.25);
     // menos reflexo da sala neutra: a sombra pega o azul do céu e o lado do sol fica dourado
     K.reflexo(0.25);
+    // velas, lampiões e fogo oscilando um pouco
+    K.tremular({ amp: 0.08 });
+    // poeira dourada flutuando na luz baixa sobre o pátio
+    K.particles({ modo: 'paira', x0: -14, x1: 14, z0: -10, z1: 10, y0: 0.6, y1: 4.5, n: 90, cor: [0xffd890, 0xfff0c8, 0xffc070], tam: 0.03, vel: 0.15, balanco: 0.4, add: true, opacity: 0.5, pisca: 0.7 });
   },
   // ninho do sniper: ameias da torre de vigia medieval. Pedra arenítica irregular com argamassa, líquen laranja e uma
   // lagartixa tomando sol; mísulas de pedra na frente e hera subindo pela ameia da direita

@@ -808,6 +808,14 @@ MIRA_CENARIOS.push({
     K.glints({ x0: 14, x1: 30, z0: -12, z1: 22, y0: WY + 0.05, n: 50, cor: [0xffc080, 0xffe0b0], tam: 0.2, pisca: 1.6 });
     // menos reflexo da sala neutra: o lado da sombra fica lilás (céu) e o do sol, dourado
     K.reflexo(0.2);
+    // reflexo do sol na água dançando no espelho de popa e nos costados (faixas de luz que correm devagar)
+    { const ond = K.canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.lineCap = 'round';
+        for (let k = 0; k < 46; k++) { const y = R() * h, x = R() * w, L = 18 + R() * 50; g.strokeStyle = `rgba(255,${200 + R() * 40},${140 + R() * 50},${0.35 + R() * 0.5})`; g.lineWidth = 2 + R() * 3.5; g.beginPath(); g.moveTo(x, y); g.bezierCurveTo(x + L * 0.3, y - 4, x + L * 0.6, y + 4, x + L, y); g.stroke(); } }, [3, 1]);
+      const om = new T.MeshBasicMaterial({ map: ond, color: new T.Color(1.7, 1.4, 1.05), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0.8 });
+      const ms = [K.add(new T.PlaneGeometry(25.4, 1.9), om, 0, WY + 0.75, 9.68, { cast: false })];
+      for (const sx of [-1, 1]) ms.push(K.add(new T.PlaneGeometry(35, 1.9), om, sx * 12.86, WY + 0.75, -8.2, { cast: false, ry: sx * Math.PI / 2 }));
+      ms.forEach(m => { m.renderOrder = 2; m.userData.noCol = true; m.raycast = () => { }; });
+      K.tick((dt, t) => { ond.offset.set(Math.sin(t * 0.4) * 0.06 + t * 0.015, Math.sin(t * 0.9) * 0.08); om.opacity = 0.7 + Math.sin(t * 1.3) * 0.15; }); }
   },
   // ninho do sniper: sacada da suíte do Hôtel Belvédère. Balaustrada de mármore com veios, corrimão de latão polido,
   // marca de copo e o cartão do quarto; buganvília num vaso à direita e o balde de champanhe à esquerda

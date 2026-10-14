@@ -98,6 +98,12 @@ function MIRA_KIT(T, root, seed) {
   // brilho do ambiente (reflexo da sala neutra) em todo o cenário: abaixo de 1 a sombra pega a cor do céu e do chão (hemi)
   // em vez de um cinza claro por igual. Chamar no fim do build, depois de criados os materiais.
   K.reflexo = (k) => { const vistos = new Set(); root.traverse(o => (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m && m.envMapIntensity !== undefined && !vistos.has(m)) { vistos.add(m); m.envMapIntensity *= k; } })); };
+  // luzes quentes vivas: vela, lampião e fogueira oscilam um pouco, cada uma no seu ritmo. Multiplica a intensidade que estiver
+  // valendo, então quem acende ou apaga uma luz por conta própria (missões, ciclos) continua mandando nela. Chamar no fim do build.
+  K.tremular = (o = {}) => {
+    const amp = o.amp ?? 0.1, ls = K.lights.filter(l => l.isPointLight && l.color.r > l.color.b * 1.4 && (!o.filtro || o.filtro(l))).map(l => ({ l, f: 1, ph: R() * 50, sp: 0.8 + R() * 0.6 }));
+    K.tick((dt, t) => { for (const q of ls) { const f = 1 + amp * (Math.sin(t * 7.3 * q.sp + q.ph) * 0.5 + Math.sin(t * 13.1 * q.sp + q.ph * 1.7) * 0.3 + Math.sin(t * 2.1 + q.ph) * 0.2); q.l.intensity *= f / q.f; q.f = f; } });
+  };
   K.halo = (x, y, z, r, color, k, parent = root) => { const s = new T.Sprite(new T.SpriteMaterial({ map: radialTex, color: new T.Color(color).multiplyScalar(k), transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); s.position.set(x, y, z); s.scale.set(r * 2, r * 2, 1); parent.add(s); return s; };
   K.blob = (x, z, sx, sz, op = 0.5, parent = root) => { const m = new T.Mesh(UNIT, new T.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: op, toneMapped: false })); m.scale.set(sx, 1, sz); m.position.set(x, 0.014, z); m.renderOrder = 1; parent.add(m); return m; };
   // chama de vela/tocha que tremula sozinha
