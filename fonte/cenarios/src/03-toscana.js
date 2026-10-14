@@ -155,10 +155,11 @@ MIRA_CENARIOS.push({
       for (let x = -70; x <= 70; x += 2.0) row(x, 13, x > -2 && x < 16 ? 40 : 46, 1.15, false);
       for (let x = 27; x <= 66; x += 2.4) { row(x, -34, 9, 1.3, false); row(-x, -34, 9, 1.3, false); }
       // cada pé é uma copa irregular que encosta na vizinha: a fileira lê como sebe de folhas, não como blocos
-      const vg = new T.IcosahedronGeometry(0.5, 2); { const q = vg.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = 1 + 0.12 * Math.sin(v.x * 9.1 + v.y * 7.3) * Math.cos(v.z * 8.7 - v.y * 5.1) + 0.06 * Math.sin(v.x * 31 + v.z * 27) * Math.sin(v.y * 29); q.setXYZ(i, v.x * k * 0.62, v.y * k * 0.9, v.z * k * 1.6); } K.normaisLisas(vg, 0.62, 0.9, 1.6); vg.translate(0, 0.82, 0); }
+      // perto detalhe 1; as fileiras dos morros (milhares) ficam com detalhe 0: a suavidade vem das normais
+      const vg = new T.IcosahedronGeometry(0.5, 1), vgLonge = new T.IcosahedronGeometry(0.5, 0); for (const g of [vg, vgLonge]) { const q = g.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = 1 + 0.12 * Math.sin(v.x * 9.1 + v.y * 7.3) * Math.cos(v.z * 8.7 - v.y * 5.1) + 0.06 * Math.sin(v.x * 31 + v.z * 27) * Math.sin(v.y * 29); q.setXYZ(i, v.x * k * 0.62, v.y * k * 0.9, v.z * k * 1.6); } K.normaisLisas(g, 0.62, 0.9, 1.6); g.translate(0, 0.82, 0); }
       const fa = folA.filter(f => Math.abs(f[0]) < 26 && f[2] < 11), fb = folB.filter(f => Math.abs(f[0]) < 26 && f[2] < 11), fA = folA.filter(f => !fa.includes(f)), fB = folB.filter(f => !fb.includes(f));
       const vmA = K.mat(0x3e5c26, { roughness: 0.9 }), vmB = K.mat(0x58762e, { roughness: 0.9 });
-      K.inst(vg, vmA, fa); K.inst(vg, vmB, fb); K.inst(vg, vmA, fA, { cast: false }); K.inst(vg, vmB, fB, { cast: false });
+      K.inst(vg, vmA, fa); K.inst(vg, vmB, fb); K.inst(vgLonge, vmA, fA, { cast: false }); K.inst(vgLonge, vmB, fB, { cast: false });
       K.inst(new T.CylinderGeometry(0.04, 0.05, 1.5, 5).translate(0, 0.75, 0), oakDark, posts, { cast: false });
       K.inst(new T.ConeGeometry(0.07, 0.17, 6).rotateX(Math.PI), K.mat(0x4a1e4e, { roughness: 0.4 }), grapes, { cast: false });
       // arames das fileiras próximas

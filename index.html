@@ -2744,10 +2744,11 @@ MIRA_CENARIOS.push({
       for (let x = -70; x <= 70; x += 2.0) row(x, 13, x > -2 && x < 16 ? 40 : 46, 1.15, false);
       for (let x = 27; x <= 66; x += 2.4) { row(x, -34, 9, 1.3, false); row(-x, -34, 9, 1.3, false); }
       // cada pé é uma copa irregular que encosta na vizinha: a fileira lê como sebe de folhas, não como blocos
-      const vg = new T.IcosahedronGeometry(0.5, 2); { const q = vg.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = 1 + 0.12 * Math.sin(v.x * 9.1 + v.y * 7.3) * Math.cos(v.z * 8.7 - v.y * 5.1) + 0.06 * Math.sin(v.x * 31 + v.z * 27) * Math.sin(v.y * 29); q.setXYZ(i, v.x * k * 0.62, v.y * k * 0.9, v.z * k * 1.6); } K.normaisLisas(vg, 0.62, 0.9, 1.6); vg.translate(0, 0.82, 0); }
+      // perto detalhe 1; as fileiras dos morros (milhares) ficam com detalhe 0: a suavidade vem das normais
+      const vg = new T.IcosahedronGeometry(0.5, 1), vgLonge = new T.IcosahedronGeometry(0.5, 0); for (const g of [vg, vgLonge]) { const q = g.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = 1 + 0.12 * Math.sin(v.x * 9.1 + v.y * 7.3) * Math.cos(v.z * 8.7 - v.y * 5.1) + 0.06 * Math.sin(v.x * 31 + v.z * 27) * Math.sin(v.y * 29); q.setXYZ(i, v.x * k * 0.62, v.y * k * 0.9, v.z * k * 1.6); } K.normaisLisas(g, 0.62, 0.9, 1.6); g.translate(0, 0.82, 0); }
       const fa = folA.filter(f => Math.abs(f[0]) < 26 && f[2] < 11), fb = folB.filter(f => Math.abs(f[0]) < 26 && f[2] < 11), fA = folA.filter(f => !fa.includes(f)), fB = folB.filter(f => !fb.includes(f));
       const vmA = K.mat(0x3e5c26, { roughness: 0.9 }), vmB = K.mat(0x58762e, { roughness: 0.9 });
-      K.inst(vg, vmA, fa); K.inst(vg, vmB, fb); K.inst(vg, vmA, fA, { cast: false }); K.inst(vg, vmB, fB, { cast: false });
+      K.inst(vg, vmA, fa); K.inst(vg, vmB, fb); K.inst(vgLonge, vmA, fA, { cast: false }); K.inst(vgLonge, vmB, fB, { cast: false });
       K.inst(new T.CylinderGeometry(0.04, 0.05, 1.5, 5).translate(0, 0.75, 0), oakDark, posts, { cast: false });
       K.inst(new T.ConeGeometry(0.07, 0.17, 6).rotateX(Math.PI), K.mat(0x4a1e4e, { roughness: 0.4 }), grapes, { cast: false });
       // arames das fileiras próximas
@@ -4200,7 +4201,7 @@ MIRA_CENARIOS.push({
     };
     // telhado curvo japonês com cumeeira e empenas (cumeeira ao longo de x; ry gira)
     // copa de árvore: icosaedro subdividido e amassado (facetado, mas com volume de folhagem em vez de um poliedro liso)
-    let copaN = 0; const copaG = (r, ph = (copaN++ * 2.39) % 9) => { const g = new T.IcosahedronGeometry(1, 2), q = g.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = r * (1 + 0.18 * Math.sin(v.x * 4.1 + ph) * Math.cos(v.z * 3.7 - ph) + 0.1 * Math.sin(v.y * 6.3 + ph * 2)); q.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k); } K.normaisLisas(g, 1, 0.85, 1); return g; };
+    let copaN = 0; const copaG = (r, ph = (copaN++ * 2.39) % 9, det = 1) => { const g = new T.IcosahedronGeometry(1, det), q = g.attributes.position, v = new T.Vector3(); for (let i = 0; i < q.count; i++) { v.fromBufferAttribute(q, i); const k = r * (1 + 0.18 * Math.sin(v.x * 4.1 + ph) * Math.cos(v.z * 3.7 - ph) + 0.1 * Math.sin(v.y * 6.3 + ph * 2)); q.setXYZ(i, v.x * k, v.y * k * 0.85, v.z * k); } K.normaisLisas(g, 1, 0.85, 1); return g; };
     const roof = (w, d, h, x, y, z, o = {}) => {
       const g = K.group(x, y, z, o.ry || 0, o.parent);
       K.add(roofGeo(w, d, h, o.t, o.up), o.mat || tileM, 0, 0, 0, { parent: g, cast: o.cast });
@@ -4263,7 +4264,7 @@ MIRA_CENARIOS.push({
       K.halo(16, 10, -42, 9, 0xff7a30, 0.12);
       // bosque escuro em volta do templo (fecha o fundo)
       const fo = [], tr = []; for (let k = 0; k < 240; k++) { const x = -48 + R() * 96, z = -13 - R() * 28; if (Math.abs(x) < 14.5 && z > -27) continue; if (Math.abs(x) < 6 && z > -32) continue; const s = 1.2 + R() * 1.4; fo.push([x, 3.2 * s + R(), z, R() * 6, s * 1.6]); fo.push([x + (R() - 0.5) * 2, 4.4 * s, z + (R() - 0.5) * 2, R() * 6, s * 1.2]); tr.push([x, 0, z, 0, [s, s * 3, s]]); }
-      K.inst(copaG(1), K.mat(0x16261c, { roughness: 1 }), fo, { cast: false });
+      K.inst(copaG(1, undefined, 0), K.mat(0x16261c, { roughness: 1 }), fo, { cast: false });
       K.inst(new T.CylinderGeometry(0.15, 0.22, 1, 5).translate(0, 0.5, 0), K.mat(0x2a1e16), tr, { cast: false });
       // pátio do salão (plataforma de pedra) e caminho de lanternas de pedra
       K.box(26, 1.05, 15, K.mat(0x3a3630, { roughness: 0.95 }), 0, 0.52, -20.4, { cast: false });
@@ -4946,7 +4947,7 @@ MIRA_CENARIOS.push({
     for (const s of [-1, 1]) for (let k = 0; k < 5; k++) { const z = -12 + k * 5.2, h = 5 + R() * 2; K.facade(7, h, 4.8, s * 28, z, { wall: '#2a1e18', dark: '#120c0a', lit: 0.35, bays: 4, floors: 3, glow: 0.45 }); roof(5.2, 8, 1.3, s * 28, h - 0.1, z, { ry: Math.PI / 2, cast: false }); }
     // bambuzal alto atrás das laterais
     { const bb = []; for (let k = 0; k < 160; k++) { const s = R() < 0.5 ? -1 : 1; bb.push([s * (23 + R() * 3), 4, -16 + R() * 10, 0, [1, 0.8 + R() * 0.5, 1], (R() - 0.5) * 0.1, (R() - 0.5) * 0.1]); }
-      K.inst(new T.CylinderGeometry(0.06, 0.07, 10, 5), bamboo, bb, { cast: false }); const lf = bb.map(p => [p[0], 8 + R() * 2, p[2], R() * 6, 1.2]); K.inst(copaG(0.8), K.mat(0x2f4a2a), lf, { cast: false }); }
+      K.inst(new T.CylinderGeometry(0.06, 0.07, 10, 5), bamboo, bb, { cast: false }); const lf = bb.map(p => [p[0], 8 + R() * 2, p[2], R() * 6, 1.2]); K.inst(copaG(0.8, undefined, 0), K.mat(0x2f4a2a), lf, { cast: false }); }
 
     // ------------------------------------------------------------ frente: margem do rio Kamo e o pagode do sniper
     K.add(new T.PlaneGeometry(140, 3).rotateX(-Math.PI / 2), K.mat(0x2e2b26, { roughness: 0.95 }), 0, 0, 12.9, { cast: false });
