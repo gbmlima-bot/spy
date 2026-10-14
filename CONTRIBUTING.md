@@ -64,6 +64,16 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Regras sorteáveis (só multijogador): `RULES` no `fonte/mira.html` (apagão, duas balas e 3 minutos, missão em dupla);
   o anfitrião escolhe na sala ("Surpresa" sorteia uma regra em metade das rodadas). Os treinos solo e o t10 seguem na regra
   clássica. `node fonte/testes/t20.js <url>` confere cada regra na simulação, na rede, na troca de anfitrião e na tela. `node fonte/testes/t21.js <url>` confere a segunda bala do lado do sniper (veredito na luneta, corpo caído recusado).
+  clássica. `node fonte/testes/t20.js <url>` confere cada regra na simulação, na rede, na troca de anfitrião e na tela.
+- Convite em um toque: no site publicado (`window.MIRA_WEB`, posto pelo `montar.js`) quem cria a sala ganha "Chamar
+  amigos" (compartilhar do celular, ou WhatsApp) e "Copiar link"; o endereço passa a ter `?sala=ABCD` e quem abre esse
+  link entra direto (com nome guardado) ou vê o convite com um botão só. `node fonte/testes/t24.js <url>` (2 abas).
+  A prévia do link (WhatsApp, redes) vem das meta tags Open Graph do `montar.js` e da imagem `og.jpg` da raiz, gerada por
+  `node fonte/web/og.js <url>` (1200×630, abaixo de 300 KB; o endereço público fica em `SITE` no `montar.js`).
+- Primeira rodada como agente ou cúmplice: tutorial guiado (`GINTRO`), etiqueta "VOCÊ" sobre a cabeça nos primeiros
+  segundos e lista de missões curta (rótulo + andar). `node fonte/testes/t23.js <url> [largura] [altura]`.
+- Revelação: trajeto do agente visto de cima (`renderReplay`, com o laser nele, as missões e o tiro; o anfitrião grava
+  em `Sim.track`) e, a cada 5 rodadas com amigos, o pódio da noite (`renderPodium`). `node fonte/testes/t22.js <url> [mapa]`.
 - Qualidade de imagem: `node fonte/testes/qualidade.js <url> <pasta> [mapas] [rotulo]` captura cada mapa na vista larga,
   na luneta e de perto (agente), em 1280×720 com densidade 1, o pior caso para serrilhado (`DPR=2` para tela de alta
   densidade). Com `AB=1` grava o mesmo quadro sem e com o antialias do pós-processamento. O jogo desenha a cena num alvo
