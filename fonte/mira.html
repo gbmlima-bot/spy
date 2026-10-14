@@ -79,6 +79,9 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 #touch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom,0px));display:grid;gap:8px}
 #touch button{width:96px;padding:12px 8px;pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #breathBtn{touch-action:none}
+/* the agent's one button: the main action, so it reads as one over a bright party */
+#actBtn{background:var(--brass);color:#17130a;border-color:var(--brass)}
+@media (orientation:portrait) and (max-width:700px){#touch #actBtn{font-size:13px}}
 /* phone upright: the buttons make one row along the bottom instead of a column over the scope's right edge */
 @media (orientation:portrait) and (max-width:700px){#touch{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}#touch button{width:auto;min-width:0;padding:12px 2px;font-size:11px;line-height:1.15}}
 #shootBtn{background:rgba(255,65,52,.2);border-color:var(--laser)}
@@ -138,6 +141,16 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
   #topbar{top:calc(8px + env(safe-area-inset-top,0px))}
 }
 @media (max-width:700px){body.scoped #roleCard{display:none}}
+/* phone upright, agent or accomplice: the mission card sits under the round timer instead of over the middle of the
+   screen (where your own character stands) and over the prompt; a tap folds it down to its title */
+@media (orientation:portrait) and (max-width:700px){
+  #roleCard.play{top:calc(56px + env(safe-area-inset-top,0px));bottom:auto;max-height:28vh;width:min(270px,calc(100% - 32px))}
+  #roleCard.play .eyebrow::after{content:" ▾";color:var(--muted)}#roleCard.play.min .eyebrow::after{content:" ▸"}
+}
+#roleCard.min > :not(.eyebrow):not(h2){display:none}
+#hud{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#mini .pads button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media (pointer:coarse){#mini .pads{gap:10px}#mini .pads button{width:54px;height:48px;font-size:20px}}
 #coach{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;font-size:14px;max-width:calc(100% - 24px);z-index:5;animation:tin .25s ease-out}
 #coachN{font-family:var(--f-mono);font-size:11px;color:var(--brass);letter-spacing:.1em;white-space:nowrap}
 #coachText b{color:var(--paper)}
@@ -12828,14 +12841,14 @@ function renderRoleCard(st) {
   else if (r === 'c') h += `<h2>Atraia a mira</h2><p class="muted">Faça missões falsas em qualquer objeto marcado no chão, em qualquer andar.</p>${missionsByLevel()}`;
   else if (r === 's') h += `<h2>Encontre o agente</h2><div id="notebook"><div class="eyebrow">Caderno de suspeitos</div><ul id="suspectList"></ul><div class="eyebrow">Rádio · o que mudou na festa</div><ul id="radioLog"></ul></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
   else h += `<p class="muted">Você entra na próxima rodada.</p>`;
-  $('#roleCard').innerHTML = h;
+  $('#roleCard').innerHTML = h; $('#roleCard').classList.toggle('play', r === 'a' || r === 'c');
 }
 function setupControls() {
   const touch = matchMedia('(pointer:coarse)').matches;
   const s = G.role === 's';
   $('#hints').innerHTML = s
     ? '<kbd>Botão direito</kbd> ou <kbd>Espaço</kbd> luneta · <kbd>Roda</kbd> zoom · <kbd>Shift</kbd> prender a respiração · <kbd>F</kbd> anotar suspeito · <kbd>Clique</kbd> atirar'
-    : G.role ? '<kbd>WASD</kbd> ou clique para andar · <kbd>E</kbd> interagir, sentar, dançar, subir pelas escadas em caracol · <kbd>Roda</kbd> zoom' : 'Assistindo a rodada';
+    : G.role ? (touch ? 'Toque no chão para andar · toque num objeto, assento ou escada para usar · dois dedos para zoom' : '<kbd>WASD</kbd> ou clique para andar · <kbd>E</kbd> interagir, sentar, dançar, subir pelas escadas em caracol · <kbd>Roda</kbd> zoom') : 'Assistindo a rodada';
   $('#scopeBtn').hidden = !(s && touch); $('#zoomBtn').hidden = !(s && touch); $('#markBtn').hidden = !(s && touch); $('#shootBtn').hidden = !(s && touch); $('#breathBtn').hidden = !(s && touch);
   $('#actBtn').hidden = true;
 }
@@ -12894,7 +12907,7 @@ const ray = new T.Raycaster(); const ndc = new T.Vector2();
 const TOUCHES = new Map(); let pinch = null, tapAt = null;
 const pinchDist = () => { const [a, b] = [...TOUCHES.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
 canvas.addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'mouse') { TOUCHES.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (TOUCHES.size === 2) pinch = { d: pinchDist(), z: snip.zoom }; tapAt = TOUCHES.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; }
+  if (e.pointerType !== 'mouse') { TOUCHES.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (TOUCHES.size === 2) pinch = { d: pinchDist(), z: snip.zoom, iz: isoState.zoom }; tapAt = TOUCHES.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; }
   canvas.focus(); audio();
   const st = currentState(); if (G.screen !== 'game' || !st) return;
   snip.lastPX = e.clientX; snip.lastPY = e.clientY;
@@ -12905,6 +12918,8 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
   if (G.role && G.role !== 's' && st.ph === 'play' && e.button === 0) {
+    // a second finger is a pinch, not a second walk: drop the walk the first finger just asked for
+    if (e.pointerType !== 'mouse' && TOUCHES.size > 1) { ctrl.path = []; ctrl.goal = null; return; }
     ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, iso);
     const hit = ray.intersectObjects(FLOORS)[0];
@@ -12933,6 +12948,7 @@ canvas.addEventListener('pointermove', e => {
     TOUCHES.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinch) { // two fingers: zoom with the spread, no aiming
       if (G.role === 's' && snip.scoped) { const z = Math.max(3, Math.min(10, Math.round(pinch.z * pinchDist() / pinch.d))); if (z !== snip.zoom) { snip.zoom = z; $('#zoomTag').textContent = z + '×'; sndZoom(); } }
+      else if (G.role !== 's') isoState.zoom = Math.max(5, Math.min(16, pinch.iz * pinch.d / pinchDist())); // the party view: spread to come closer
       return;
     }
     if (!e.isPrimary && TOUCHES.size > 1) return;
@@ -12957,6 +12973,8 @@ $('#zoomBtn').onclick = () => { snip.zoom = snip.zoom >= 10 ? 4 : snip.zoom + 2;
 $('#markBtn').onclick = () => markUnderCrosshair();
 { const bb = $('#breathBtn'); const on = () => { if (snip.gasp <= 0 && snip.air > 0.15) snip.hold = true; }; const off = () => { snip.hold = false; }; bb.addEventListener('pointerdown', on); bb.addEventListener('pointerup', off); bb.addEventListener('pointercancel', off); bb.addEventListener('pointerleave', off); }
 $('#shootBtn').onclick = () => { if (!snip.scoped) setScope(true); else shoot(); };
+// the mission card folds down to its title with a tap (on a phone it would otherwise cover part of the party)
+$('#roleCard').addEventListener('click', e => { if (e.target.closest('details,summary,a,button')) return; $('#roleCard').classList.toggle('min'); });
 $('#actBtn').onclick = () => { if (!(ctrl.act && challengeKey('e'))) tryAct(); };
 
 function clampAim() { snip.yaw = Math.max(-0.75, Math.min(0.75, snip.yaw)); snip.pitch = Math.max(-1.0, Math.min(0.25, snip.pitch)); }
@@ -13140,7 +13158,7 @@ function drawMini() {
     const key = 'seq' + a.o + ':' + ch.i + ':' + (ch.err > 0);
     if (key === miniKey) return; miniKey = key;
     box.innerHTML = `<div class="seq${ch.err > 0 ? ' err' : ''}">${ch.keys.map((d, i) => `<b class="${i < ch.i ? 'ok' : i === ch.i ? 'cur' : ''}">${ARROWS[d]}</b>`).join('')}</div>`
-      + (touch ? `<div class="pads">${ARROWS.map((s, d) => `<button data-d="${d}">${s}</button>`).join('')}</div>` : '<small>setas ou WASD · Esc sai</small>');
+      + (touch ? `<div class="pads">${ARROWS.map((s, d) => `<button data-d="${d}">${s}</button>`).join('')}</div><small>Toque nas setas na ordem · tocar no chão desiste</small>` : '<small>setas ou WASD · Esc sai</small>');
     box.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => challengeKey(Object.keys(ARROW_KEYS)[[0, 2, 4, 6][+b.dataset.d]]));
   } else if (ch.k === 'ponto') {
     const key = 'ponto' + a.o;
@@ -13194,8 +13212,8 @@ function updateLocal(dt, st) {
         const fwd = new T.Vector3(); iso.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
         const right = new T.Vector3(-fwd.z, 0, fwd.x);
         let ix = 0, iz = 0;
-        // while typing a sequence the arrows (and WASD) belong to the challenge; Esc or a click elsewhere walks away
-        const typing = ctrl.act && ctrl.act.ch && ctrl.act.ch.k === 'seq';
+        // while typing a sequence or turning, the arrows (and WASD) belong to the challenge; Esc or a click elsewhere walks away
+        const typing = ctrl.act && ctrl.act.ch && (ctrl.act.ch.k === 'seq' || ctrl.act.ch.k === 'girar');
         if (!typing) {
           if (keyDown.has('w') || keyDown.has('arrowup')) { ix += fwd.x; iz += fwd.z; }
           if (keyDown.has('s') || keyDown.has('arrowdown')) { ix -= fwd.x; iz -= fwd.z; }
@@ -13274,7 +13292,7 @@ function updateLocal(dt, st) {
     // prompt
     const it = st.ph === 'play' && !dead && !ctrl.lk && !ctrl.act ? (ctrl.pose ? { k: 'up', label: ctrl.pose.anim === 3 ? 'Parar de dançar' : [7, 8, 9, 12, 15, 16, 17].includes(ctrl.pose.anim) ? 'Levantar' : 'Parar' } : nearInteraction(st)) : null;
     if (ctrl.act) { show('#prompt', true); $('#promptText').textContent = (ctrl.act.label || MISSIONS[ctrl.act.o].label) + '…'; $('#promptBar').style.width = (challengeProgress(ctrl.act) * 100) + '%'; }
-    else if (it) { show('#prompt', true); $('#promptText').innerHTML = `<kbd>E</kbd> ${esc(it.label)}`; $('#promptBar').style.width = '0%'; }
+    else if (it) { show('#prompt', true); $('#promptText').innerHTML = matchMedia('(pointer:coarse)').matches ? esc(it.label) : `<kbd>E</kbd> ${esc(it.label)}`; $('#promptBar').style.width = '0%'; }
     else show('#prompt', false);
     drawMini();
     // on touch screens the act button doubles as the "now" of a needle challenge

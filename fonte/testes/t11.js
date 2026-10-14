@@ -62,7 +62,11 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
       res.mini = document.querySelector('#mini').hidden ? '' : document.querySelector('#mini').textContent.slice(0, 60);
       if (k === 'seq') { key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][(ch.keys[0] + 1) % 4]); res.afterWrong = ch.i; for (const d of ch.keys) key(['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'][d]); }
       if (k === 'ponto') { const t1 = performance.now(); while (c.act && performance.now() - t1 < 90000) { await frame(); if (!c.act) break; if (Math.abs(0.5 + 0.5 * Math.sin(ch.ph + c.act.t * ch.sp) - ch.c) < ch.w * 0.35 && ch.miss <= 0) { key('e'); if (c.act) c.act.t += 0.5; } } }
-      if (k === 'girar') { key('ArrowLeft'); key('ArrowLeft'); res.afterSame = ch.i; for (let i = 1; i < ch.n; i++) key(i % 2 ? 'ArrowRight' : 'ArrowLeft'); }
+      if (k === 'girar') { key('ArrowLeft'); key('ArrowLeft'); res.afterSame = ch.i;
+        // holding an arrow turns, it does not walk the player off the object
+        const x0 = c.x, z0 = c.z; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); for (let i = 0; i < 4; i++) await frame(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
+        res.held = !!c.act && Math.hypot(c.x - x0, c.z - z0) < 0.01;
+        for (let j = 0; c.act && ch.i < ch.n && j < 40; j++) key(j % 2 ? 'ArrowRight' : 'ArrowLeft'); }
       if (k === 'pulso') { // off the beat breaks the streak; then three on the beat
         c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 0.5 - ch.ph) * ch.per; key('e'); res.offBeat = ch.hits + (ch.miss > 0 ? 'm' : ''); ch.miss = 0;
         for (let h = 0; h < ch.need && c.act; h++) { c.act.t = (Math.floor(c.act.t / ch.per + ch.ph + 1e-6) + 1 - ch.ph) * ch.per; key('e'); } }
@@ -76,7 +80,7 @@ const U = process.argv[2] || 'http://localhost:8765/mira-pub.html';
   }
   const base = res.filter(r => !r.ch), chs = res.filter(r => r.ch).map(r => r.ch);
   const ok = base.every((r, i) => r.act && r.act.o === M0[i].o && r.anim === M0[i].ga && r.done) && base.every(r => r.wrong === null || r.wrong === 0)
-    && chs.length === 5 && chs.every(c => c.notYet && c.finished) && chs.every(c => c.k !== 'girar' || c.afterSame === 1) && chs.every(c => c.k !== 'pulso' || c.offBeat === '0m') && chs.every(c => c.k !== 'seq' || c.afterWrong === 0) && chs.every(c => c.k !== 'calma' || (c.near && c.nearP < 0.05)) && new Set(base.map(r => r.act.d)).size > 1;
+    && chs.length === 5 && chs.every(c => c.notYet && c.finished) && chs.every(c => c.k !== 'girar' || (c.afterSame === 1 && c.held)) && chs.every(c => c.k !== 'pulso' || c.offBeat === '0m') && chs.every(c => c.k !== 'seq' || c.afterWrong === 0) && chs.every(c => c.k !== 'calma' || (c.near && c.nearP < 0.05)) && new Set(base.map(r => r.act.d)).size > 1;
   console.log(ok ? 'OK' : 'FALHOU');
   await b.close();
 })();
