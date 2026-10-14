@@ -27,7 +27,7 @@ MIRA_CENARIOS.push({
     extra(o, r) {
       const pk = (a) => a[Math.floor(r() * a.length)];
       if (!o.dress) {
-        o.coat = o.main; o.pants = o.main; o.shoe = r() < 0.6 ? 0xe9c33b : 0xf0e6cf; o.bow = false; o.pocket = 0;
+        o.robe = 'round'; o.robeLong = true; o.pants = o.main; // djellaba: long robe with sleeves o.shoe = r() < 0.6 ? 0xe9c33b : 0xf0e6cf; o.bow = false; o.pocket = 0;
         const h = r();
         if (h < 0.34) { o.hat = 'fez'; o.hatColor = r() < 0.8 ? 0xa8172a : 0x16161a; o.name += o.hatColor === 0x16161a ? ', fez preto' : ', fez vermelho'; }
         else if (h < 0.54) { o.hat = 'beanie'; o.hatColor = 0xf6f3ec; o.name += ', solidéu branco'; }
@@ -35,6 +35,7 @@ MIRA_CENARIOS.push({
         if (r() < 0.2) { o.sash = 0xd9a441; o.name += ', faixa dourada'; }
         if (r() < 0.3) o.beard = true;
       } else {
+        o.robe = 'round'; o.collar = 0xd9a441; // kaftan: sleeves and a gold trimmed neck
         o.accent = 0xd9a441; o.earring = true; o.necklace = r() < 0.75; o.clutch = false; o.shoe = pk([0xd9a441, 0xc9ced6, o.main]);
         if (r() < 0.7) { o.sash = r() < 0.8 ? 0xd9a441 : 0xc9ced6; o.name += o.sash === 0xd9a441 ? ', cinto dourado' : ', cinto prateado'; }
         if (r() < 0.3) { o.scarf = pk([0xf2e6c8, 0xe0a020, 0x1aa0a0, 0xb0207a]); o.name += ', lenço no pescoço'; }
