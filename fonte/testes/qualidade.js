@@ -14,13 +14,13 @@ const MAPS = MAPS_.split(',').map(Number);
     if (!process.env.AB) return p.screenshot({ path: `${OUT}/${TAG}-${name}.png` });
     const r = await p.evaluate(() => {
       const M = window.__mira, out = [];
-      for (const n of [0, 4]) { const c = M.composer; c.renderTarget1.dispose(); c.renderTarget2.dispose(); M.setupPost(n); M.composer.render(0); out.push(M.renderer.domElement.toDataURL('image/png')); }
+      for (const n of [0, 4]) { M.rebuildPost(n); M.composer.render(0); out.push(M.renderer.domElement.toDataURL('image/png')); }
       return out;
     });
     fs.writeFileSync(`${OUT}/${TAG}-${name}-sem.png`, Buffer.from(r[0].split(',')[1], 'base64'));
     fs.writeFileSync(`${OUT}/${TAG}-${name}-com.png`, Buffer.from(r[1].split(',')[1], 'base64'));
   };
-  const still = () => p.evaluate(() => { const M = window.__mira; M.FPS.t = -1e9; }); // the adaptive quality would drop the pixel ratio in swiftshader
+  const still = () => p.evaluate(() => { const M = window.__mira; M.FPS.t = -1e9; if (!M.postMS) M.rebuildPost(4); }); // the adaptive quality would drop the pixel ratio and the antialias in swiftshader
   for (const id of MAPS) {
     await p.evaluate(id => { document.querySelector('#mapSel').value = String(id); document.querySelector('#btnSoloS').click(); }, id);
     await p.waitForFunction(() => window.__mira.G.sim && window.__mira.G.screen === 'game' && window.__mira.CHARS().length > 10, null, { timeout: 180000, polling: 100 });
