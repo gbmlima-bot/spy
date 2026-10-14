@@ -756,6 +756,45 @@ MIRA_CENARIOS.push({
       for (let k = 0; k < 7; k++) { const g = K.group(0, 0, 0); const wl = K.add(wing, gm, 0, 0, 0, { parent: g, cast: false }); const wr = K.add(wing, gm, 0, 0, 0, { parent: g, cast: false }); wr.scale.x = -1; K.add(new T.SphereGeometry(0.1, 6, 4).scale(0.8, 0.8, 2.2), gm, 0, 0, 0, { parent: g, cast: false }); gulls.push({ g, wl, wr, r: 14 + R() * 18, h: 13 + R() * 6, s: 0.15 + R() * 0.15, ph: R() * 6, cx: -10 + R() * 20, cz: -20 + R() * 20 }); }
       K.tick((dt, t) => { for (const q of gulls) { const a = t * q.s + q.ph; q.g.position.set(q.cx + Math.cos(a) * q.r, q.h + Math.sin(t * 0.7 + q.ph) * 0.6, q.cz + Math.sin(a) * q.r * 0.6); q.g.rotation.y = -a; const f = Math.sin(t * 6 + q.ph) * 0.5; q.wl.rotation.z = f; q.wr.rotation.z = -f; } }); }
 
+    // ------------------------------------------------------------ embandeiramento: bandeiras de sinal do alto do arco do radar até as
+    // quinas do teto, para trás e para os lados (sempre atrás de quem está no deck, nunca entre o sniper e a festa)
+    { const SIG = [['#f6f3ec', '#1f3a8a', 'q'], ['#d8202a', '#f6f3ec', 'x'], ['#f2c41e', '#1f3a8a', 'v'], ['#1f3a8a', '#f6f3ec', 'q'], ['#f2c41e', '#d8202a', 'd'], ['#f6f3ec', '#d8202a', 'x'], ['#1f3a8a', '#f2c41e', 'h'], ['#d8202a', '#f2c41e', 'd'], ['#f6f3ec', '#16161a', 'q'], ['#f2c41e', '#16161a', 'h'], ['#1f3a8a', '#d8202a', 'x'], ['#d8202a', '#f6f3ec', 'h']];
+      const atlas = K.canvasTex(SIG.length * 32, 24, (c, w, h) => { SIG.forEach(([a, b, k], i) => { const x0 = i * 32; c.fillStyle = a; c.fillRect(x0, 0, 32, h); c.fillStyle = b;
+        if (k === 'q') c.fillRect(x0 + 10, 6, 12, 12); else if (k === 'h') c.fillRect(x0 + 16, 0, 16, h); else if (k === 'd') { c.beginPath(); c.moveTo(x0, 0); c.lineTo(x0 + 32, 0); c.lineTo(x0, h); c.fill(); } else if (k === 'v') { c.lineWidth = 5; c.strokeStyle = b; c.beginPath(); c.moveTo(x0, 0); c.lineTo(x0 + 32, h); c.moveTo(x0 + 32, 0); c.lineTo(x0, h); c.stroke(); } else { c.fillRect(x0 + 13, 0, 6, h); c.fillRect(x0, 9, 32, 6); } }); }, [1, 1]);
+      const top = Y1 + 3.5, A = new T.Vector3(0, top + 3.75, -19.5), fw = 0.5, fh = 0.38, pos = [], uv = [], idx = [], base = [], lm = new T.LineBasicMaterial({ color: 0x3a3a40 });
+      let n = 0;
+      for (const B of [new T.Vector3(-9.6, top + 0.15, -24.5), new T.Vector3(9.6, top + 0.15, -24.5)]) {
+        const N = 13, d = new T.Vector3().subVectors(B, A).setY(0).normalize(), nx = -d.z, nz = d.x, at = (u) => { const p = new T.Vector3().lerpVectors(A, B, u); p.y -= Math.sin(u * Math.PI) * 0.7; return p; };
+        for (let i = 0; i < N; i++) { const p = at((i + 0.8) / (N + 0.6)), sg = n % SIG.length, u0 = sg / SIG.length, u1 = (sg + 1) / SIG.length, v0 = pos.length / 3;
+          for (const [e, dy, uu, vv] of [[0.5, 0, u0, 1], [-0.5, 0, u1, 1], [0.5, -fh, u0, 0], [-0.5, -fh, u1, 0]]) { const x = p.x + d.x * e * fw, z = p.z + d.z * e * fw; pos.push(x, p.y + dy, z); uv.push(uu, vv); base.push(x, p.y + dy, z, -dy / fh, n, nx, nz); }
+          idx.push(v0, v0 + 2, v0 + 1, v0 + 1, v0 + 2, v0 + 3); n++; }
+        const lp = []; for (let i = 0; i <= 24; i++) lp.push(at(i / 24)); K.root.add(new T.Line(new T.BufferGeometry().setFromPoints(lp), lm));
+      }
+      const fg = new T.BufferGeometry(); fg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); fg.setIndex(idx); fg.computeVertexNormals();
+      K.add(fg, K.texMat(atlas, { side: T.DoubleSide, roughness: 0.8 }), 0, 0, 0, { cast: false }).userData.noCol = true;
+      const fp = fg.attributes.position;
+      K.tick((dt, t) => { for (let k = 0; k < fp.count; k++) { const b = k * 7, d = base[b + 3], i = base[b + 4], w = d * (0.14 + Math.sin(t * 5.5 + i * 0.9 + d * 2) * 0.09); fp.setXYZ(k, base[b] + base[b + 5] * w, base[b + 1] + d * Math.sin(t * 3.1 + i) * 0.03, base[b + 2] + base[b + 6] * w); } fp.needsUpdate = true; });
+    }
+    // ------------------------------------------------------------ golfinhos saltando no porto, em dupla ou trio, de tempos em tempos
+    { const corpo = new T.LatheGeometry([[0, -1.22], [0.06, -1.15], [0.14, -0.8], [0.25, -0.3], [0.31, 0.15], [0.28, 0.55], [0.2, 0.85], [0.12, 1.0], [0.065, 1.08], [0.05, 1.28], [0, 1.31]].map(([r, y]) => new T.Vector2(r, y)), 12).rotateX(Math.PI / 2);
+      const dg = K.juntar([[corpo, 0], [new T.ConeGeometry(0.05, 0.36, 5).scale(1, 1, 3.2).rotateX(-0.55).translate(0, 0.36, -0.1), 0], [new T.BoxGeometry(0.62, 0.035, 0.2).translate(0, 0, -1.2), 0], [new T.BoxGeometry(0.5, 0.05, 0.18).rotateZ(0.5).translate(0.32, -0.15, 0.35), 0], [new T.BoxGeometry(0.5, 0.05, 0.18).rotateZ(-0.5).translate(-0.32, -0.15, 0.35), 0]]);
+      dg.deleteAttribute('color'); const dm = K.mat(0x3e4c5c, { roughness: 0.3, metalness: 0.1 }), esp = new T.MeshBasicMaterial({ color: 0xf2f6f8, transparent: true, opacity: 0.8, depthWrite: false });
+      const ds = [0, 1, 2].map((k) => ({ m: Object.assign(K.add(dg, dm, 0, -9, 0, { cast: false }), { name: 'golfinho' + k }), sp: [0, 1].map(() => K.add(new T.RingGeometry(0.2, 0.55, 16).rotateX(-Math.PI / 2), esp.clone(), 0, WY + 0.04, 0, { cast: false })) }));
+      ds.forEach(d => d.sp.forEach(s => { s.visible = false; s.userData.noCol = true; })); ds.forEach(d => d.m.userData.noCol = true);
+      let x0 = 0, z0 = 0, dir = 1, n = 2; const salto = 2.1, L = 5.4, H = 1.9;
+      K.tick((dt, t) => {
+        const u = t % 26; // a cada 26 s um grupo salta duas vezes seguidas, num ponto sorteado do porto
+        const ciclo = Math.floor(t / 26), rr = K.rng(808 + ciclo); x0 = -22 + rr() * 44; z0 = 16 + rr() * 6; dir = rr() < 0.5 ? 1 : -1; n = 2 + (rr() < 0.4 ? 1 : 0);
+        ds.forEach((d, k) => {
+          const v = u - k * 0.45 - (k === 2 ? 0.2 : 0), j = Math.floor(v / (salto + 0.7)), f = (v - j * (salto + 0.7)) / salto, on = k < n && v >= 0 && j < 2 && f <= 1;
+          d.m.visible = on;
+          if (on) { const x = x0 + dir * (j * (L + 1.2) + f * L), z = z0 + k * 1.5 - j * 0.3, y = WY - 0.5 + Math.sin(f * Math.PI) * H;
+            d.m.position.set(x, y, z); d.m.rotation.set(0, dir * Math.PI / 2, 0); d.m.rotateX(-Math.atan2(Math.cos(f * Math.PI) * Math.PI * H, L)); }
+          d.sp.forEach((s, e) => { const fe = e ? f - 1 : f, w = Math.abs(fe) < 0.4 && k < n && v >= 0 && j < 2 ? 1 - Math.abs(fe) / 0.4 : 0; s.visible = w > 0;
+            if (w > 0) { s.position.set(x0 + dir * (j * (L + 1.2) + (e ? L : 0)), WY + 0.04, z0 + k * 1.5 - j * 0.3); s.scale.setScalar(0.6 + (1 - w) * 1.4); s.material.opacity = 0.8 * w; } });
+        });
+      });
+    }
     // ------------------------------------------------------------ luz de preenchimento (pôr do sol)
     K.pool(-6, 2, 6, 0xffa860, 0.12); K.pool(6, -4, 5, 0xffa860, 0.1);
     // ------------------------------------------------------------ ambiente vivo: sol poente cintilando no porto em volta do iate
