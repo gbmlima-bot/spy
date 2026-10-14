@@ -79,13 +79,14 @@ function MIRA_KIT(T, root, seed) {
     im.castShadow = o.cast !== false; im.receiveShadow = true; (o.parent || root).add(im); return im;
   };
   // une geometrias com cor por vértice num mesh só: parts = [[geo, cor], ...] (geo já posicionada)
-  K.merge = (parts, m, o = {}) => {
+  K.juntar = (parts) => {
     let n = 0; const ps = parts.map(([g, c]) => { const gg = g.index ? g.toNonIndexed() : g; n += gg.attributes.position.count; return [gg, c]; });
     const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3); let k = 0;
     for (const [g, c] of ps) { const cc = new T.Color(c); pos.set(g.attributes.position.array, k * 3); nor.set(g.attributes.normal.array, k * 3); for (let i = 0; i < g.attributes.position.count; i++) { col[(k + i) * 3] = cc.r; col[(k + i) * 3 + 1] = cc.g; col[(k + i) * 3 + 2] = cc.b; } k += g.attributes.position.count; }
     const out = new T.BufferGeometry(); out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('normal', new T.BufferAttribute(nor, 3)); out.setAttribute('color', new T.BufferAttribute(col, 3));
-    return K.add(out, m || K.vcol(), 0, 0, 0, o);
+    return out;
   };
+  K.merge = (parts, m, o = {}) => K.add(K.juntar(parts), m || K.vcol(), 0, 0, 0, o);
   K.at = (geo, x, y, z, ry = 0, rx = 0, rz = 0) => { geo.rotateX(rx); geo.rotateZ(rz); geo.rotateY(ry); geo.translate(x, y, z); return geo; };
 
   // ---------------------------------------------------------------- luz e brilho
@@ -271,6 +272,60 @@ function MIRA_KIT(T, root, seed) {
       m.instanceMatrix.needsUpdate = true;
     });
     return m;
+  };
+  // quem está na cena (o motor troca por uma função que devolve os personagens); K.perto conta gente a menos de r de (x, z) na altura y
+  K.gente = () => []; K.bandos = [];
+  K.perto = (x, z, r, y = 0) => { let n = 0; for (const c of K.gente()) { const p = c.position; if (Math.abs(p.y - y) < 1.2 && (p.x - x) ** 2 + (p.z - z) ** 2 < r * r) n++; } return n; };
+  // bando de pombos no chão em volta de (x, y, z): ciscam e andam um pouco; quando alguém chega a menos de o.alerta, ou de vez em
+  // quando sozinhos, levantam voo, dão voltas no alto e pousam de novo no mesmo lugar. Duas chamadas de desenho por bando.
+  // Devolve { assustar() } para o cenário espantar o bando por outro motivo (um flash, um tiro de rolha).
+  K.pombos = (o) => {
+    const n = o.n || 9, r = K.rng((seed | 0) + 5003 + K.ticks.length * 17), y0 = o.y || 0, raio = o.r || 1.2, alerta = o.alerta || 1.6;
+    const body = K.juntar([
+      [new T.SphereGeometry(0.075, 8, 6).scale(1, 0.85, 1.7).translate(0, 0.1, 0), o.cor || 0x8a8e98],
+      [new T.SphereGeometry(0.05, 8, 6).scale(1, 1.1, 1).translate(0, 0.17, 0.1), 0x4e7a6e],
+      [new T.SphereGeometry(0.042, 8, 6).translate(0, 0.21, 0.13), 0x5a6270],
+      [new T.ConeGeometry(0.012, 0.04, 5).rotateX(Math.PI / 2).translate(0, 0.205, 0.18), 0x2a2224],
+      [new T.BoxGeometry(0.08, 0.012, 0.1).translate(0, 0.1, -0.16), 0x4a4e58],
+      [new T.CylinderGeometry(0.006, 0.006, 0.05, 4).translate(0.025, 0.025, 0), 0xc86a6a], [new T.CylinderGeometry(0.006, 0.006, 0.05, 4).translate(-0.025, 0.025, 0), 0xc86a6a]]);
+    // asas: um V com as duas faces (triângulos repetidos ao contrário). Corpo e asas usam um material de cor única, sem cor por
+    // vértice: instanciado com cor por vértice seria um shader novo, e compilar shader é o que mais pesa na carga
+    const ws = 0.2, wv = [0, 0, 0.07, -ws, 0.06, -0.04, 0, 0, -0.1, 0, 0, 0.07, 0, 0, -0.1, ws, 0.06, -0.04], wf = []; for (let k = 0; k < wv.length; k += 9) wf.push(...wv.slice(k, k + 3), ...wv.slice(k + 6, k + 9), ...wv.slice(k + 3, k + 6));
+    const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(wv.concat(wf), 3)); wg.translate(0, 0.13, 0); wg.computeVertexNormals(); body.deleteAttribute('color');
+    const mat = new T.MeshStandardMaterial({ color: o.cor || 0x7a7e88, roughness: 0.85 }), mb = new T.InstancedMesh(body, mat, n), mw = new T.InstancedMesh(wg, mat, n);
+    for (const m of [mb, mw]) { m.frustumCulled = false; m.userData.noCol = true; m.raycast = () => { }; m.castShadow = false; root.add(m); }
+    const P = []; for (let i = 0; i < n; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * raio, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d;
+      P.push({ hx: x, hz: z, x, y: y0, z, tx: x, tz: z, rot: r() * 6.28, idle: r() * 3, pk: r() * 6.28, dl: r() * 0.5, a0: r() * 6.28, rr: (o.voo || 5) * (0.75 + r() * 0.5), h: 4 + r() * 3.5, w: (0.55 + r() * 0.3) * (r() < 0.5 ? 1 : -1), f: 13 + r() * 5 }); }
+    const q = new T.Object3D(), C = new T.Vector3(), L = new T.Vector3(), ease = (u) => u * u * (3 - 2 * u);
+    let tv = -1, dur = 0, calma = 4, chk = 0, sozinho = 40 + r() * 50;
+    const voar = () => { if (tv >= 0 || calma > 0) return; tv = 0; dur = 9 + r() * 6; };
+    K.tick((dt, t) => {
+      dt = Math.min(dt, 0.1); calma -= dt; chk -= dt; sozinho -= dt;
+      if (chk <= 0) { chk = 0.25; if (tv < 0 && K.perto(o.x, o.z, raio + alerta, y0)) voar(); }
+      if (sozinho <= 0) { sozinho = 50 + r() * 60; voar(); }
+      if (tv >= 0) { tv += dt; if (tv > dur + 4) { tv = -1; calma = 6; } }
+      P.forEach((p, i) => {
+        const v = tv - p.dl; let fl = 0, voando = false;
+        if (tv >= 0 && v > 0) {
+          voando = true; const a = p.a0 + p.w * v; C.set(o.x + Math.cos(a) * p.rr, y0 + p.h + Math.sin(v * 1.3 + p.a0) * 0.4, o.z + Math.sin(a) * p.rr);
+          L.set(p.x, p.y, p.z);
+          if (v < 1.6) { const u = ease(v / 1.6); C.set(p.hx + (C.x - p.hx) * u, y0 + (C.y - y0) * Math.sqrt(v / 1.6), p.hz + (C.z - p.hz) * u); }
+          else if (v > dur - 0.5) { const u = Math.min(1, (v - dur + 0.5) / 3.5), e = ease(u); C.set(C.x + (p.hx - C.x) * e, C.y + (y0 - C.y) * e + Math.sin(u * Math.PI) * 0.6, C.z + (p.hz - C.z) * e); if (u >= 1) { voando = false; C.set(p.hx, y0, p.hz); } }
+          p.x = C.x; p.y = C.y; p.z = C.z; const dx = p.x - L.x, dz = p.z - L.z; if (dx * dx + dz * dz > 1e-6) p.rot = Math.atan2(dx, dz);
+          fl = voando ? Math.sin(t * p.f + p.pk) : 0; if (!voando) { p.tx = p.x; p.tz = p.z; }
+        } else {
+          p.y = y0; const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
+          if (d > 0.02) { const s = Math.min(d, dt * 0.35); p.x += dx / d * s; p.z += dz / d * s; p.rot = Math.atan2(dx, dz); }
+          else if ((p.idle -= dt) <= 0) { p.idle = 1 + r() * 4; const a = r() * 6.28, dd = Math.sqrt(r()) * raio; p.tx = o.x + Math.cos(a) * dd; p.tz = o.z + Math.sin(a) * dd; }
+        }
+        const anda = !voando && Math.hypot(p.tx - p.x, p.tz - p.z) > 0.02, bica = !voando && !anda ? Math.max(0, Math.sin(t * 3.1 + p.pk)) ** 6 * 0.7 : 0;
+        q.position.set(p.x, p.y + (anda ? Math.abs(Math.sin(t * 14 + p.pk)) * 0.01 : 0), p.z); q.rotation.set(voando ? -0.15 : bica, p.rot, 0); q.scale.setScalar(o.tam || 1); q.updateMatrix(); mb.setMatrixAt(i, q.matrix);
+        if (voando) q.scale.set(o.tam || 1, (o.tam || 1) * (0.3 + fl * 1.5), o.tam || 1); else q.scale.set((o.tam || 1) * 0.3, (o.tam || 1) * 0.25, o.tam || 1);
+        q.updateMatrix(); mw.setMatrixAt(i, q.matrix);
+      });
+      mb.instanceMatrix.needsUpdate = true; mw.instanceMatrix.needsUpdate = true;
+    });
+    const api = { assustar: () => { calma = 0; voar(); }, voando: () => tv >= 0 }; K.bandos.push(api); return api;
   };
   // varanda/janela de onde o sniper atira (uma moldura simples no ponto dado)
   K.sniperNest = (x, y, z, o = {}) => {

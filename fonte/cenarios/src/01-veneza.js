@@ -146,7 +146,6 @@ MIRA_CENARIOS.push({
     };
     const gMain = gondola(11.4, 11.0, Math.PI, 0xffb050);
     gondola(-8.5, 12.0, 0.08, 0xffb050);
-    gondola(2.0, 15.5, -0.3, 0xffa040);
     const gonLight = K.plight(9.9, 0.6, 11.5, 0xffb050, 0.8, 4);
     K.tick((dt, t) => { gMain.g.position.y = -0.55 + Math.sin(t * 1.1) * 0.03; gMain.g.rotation.z = Math.sin(t * 0.8) * 0.015; });
     K.tell('gondola', (live) => { gMain.lan.material = K.glow(0x40ff80, 2.2); gonLight.color.set(0x40ff80); if (live) K.anim(1.2, (e) => { gonLight.intensity = 0.8 + Math.sin(e * 30) * 0.6; }); }, () => { gMain.lan.material = K.glow(0xffb050, 2); gonLight.color.set(0xffb050); gonLight.intensity = 0.8; });
@@ -407,6 +406,30 @@ MIRA_CENARIOS.push({
     K.plight(-4.5, 3.0, -8.4, 0xffb070, 1.5, 9); K.plight(6.0, 3.0, -8.4, 0xffb070, 1.5, 9);
     K.plight(11.0, 2.2, 6.5, 0xffa860, 0.9, 6);
     K.pool(0, -2.0, 2.2, 0xffb070, 0.3); K.pool(-4.6, 5.6, 2.4, 0xffc080, 0.3);
+    // ------------------------------------------------------------ pombos no pé do leão: ciscam e levantam voo quando alguém chega
+    K.pombos({ x: -2.5, z: 7.5, r: 0.8, n: 11, alerta: 1.4, voo: 5.5, tam: 1.25, cor: 0x585c66 });
+    // ------------------------------------------------------------ gôndola de passeio atravessando o canal, gondoleiro remando
+    // passa no meio do canal (a faixa que se vê por cima do peitoril), baixa demais para tapar alguém: ali a linha do sniper
+    // até a cabeça de quem está na festa passa a ~5 m de altura
+    { const gp = gondola(0, 0, 0, 0xffb050); gp.g.name = 'gondola-passeio'; const gd = K.group(-4.25, 0.78, -0.12, 0, gp.g);
+      const listra = K.canvasTex(32, 64, (c, w, h) => { for (let k = 0; k < 8; k++) { c.fillStyle = k % 2 ? '#f4f1ea' : '#1c2a4a'; c.fillRect(0, k * h / 8, w, h / 8); } }, [1, 1]);
+      const calca = K.mat(0x1a1a20), pele = K.mat(0xc89070, { roughness: 0.7 });
+      for (const s of [-1, 1]) K.box(0.13, 0.82, 0.14, calca, 0, 0.41, s * 0.09, { parent: gd });
+      const tronco = K.group(0, 0.82, 0, 0, gd);
+      K.add(new T.CylinderGeometry(0.17, 0.15, 0.6, 10), K.texMat(listra, { roughness: 0.9 }), 0, 0.3, 0, { parent: tronco });
+      K.sphere(0.11, pele, 0, 0.74, 0, { parent: tronco });
+      K.cyl(0.21, 0.21, 0.015, K.mat(0xe8d49a, { roughness: 0.9 }), 0, 0.84, 0, { parent: tronco }); K.cyl(0.12, 0.12, 0.09, K.mat(0xe8d49a, { roughness: 0.9 }), 0, 0.89, 0, { parent: tronco }); K.cyl(0.122, 0.122, 0.03, K.mat(0xa8202a), 0, 0.86, 0, { parent: tronco });
+      // remo apoiado na forcola do lado direito: a pá entra na água atrás e volta pelo ar
+      const fo = K.group(-3.7, 0.95, 0.55, 0, gp.g); K.box(0.06, 0.35, 0.08, oakDark, 0, -0.15, 0, { parent: fo });
+      const remo = K.group(0, 0.05, 0, 0, fo); K.box(3.6, 0.04, 0.05, K.mat(0xb08a5a, { roughness: 0.7 }), -1.1, 0, 0, { parent: remo }); K.box(0.5, 0.02, 0.14, K.mat(0xb08a5a, { roughness: 0.7 }), -2.75, 0, 0, { parent: remo });
+      for (const s of [-1, 1]) K.box(0.5, 0.07, 0.07, K.texMat(listra, { roughness: 0.9 }), -0.3, 1.25, s * 0.2, { parent: gd, ry: s * 0.4 });
+      const ida = 92, pausa = 14, ciclo = 2 * (ida + pausa);
+      K.tick((dt, t) => {
+        const u = t % ciclo, volta = u >= ida + pausa, v = volta ? u - ida - pausa : u, andando = v < ida, f = Math.min(1, v / ida), x = volta ? 42 - 84 * f : -42 + 84 * f;
+        gp.g.position.set(x, -0.55 + Math.sin(t * 1.3) * 0.025, volta ? 16.3 : 15.8); gp.g.rotation.y = volta ? Math.PI : 0; gp.g.rotation.x = Math.sin(t * 0.9) * 0.012;
+        const st = andando ? Math.sin(t * 1.6) : 0; remo.rotation.set(0, -0.35 + st * 0.3, -0.42 - Math.max(0, st) * 0.12); tronco.rotation.z = 0.05 + st * 0.12;
+      });
+    }
     // ------------------------------------------------------------ ambiente vivo: fogos sobre a laguna, atrás do palazzo, e brilho das lanternas no canal
     K.fireworks({ x0: -24, x1: 24, y: 12.5, dy: 4, z: -44, dz: 10, raio: 4.5, tam: 0.6, cada: 2.4, n: 3, cores: [0xffc860, 0xff4a6a, 0x7ad8ff, 0xf6f1e8] });
     K.glints({ x0: -16, x1: 16, z0: 14.2, z1: 36, y0: -0.6, n: 90, cor: [0xffb060, 0xffd090, 0xff9040], tam: 0.16 });

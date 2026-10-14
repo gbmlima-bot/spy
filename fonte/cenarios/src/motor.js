@@ -137,6 +137,7 @@ function load(i) {
   const sc = W.sc = MIRA_CENARIOS[i]; W.i = i; W.done = {}; W.t = 0;
   W.root = new T.Group(); scene.add(W.root);
   const K = W.K = MIRA_KIT(T, W.root, 7 + i * 131);
+  K.gente = () => W.chars;
   sc.niveis = sc.niveis || [{ nome: 'chão', y: 0, x0: -14.5, x1: 14.5, z0: -10, z1: 10 }];
   // os níveis acima do 0 ficam num grupo erguido
   K.lvGroup = sc.niveis.map((L, k) => { if (!k) return W.root; const g = new T.Group(); g.position.y = L.y; W.root.add(g); return g; });
