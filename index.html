@@ -9944,8 +9944,9 @@ class Sim {
 // and per second of a mission gesture; how far back it remembers who was at an object; when it makes the object out
 // th scales how sure it must be before shooting; `map` adjusts th or gest per map (0 = rooftop, 1..10 = the extra
 // scenarios) so the robot agent wins 40-55% everywhere in t10.js (crowded maps make gestures noisier, sparse ones easier)
-const AI_SNIPER = { area: 0.8, exact: 0.8, gest: 0.02, win: 9, idWin: 20, idT: [5, 12], th: 1.2,
-  map: { 2: { th: 1.5 }, 3: { th: 1.2 }, 4: { th: 1.2 }, 6: { th: 1.5 }, 9: { th: 1.9 }, 10: { th: 0.9 } } };
+const AI_SNIPER = { area: 0.8, exact: 0.8, gest: 0.02, win: 9, idWin: 20, idT: [5, 12], th: 1,
+  map: { 0: { th: 2 }, 1: { th: 1.15 }, 2: { th: 1.5 }, 3: { th: 1.15 }, 4: { th: 1.3 }, 5: { th: 0.9 }, 6: { th: 1.45 },
+    7: { th: 1.5 }, 8: { th: 0.9 }, 9: { th: 1.45 }, 10: { th: 1 } } };
 const aiMap = () => AI_SNIPER.map[SCEN.id] || {};
 const GESTURE_ANIMS = new Set(Object.values(GESTURES).map(g => g.anim));
 class AISniper {
