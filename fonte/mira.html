@@ -13204,7 +13204,12 @@ function stepRuleEvents(st) {
   if (blackoutAt(st) > 0.5 && G.ruleSeen !== k + 'ap') { G.ruleSeen = k + 'ap'; tone(70, 0.4, 0.06, 'square'); toast(G.role === 's' ? 'Apagão! Você não enxerga quase nada por 10 s.' : 'Apagão! As luzes caíram por 10 s. Aproveite.', 'bad'); }
   if (st.sh1 && G.sh1Seen !== k) {
     G.sh1Seen = k; const o = outfitFor(st.sd, st.sh1.e, st);
-    if (G.role === 's') { snip.shotSent = false; toast(`Errou: era ${st.sh1.why === 'acc' ? 'um cúmplice' : 'um convidado'}. Resta 1 bala.`, 'bad'); const b = $('#bulletsN'); if (b) b.parentElement.innerHTML = `${esc(RULES[st.ru].nome)} · <b id="bulletsN">1</b> bala`; }
+    if (G.role === 's') {
+      snip.shotSent = false; toast(`Errou: era ${st.sh1.why === 'acc' ? 'um cúmplice' : 'um convidado'}. Resta 1 bala.`, 'bad');
+      // the same in-scope verdict as a last shot, a beat after the trigger, then it clears so the second bullet has a clean view
+      const v = $('#scopeVerdict'), wait = Math.max(0, 650 - (performance.now() - (snip.firedAt || 0)));
+      setTimeout(() => { if (G.sh1Seen !== k || snip.shotSent) return; v.className = 'miss'; v.textContent = st.sh1.why === 'acc' ? 'Errou · era cúmplice · resta 1 bala' : 'Errou · era um convidado · resta 1 bala'; v.hidden = !snip.scoped; sndMiss(); setTimeout(() => { if (v.classList.contains('miss') && !snip.shotSent) v.hidden = true; }, 1500); }, wait);
+      const b = $('#bulletsN'); if (b) b.parentElement.innerHTML = `${esc(RULES[st.ru].nome)} · <b id="bulletsN">1</b> bala`; }
     else { if (!(snip.firedAt && performance.now() - snip.firedAt < 4000)) sndShot(); toast(`Um tiro! Caiu quem estava de ${o.name}. O sniper ainda tem 1 bala.`, 'bad'); }
   }
   if (st.pd && G.pdSeen !== k) {
@@ -13413,6 +13418,9 @@ function shoot() {
   const st = currentState(); if (!st || st.ph !== 'play' || snip.shotSent) return;
   const h = crosshairHit();
   if (!h || h.eid < 0) { toast(h && h.blocked ? 'Tiro bloqueado: tem algo na frente.' : 'Ninguém na mira. O tiro não foi disparado.', 'bad'); return; }
+  // with a second bullet the first one's body is still in the scene: a shot at it would be swallowed and lock the trigger
+  if (st.ents.find(e => e.id === h.eid)?.anim === 5) { toast('Essa pessoa já caiu. A bala não foi gasta.', 'bad'); return; }
+  $('#scopeVerdict').hidden = true;
   snip.shotSent = true; snip.kick = 1; NEST_FX.flashT = 0.09; NEST_FX.scare = 8; snip.firedAt = performance.now();
   { const r = NEST_FX.rifle; NEST_FX.case = { p: new T.Vector3(r.position.x + 0.06, r.position.y + 0.04, r.position.z), v: new T.Vector3(), vx: 1.1 + Math.random() * 0.4, vy: 1.4, vz: 0.3 - Math.random() * 0.3, spin: 30, rx: 0, hits: 0 }; }
   sndShot(); sndEcho(); { const f = $('#flash'); f.style.opacity = '0.5'; setTimeout(() => f.style.opacity = '0', 70); }
@@ -14193,7 +14201,7 @@ Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply,
 Object.assign(window.__mira, { LURE, lurePts, decodeState, adoptSim, toggleLure });
 Object.assign(window.__mira, { RULES, blackoutAt, progOf, rulePick });
 // sniper: what the sniper's tests and the balance tuning read
-Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO, CRESC });
+Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO, CRESC, shoot, setScope });
 // characters: what the tests of the character area read
 Object.assign(window.__mira, { actAnimFor });
 })();
