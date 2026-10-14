@@ -137,6 +137,8 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 .toast.bad{border-color:var(--laser)}
 @keyframes tin{from{opacity:0;transform:translateY(-6px)}}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .5s}
+#blackout{position:fixed;inset:0;background:#02030a;opacity:0;pointer-events:none}
+.ruleTag{border-left:3px solid var(--brass);padding-left:10px}
 #loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--f-display);letter-spacing:.2em;color:var(--brass);text-transform:uppercase}
 @media (max-width:700px){
   #roleCard{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-height:34vh;width:min(250px,calc(100% - 140px));padding:10px 12px}
@@ -228,6 +230,9 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
   <label for="mapSelLobby" id="mapRow" hidden>Cenário da próxima rodada
     <select id="mapSelLobby"></select>
   </label>
+  <label for="ruleSel" id="ruleRow" hidden>Regras
+    <select id="ruleSel"><option value="s">Surpresa: metade das rodadas sorteia uma regra</option><option value="0">Clássica</option><option value="apagao">Apagão</option><option value="duas">Duas balas e 3 minutos</option><option value="dupla">Missão em dupla</option></select>
+  </label>
   <p id="lobbyMsg" class="note"></p>
   <div class="row">
     <button id="btnStart" class="primary">Começar rodada</button>
@@ -235,6 +240,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
   </div>
 </section>
 
+<div id="blackout"></div>
 <div id="hud" class="layer" hidden>
   <div id="topbar" class="card"><span class="eyebrow" id="roundTag">Rodada 1</span><span id="timer">5:00</span></div>
   <aside id="roleCard" class="card"></aside>
@@ -9138,6 +9144,14 @@ const T = THREE;
 const $ = s => document.querySelector(s);
 
 // ---------------------------------------------------------------- constants
+// round rules the host can draw in multiplayer: 'apagao' the lights fail once for BLACKOUT_T s, 'duas' two bullets and a
+// 3-minute round, 'dupla' the agent must also stand beside an accomplice for PAIR_T s (counts as one of the 4 missions)
+const RULES = {
+  apagao: { nome: 'Apagão', txt: 'Uma vez na rodada as luzes caem por 10 s. O sniper fica quase cego; quem está na festa ainda enxerga perto.' },
+  duas: { nome: 'Duas balas e 3 minutos', txt: 'O sniper tem duas balas, mas a rodada dura só 3 minutos. Errar o primeiro tiro derruba alguém e o jogo segue.' },
+  dupla: { nome: 'Missão em dupla', txt: 'Uma das 4 missões do agente é encostar num cúmplice por 3 s, lado a lado. Só o agente vê quem são os cúmplices.' },
+};
+const BLACKOUT_T = 10, PAIR_T = 3, PAIR_D = 1.1;
 const OT_T = 30; // overtime: when the clock runs out with the agent one mission short, 30 more seconds for both sides
 const NPC_N = 30, ROUND_T = 300, BRIEF_T = 15, NEED = 4, MS_N = 6, IR = 1.4, P_SPEED = 1.5, RAD = 0.28;
 const SNIPER_POS = new T.Vector3(0, 27, 46);
@@ -10177,7 +10191,10 @@ function outfitFor0(seed, id, st) {
 // ---------------------------------------------------------------- simulation (runs on the host / solo)
 class Sim {
   constructor(o) {
-    this.seed = o.seed >>> 0; this.round = o.round || 1; this.demo = !!o.demo; this.map = o.map ?? SCEN.id; this.night = !!o.night; this.lg = [];
+    this.seed = o.seed >>> 0; this.round = o.round || 1;
+    this.ru = RULES[o.rule] ? o.rule : null; this.rt = this.ru === 'duas' ? 180 : ROUND_T; this.bl = this.ru === 'duas' ? 2 : 1; this.sh1 = null; this.pd = 0; this.pt = 0;
+    this.ap = this.ru === 'apagao' ? Math.round(60 + mulberry32(this.seed ^ 0x2545f491)() * (this.rt - 120)) : -1; // the second of play the lights fail
+    this.demo = !!o.demo; this.map = o.map ?? SCEN.id; this.night = !!o.night; this.lg = [];
     const rng = this.rng = mulberry32(this.seed);
     this.ph = this.demo ? 'demo' : 'brief'; this.t = this.demo ? 0 : BRIEF_T; this.time = 0;
     this.slots = SLOTS.map(s => ({ ...s, busy: -1 }));
@@ -10395,7 +10412,7 @@ class Sim {
     e.x = x; e.z = z; e.y = y; e.lv = lvOfY(y); e.rot = rot; e.anim = anim;
   }
   logAct(e, obj, real, fetch, fake) {
-    if (this.lg.length < 40 && (e.kind === 'player' || e.kind === 'bot') && MISSIONS[obj]) this.lg.push([Math.round(ROUND_T - this.t), e.id, obj, real ? 1 : fetch ? 2 : fake ? 3 : 0]);
+    if (this.lg.length < 40 && (e.kind === 'player' || e.kind === 'bot') && MISSIONS[obj]) this.lg.push([Math.round(this.rt - this.t), e.id, obj, real ? 1 : fetch ? 2 : fake ? 3 : 0]);
   }
   // an accomplice's distraction: the radio hears another change at the same object, a moment later, like a real mission
   // (a change no mission of the agent's makes, and not one already heard). Once a round per accomplice
@@ -10412,7 +10429,7 @@ class Sim {
     if (e && !e.dead && this.ph === 'play' && e.role === 'acc' && MISSIONS[obj]) {
       const m = MISSIONS[obj];
       if (Math.hypot(e.x - m.s[0], e.z - m.s[1]) <= IR + 0.8 && Math.abs(e.y - LVY(m.lv)) <= 0.5) {
-        const want = d || (e.kind === 'bot' && ROUND_T - this.t > LURE.botAfter && !this.dz.includes(id) && this.rng() < LURE.botP);
+        const want = d || (e.kind === 'bot' && this.rt - this.t > LURE.botAfter && !this.dz.includes(id) && this.rng() < LURE.botP);
         const o = want ? this.distract(e, obj) : -1;
         this.logAct(e, o >= 0 ? o : obj, false, false, o >= 0);
       }
@@ -10425,12 +10442,14 @@ class Sim {
     this.logAct(e, obj, true);
     this.dn.push(obj);
     this.tq.push({ obj, at: this.time + 0.8 + this.rng() * 4.5 });
-    if (this.dn.length >= NEED) this.end('g', 'missions');
+    if (this.prog() >= NEED) this.end('g', 'missions');
   }
+  // missions that count: with the pair rule, 3 at objects plus the contact with an accomplice
+  prog() { return this.ru === 'dupla' ? Math.min(this.dn.length, NEED - 1) + this.pd : this.dn.length; }
   shoot(id) {
     if (this.ph !== 'play' || this.sh) return;
-    const e = this.ents[id]; if (!e) return;
-    this.sh = { e: id, t: Math.round(ROUND_T - this.t) }; e.dead = true; e.anim = 5; e.st = 'dead';
+    const e = this.ents[id]; if (!e || e.dead) return;
+    const t = Math.round(this.rt - this.t); e.dead = true; e.anim = 5; e.st = 'dead';
     // the room reacts to the shot: those standing close duck for a moment, everyone near turns to look
     for (const o of this.ents) {
       if (o.dead || o.kind === 'player' || Math.abs((o.y || 0) - (e.y || 0)) > 0.5 || ![0, 1, 3, 4, 6, 22, 23, 24, 25].includes(o.anim)) continue;
@@ -10439,6 +10458,9 @@ class Sim {
       if (d < 4.5) { o.ovA = o.anim === 1 ? 0 : o.anim; o.anim = 21; o.ov = 1.6 + this.rng() * 1.6; } else if (o.anim === 1 || o.anim === 3) o.anim = 0;
     }
     const why = e.role === 'agent' ? 'agent' : e.role === 'acc' ? 'acc' : 'npc';
+    // a miss with a bullet left: that person drops and the round goes on
+    if (why !== 'agent' && this.bl > 1) { this.bl--; this.sh1 = { e: id, t, why }; this._st = null; return; }
+    this.sh = { e: id, t }; this.bl = 0;
     this.end(why === 'agent' ? 's' : 'g', why);
   }
   end(w, why) {
@@ -10452,11 +10474,11 @@ class Sim {
   tick(dt) {
     if (this.map !== SCEN.id) return; // the scene is still being swapped
     this.time += dt; this._st = null;
-    if (this.ph === 'brief') { this.t -= dt; if (this.t <= 0) { this.ph = 'play'; this.t = ROUND_T; } }
+    if (this.ph === 'brief') { this.t -= dt; if (this.t <= 0) { this.ph = 'play'; this.t = this.rt; } }
     else if (this.ph === 'play') {
       this.t -= dt;
       // out of time the sniper wins (doing nothing never wins the agent the round); an agent one mission short gets one overtime
-      if (this.t <= 0) { if (!this.ot && this.dn.length >= NEED - 1) { this.ot = 1; this.t = OT_T; } else { this.t = 0; this.end('s', this.ot ? 'overtime' : 'time'); } }
+      if (this.t <= 0) { if (!this.ot && this.prog() >= NEED - 1) { this.ot = 1; this.t = OT_T; } else { this.t = 0; this.end('s', this.ot ? 'overtime' : 'time'); } }
     }
     for (const e of this.ents) if (e.kind !== 'player') this.stepAI(e, dt);
     if (this.ph === 'play' && (this.yieldT -= dt) <= 0) { this.yieldT = 0.5; this.makeWay(); }
@@ -10482,6 +10504,12 @@ class Sim {
         }
       }
       if (this.ai) this.ai.update(dt);
+      // the pair rule: the agent stands beside a living accomplice for PAIR_T s in a row
+      if (this.ru === 'dupla' && !this.pd) {
+        const a = E[this.agentId], near = a && !a.dead && E.some(e => e.role === 'acc' && !e.dead && Math.abs(e.y - a.y) < 0.5 && Math.hypot(e.x - a.x, e.z - a.z) < PAIR_D);
+        this.pt = near ? this.pt + dt : 0;
+        if (this.pt >= PAIR_T) { this.pd = 1; if (this.prog() >= NEED) this.end('g', 'missions'); }
+      }
       // accomplices drawing the sniper: time with the laser on them and time in the notebook
       const L = this.ai ? this.ai.aim : this.laser;
       for (const e of E) {
@@ -10500,6 +10528,7 @@ class Sim {
       pm: this.pm, rl: this.rl, nm: this.nm, ms: this.ms, dn: this.dn, tells: this.tells,
       sh: this.sh, w: this.w, why: this.why, sc: this.sc, mk: this.mk, bm: this.bm, ho: this.ho, ot: this.ot,
       ag: this.agentId, aim: this.ai ? this.ai.aim : null, sx: this.sx, mp: this.map, nt: this.night ? 1 : 0, lg: this.lg, ts: this.ts, tg: this.got ? 1 : 0,
+      ru: this.ru, rt: this.rt, bl: this.bl, ap: this.ap, pd: this.pd, sh1: this.sh1,
       lu: Object.fromEntries(Object.entries(this.lu).map(([k, u]) => [k, [Math.floor(u[0]), Math.floor(u[1])]])), dz: this.dz,
     });
   }
@@ -13113,6 +13142,7 @@ function encodeState(st) {
   const g = { ph: st.ph, rd: st.rd, sd: st.sd, mp: st.mp || 0, nt: st.nt ? 1 : 0, tl: Math.round(st.tl * 10) / 10, e, pm: st.pm, rl: st.rl, nm: st.nm, ms: st.ms, dn: st.dn, te: st.tells, sh: st.sh, w: st.w, why: st.why, sc: st.sc, mk: st.mk, bm: st.bm, ho: st.ho, ot: st.ot ? 1 : 0 };
   if (st.ph === 'reveal') { g.ag = st.ag; g.lg = st.lg; }
   g.sx = st.sx; g.ts = st.ts; g.tg = st.tg; g.lu = st.lu; g.dz = st.dz;
+  if (st.ru) { g.ru = st.ru; g.rt = st.rt; g.bl = st.bl; g.ap = st.ap; g.pd = st.pd; g.sh1 = st.sh1; }
   return g;
 }
 function decodeState(g) {
@@ -13120,7 +13150,7 @@ function decodeState(g) {
   const ents = [];
   for (let i = 0; i + 5 < g.e.length; i += 6) ents.push({ id: g.e[i], x: g.e[i + 1] / 50, z: g.e[i + 2] / 50, rot: g.e[i + 3] / 100, anim: g.e[i + 4], y: g.e[i + 5] / 50 });
   ents.sort((a, b) => a.id - b.id);
-  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ot: g.ot ? 1 : 0, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0, lu: g.lu || {}, dz: g.dz || [] };
+  return { ph: g.ph, rd: g.rd, sd: g.sd, mp: g.mp || 0, nt: g.nt ? 1 : 0, lg: g.lg || [], tl: g.tl, ents, pm: g.pm || {}, rl: g.rl || {}, nm: g.nm || {}, ms: g.ms || [], dn: g.dn || [], tells: g.te || [], sh: g.sh, w: g.w, why: g.why, sc: g.sc || {}, mk: g.mk || [], bm: g.bm, ho: g.ho, ot: g.ot ? 1 : 0, ag: g.ag ?? -1, aim: null, sx: g.sx || [], ts: g.ts || null, tg: g.tg ? 1 : 0, lu: g.lu || {}, dz: g.dz || [], ru: g.ru || null, rt: g.rt || ROUND_T, bl: g.bl ?? 1, ap: g.ap ?? -1, pd: g.pd || 0, sh1: g.sh1 || null };
 }
 
 const hostSeen = { seq: {}, shot: false, at: {}, raw: {} };
@@ -13202,7 +13232,7 @@ function renderLobby() {
     li.append(n, t); ul.appendChild(li);
   }
   const n = ps.length;
-  $('#btnStart').hidden = !G.isHost; $('#mapRow').hidden = !G.isHost;
+  $('#btnStart').hidden = !G.isHost; $('#mapRow').hidden = !G.isHost; $('#ruleRow').hidden = !G.isHost;
   $('#btnStart').disabled = n < 2;
   $('#lobbyMsg').textContent = G.isHost
     ? (n < 2 ? 'Esperando pelo menos mais 1 pessoa. O ideal são 5.' : `${n} na sala. ${n < 5 ? 'Dá para começar; com 5 fica melhor.' : 'Tudo pronto.'}`)
@@ -13236,7 +13266,7 @@ function adoptSim(st) {
   if (!st || !st.ents || (st.mp || 0) !== SCEN.id) return null;
   const peers = Object.keys(st.pm || {}), sn = Object.keys(st.rl || {}).find(p => st.rl[p] === 's');
   const guests = peers.map(p => ({ peer: p, name: st.nm[p], role: st.rl[p] === 'a' ? 'a' : 'c' }));
-  const sim = new Sim({ seed: st.sd, round: st.rd, guests, sniper: sn ? { peer: sn, name: st.nm[sn] } : null, sc: Object.assign({}, st.sc), map: st.mp || 0, night: !!st.nt });
+  const sim = new Sim({ seed: st.sd, round: st.rd, guests, sniper: sn ? { peer: sn, name: st.nm[sn] } : null, sc: Object.assign({}, st.sc), map: st.mp || 0, night: !!st.nt, rule: st.ru });
   if (sim.ents.length !== st.ents.length) return null;
   const rng = sim.rng, statics = new Set([st.bm, st.ho, ...(st.sx || [])]);
   sim.slots.forEach(s => { s.busy = -1; });
@@ -13255,6 +13285,7 @@ function adoptSim(st) {
   sim.tq = sim.dn.filter(o => !sim.tells.includes(o)).map(o => ({ obj: o, at: 1 + rng() * 3 }));
   sim.ts = st.ts || null; sim.got = !!st.tg;
   sim.lu = Object.fromEntries(Object.entries(st.lu || {}).map(([k, u]) => [k, u.slice()])); sim.dz = (st.dz || []).slice();
+  Object.assign(sim, { bl: st.bl ?? sim.bl, pd: st.pd || 0, sh1: st.sh1 || null });
   return sim;
 }
 function becomeHost() {
@@ -13278,7 +13309,7 @@ function hostStart() {
   const guests = others.map((p, i) => ({ peer: p.peer, name: String(p.presence.nm || 'Convidado').slice(0, 16), role: i === ai ? 'a' : 'c' }));
   hostSeen.seq = {}; hostSeen.raw = {}; hostSeen.at = {};
   const mc = mapPick(); loadMap(mc.id); setNight(mc.night);
-  G.sim = new Sim({ seed: (rnd() * 1e9) >>> 0, round: G.roundNo, guests, sniper: { peer: sn.peer, name: String(sn.presence.nm || 'Sniper').slice(0, 16) }, sc: G.scores, map: SCEN.id, night: mc.night });
+  G.sim = new Sim({ seed: (rnd() * 1e9) >>> 0, round: G.roundNo, guests, sniper: { peer: sn.peer, name: String(sn.presence.nm || 'Sniper').slice(0, 16) }, sc: G.scores, map: SCEN.id, night: mc.night, rule: rulePick() });
   G.screen = 'game'; show('#lobby', false);
 }
 function startSolo(kind) {
@@ -13332,8 +13363,9 @@ function syncRound(st) {
     G.otSeen = st.rd; sndOvertime();
     toast(G.role === 's' ? `⏱ Prorrogação: o agente está a uma missão. Mais ${OT_T} s para achá-lo.` : G.role === 'a' ? `⏱ Prorrogação: ${OT_T} s para a última missão.` : `⏱ Prorrogação: o agente está a uma missão. Mais ${OT_T} s.`, 'bad');
   }
+  stepRuleEvents(st);
   if (G.role === 'a' && st.dn.length > G.dnSeen) {
-    for (let i = G.dnSeen; i < st.dn.length; i++) toast(`Missão cumprida: ${MISSIONS[st.dn[i]].label} (${i + 1}/${NEED})`, 'good');
+    for (let i = G.dnSeen; i < st.dn.length; i++) toast(`Missão cumprida: ${MISSIONS[st.dn[i]].label} (${st.ru === 'dupla' ? Math.min(i + 1, NEED - 1) + st.pd : i + 1}/${NEED})`, 'good');
     G.dnSeen = st.dn.length; sndGood();
   }
 }
@@ -13357,6 +13389,31 @@ function onPhase(st) {
   }
 }
 
+// ---------------------------------------------------------------- drawn round rules (see RULES)
+function progOf(st) { return st.ru === 'dupla' ? Math.min(st.dn.length, NEED - 1) + (st.pd || 0) : st.dn.length; }
+// how dark the lights-out is now, 0..1 (a flicker going down and coming back)
+function blackoutAt(st) {
+  if (!st || st.ru !== 'apagao' || st.ap < 0 || st.ph !== 'play' || st.ot) return 0;
+  const e = (st.rt || ROUND_T) - st.tl - st.ap; if (e < 0 || e > BLACKOUT_T + 1) return 0;
+  if (e < 0.6) return [0, 1, 0.2, 1][Math.floor(e / 0.15)] ?? 1; // the lights stutter before they go
+  return e < BLACKOUT_T ? 1 : 1 - (e - BLACKOUT_T);
+}
+// what each side hears when a rule does something: the lights fail, a first shot misses, the agent makes contact
+function stepRuleEvents(st) {
+  if (G.screen !== 'game' || st.ph !== 'play' || !st.ru) return;
+  const k = G.seed + ':' + st.rd;
+  if (blackoutAt(st) > 0.5 && G.ruleSeen !== k + 'ap') { G.ruleSeen = k + 'ap'; tone(70, 0.4, 0.06, 'square'); toast(G.role === 's' ? 'Apagão! Você não enxerga quase nada por 10 s.' : 'Apagão! As luzes caíram por 10 s. Aproveite.', 'bad'); }
+  if (st.sh1 && G.sh1Seen !== k) {
+    G.sh1Seen = k; const o = outfitFor(st.sd, st.sh1.e, st);
+    if (G.role === 's') { snip.shotSent = false; toast(`Errou: era ${st.sh1.why === 'acc' ? 'um cúmplice' : 'um convidado'}. Resta 1 bala.`, 'bad'); const b = $('#bulletsN'); if (b) b.parentElement.innerHTML = `${esc(RULES[st.ru].nome)} · <b id="bulletsN">1</b> bala`; }
+    else { if (!(snip.firedAt && performance.now() - snip.firedAt < 4000)) sndShot(); toast(`Um tiro! Caiu quem estava de ${o.name}. O sniper ainda tem 1 bala.`, 'bad'); }
+  }
+  if (st.pd && G.pdSeen !== k) {
+    G.pdSeen = k;
+    if (G.role === 's') toast('📻 Rádio: o agente fez contato com alguém.', 'bad');
+    else if (G.role === 'a') { toast(`Contato feito (${progOf(st)}/${NEED})`, 'good'); sndGood(); const n = $('#pairNote'); if (n) { n.textContent = '✓ contato feito'; n.className = 'muted'; } const c = $('#dnCount'); if (c) c.textContent = progOf(st); }
+  }
+}
 function roleTitle(r) { return r === 's' ? 'Você é o sniper' : r === 'a' ? 'Você é o agente infiltrado' : r === 'c' ? 'Você é cúmplice' : 'Você está assistindo'; }
 function renderBrief(st) {
   const r = G.role; let body = '';
@@ -13366,7 +13423,9 @@ function renderBrief(st) {
   else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <small class="muted">· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small class="muted">↳ antes, pegue a encomenda: ${esc(PROPS[st.ts[1]].where)}</small>` : ''}</li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando. Se o tempo acabar, o sniper vence; com 3 de 4 missões feitas, você ganha ${OT_T} s de prorrogação.</p>`;
   else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Você ganha pontos de isca com o laser em você e quando entra no caderno do sniper. Uma vez por rodada, arme o despiste: sua próxima missão falsa faz o rádio do sniper ouvir algo mudar. Se o sniper atirar em você, os convidados vencem. Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
   else body = `<p>A rodada já começou. Você entra na próxima.</p>`;
-  $('#brief').innerHTML = `<div class="eyebrow">Rodada ${st.rd} · começa em instantes</div><h2>${roleTitle(r)}</h2>${body}`;
+  if (st.ru === 'duas') body = body.replace('Você tem um único tiro.', 'Você tem duas balas.');
+  const ru = RULES[st.ru], rule = ru ? `<p class="ruleTag"><b>Regra da rodada: ${esc(ru.nome)}.</b> ${esc(ru.txt)}</p>` : '';
+  $('#brief').innerHTML = `<div class="eyebrow">Rodada ${st.rd} · começa em instantes</div><h2>${roleTitle(r)}</h2>${rule}${body}`;
 }
 function missionsByLevel() {
   return `<p class="muted">${MISSIONS.length} missões possíveis em ${PROPS.length} objetos. Cada rodada sorteia ${MS_N}.</p><ul>` + LEVELS.map((L, lv) => { const ps = PROPS.filter(p => p.lv === lv); const n = ps.reduce((a, p) => a + p.ms.length, 0); return ps.length ? `<li><b>${SCEN.id ? L.name[0].toUpperCase() + L.name.slice(1) : lv === 0 ? 'Festa' : lv === 1 ? 'Terraço' : L.name[0].toUpperCase() + L.name.slice(1) + ' (' + lv + 'º)'}</b> <small>· ${n} missões em ${ps.length} objetos: ${ps.slice(0, 7).map(p => esc(p.where.replace(/^[^,]*\(\dº\),\s*/, '').replace(/^terraço,\s*/, ''))).join(' · ')}${ps.length > 7 ? ' …' : ''}</small></li>` : ''; }).join('') + '</ul>';
@@ -13374,9 +13433,9 @@ function missionsByLevel() {
 function fetchNote(st) { return st.tg ? '✓ encomenda na mão' : '↳ antes, pegue a encomenda: ' + esc(PROPS[st.ts[1]].where); }
 function renderRoleCard(st) {
   const r = G.role; let h = `<div class="eyebrow">${r === 's' ? 'Sniper' : r === 'a' ? 'Agente infiltrado' : r === 'c' ? 'Cúmplice' : 'Espectador'}</div>`;
-  if (r === 'a') h += `<h2><span id="dnCount">${st.dn.length}</span>/${NEED} missões</h2><ol id="msList">${st.ms.map(o => `<li data-o="${o}">${esc(MISSIONS[o].label)} <small>· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small id="tsNote">${fetchNote(st)}</small>` : ''}</li>`).join('')}</ol>`;
+  if (r === 'a') h += `<h2><span id="dnCount">${progOf(st)}</span>/${NEED} missões</h2>${st.ru === 'dupla' ? `<p id="pairNote" class="${st.pd ? 'muted' : ''}">${st.pd ? '✓ contato feito' : `Encoste num cúmplice (anel dourado) por ${PAIR_T} s; vale uma missão`}</p>` : ''}<ol id="msList">${st.ms.map(o => `<li data-o="${o}">${esc(MISSIONS[o].label)} <small>· ${esc(MISSIONS[o].where)}</small>${st.ts && st.ts[0] === o ? `<br><small id="tsNote">${fetchNote(st)}</small>` : ''}</li>`).join('')}</ol>`;
   else if (r === 'c') h += `<h2>Atraia a mira</h2><p class="muted">Faça missões falsas em qualquer objeto marcado no chão, em qualquer andar. ${matchMedia('(pointer:coarse)').matches ? '' : '<kbd>G</kbd> arma o despiste.'}</p><div id="lure"></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
-  else if (r === 's') h += `<h2>Encontre o agente</h2><div id="notebook"><div class="eyebrow">Caderno de suspeitos</div><ul id="suspectList"></ul><div class="eyebrow">Rádio · o que mudou na festa</div><ul id="radioLog"></ul></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
+  else if (r === 's') h += `<h2>Encontre o agente</h2>${st.ru ? `<p class="muted" id="ruleNote">${esc(RULES[st.ru].nome)}${st.ru === 'duas' ? ` · <b id="bulletsN">${st.bl}</b> ${st.bl === 1 ? 'bala' : 'balas'}` : ''}</p>` : ''}<div id="notebook"><div class="eyebrow">Caderno de suspeitos</div><ul id="suspectList"></ul><div class="eyebrow">Rádio · o que mudou na festa</div><ul id="radioLog"></ul></div><details><summary class="muted">Missões possíveis, por andar</summary>${missionsByLevel()}</details>`;
   else h += `<p class="muted">Você entra na próxima rodada.</p>`;
   $('#roleCard').innerHTML = h; $('#roleCard').classList.toggle('play', r === 'a' || r === 'c'); G.lureKey = ''; $('#lureBtn').hidden = true;
 }
@@ -13401,7 +13460,7 @@ function renderReveal(st) {
   for (const [peer, id] of Object.entries(st.pm || {})) if (id === ag) agentName = st.nm[peer];
   const desc = ag >= 0 ? outfitFor(st.sd, ag, st).name : '';
   const shotTxt = st.sh && st.why !== 'agent' && st.ents.find(e => e.id === st.sh.e) ? ` O tiro acertou ${st.why === 'acc' ? 'um cúmplice' : 'um convidado'} de ${outfitFor(st.sd, st.sh.e, st).name}, marcado com o anel vermelho.` : '';
-  $('#revealAgent').textContent = ag >= 0 ? `O agente ${agentName ? 'era ' + agentName + ' e ' : ''}estava de ${desc}. Cumpriu ${st.dn.length} de ${NEED} missões.${shotTxt}` : '';
+  $('#revealAgent').textContent = ag >= 0 ? `O agente ${agentName ? 'era ' + agentName + ' e ' : ''}estava de ${desc}. Cumpriu ${progOf(st)} de ${NEED} missões.${shotTxt}` : '';
   const sc = $('#scores'); sc.innerHTML = '';
   if (G.multi) for (const [peer, n] of Object.entries(st.nm || {})) { const li = document.createElement('li'); const a = document.createElement('span'); a.textContent = n + (st.rl[peer] === 's' ? ' · sniper' : st.pm[peer] === ag ? ' · agente' : ' · cúmplice'); const b = document.createElement('span'); const lp = st.rl[peer] === 'c' ? lurePts((st.lu || {})[st.pm[peer]]) : 0; b.textContent = (st.sc[peer] || 0) + ' pts' + (lp ? ` (+${lp} de isca)` : ''); li.append(a, b); sc.appendChild(li); }
   $('#btnNext').hidden = G.multi && !G.isHost;
@@ -13416,6 +13475,7 @@ function renderMoments(st) {
   let box = $('#moments'); if (!box) { box = document.createElement('div'); box.id = 'moments'; $('#scores').before(box); }
   const who = id => { for (const [peer, eid] of Object.entries(st.pm || {})) if (eid === id) return (st.nm || {})[peer] || 'Jogador'; return id === st.ag ? 'Robô agente' : 'Robô cúmplice'; };
   const rows = (st.lg || []).map(([t, id, o, real]) => { const m = MISSIONS[o]; if (!m) return ''; return `<li><b>${fmt(t)}</b> ${esc(who(id))} · ${real === 2 ? 'pegou a encomenda' : real === 3 ? 'despiste' : real ? 'missão real' : 'missão falsa'}${real === 2 ? '' : ': ' + esc(m.label.toLowerCase())} <small>${esc(m.where)}</small></li>`; });
+  if (st.sh1) { const o = outfitFor(st.sd, st.sh1.e, st); rows.push(`<li class="shot"><b>${fmt(st.sh1.t)}</b> Primeiro tiro, errado, em quem estava de ${esc(o.name)}</li>`); }
   if (st.sh && st.sh.t !== undefined) { const o = outfitFor(st.sd, st.sh.e, st); rows.push(`<li class="shot"><b>${fmt(st.sh.t)}</b> Tiro em quem estava de ${esc(o.name)}</li>`); }
   box.innerHTML = rows.length ? `<div class="eyebrow">Momentos da rodada</div><ol>${rows.join('')}</ol>` : '';
   box.hidden = !rows.length;
@@ -14063,6 +14123,7 @@ function updateSniper(dt, st) {
     let tt = '', sus = false;
     if (hit && hit.object.userData.eid !== undefined) { const e = st.ents.find(x => x.id === hit.object.userData.eid); if (e) { const o = outfitFor(st.sd, e.id, st); sus = GESTURE_ANIMS.has(e.anim); tt = o.name + ' · ' + (ANIM_LABEL[e.anim] || ''); if (snip.marks.includes(e.id)) tt = (snip.marks[0] === e.id ? '★ ' : '☆ ') + tt; } }
     else if (hit && hit.blocked !== undefined) tt = '';
+    if (blackoutAt(st) > 0.5) { tt = ''; sus = false; } // in the dark the scope makes out no one
     const si = $('#siTarget'); if (si.textContent !== tt) si.textContent = tt; si.classList.toggle('sus', sus);
     const w = snip.wind, wt = w === 0 ? 'ar parado' : (Math.abs(w) === 1 ? 'brisa ' : 'ar agitado ') + (w < 0 ? '◀' : '▶'); if ($('#siWind').textContent !== wt) $('#siWind').textContent = wt;
     const br = $('#breath'); br.firstElementChild.style.height = (snip.air * 100).toFixed(0) + '%'; br.classList.toggle('gasp', snip.gasp > 0);
@@ -14078,7 +14139,7 @@ function updateNotebook(st) {
   if (key === snip.nbKey) return; snip.nbKey = key;
   sl.innerHTML = snip.marks.length ? snip.marks.map((id, i) => { const e = st.ents.find(x => x.id === id); const o = outfitFor(st.sd, id, st); const lv = e ? lvOfY(e.y || 0) : 0; return `<li class="${i === 0 ? 'first' : ''}"><b>${i === 0 ? 'Principal' : 'Suspeito ' + (i + 1)}</b> · ${esc(o.name)}<small>${e ? esc(ANIM_LABEL[e.anim] || '') : ''} · ${esc(lvLabel(lv))}</small></li>`; }).join('') : '<li class="muted">Mire num convidado e ' + (matchMedia('(pointer:coarse)').matches ? 'toque em <b>Marcar</b>' : 'aperte <kbd>F</kbd>') + ' para anotar.</li>';
   const tm = (o) => { const i = st.tells.indexOf(o); return i >= 0 ? '' : ''; };
-  rl.innerHTML = st.tells.length ? st.tells.slice().reverse().map(o => `<li><b>${fmt(Math.max(0, ROUND_T - (snip.tellAt && snip.tellAt[o] !== undefined ? snip.tellAt[o] : st.tl)))}</b>${snip.idd && snip.idd[o] ? `${esc(MISSIONS[o].label)} <span class="muted">· ${esc(MISSIONS[o].where)}</span>` : `Algo mudou <span class="muted">· ${esc(areaOf(o))} · enquadre com zoom</span>`}</li>`).join('') : '<li class="muted">Silêncio no rádio por enquanto.</li>';
+  rl.innerHTML = st.tells.length ? st.tells.slice().reverse().map(o => `<li><b>${fmt(Math.max(0, (st.rt || ROUND_T) - (snip.tellAt && snip.tellAt[o] !== undefined ? snip.tellAt[o] : st.tl)))}</b>${snip.idd && snip.idd[o] ? `${esc(MISSIONS[o].label)} <span class="muted">· ${esc(MISSIONS[o].where)}</span>` : `Algo mudou <span class="muted">· ${esc(areaOf(o))} · enquadre com zoom</span>`}</li>`).join('') : '<li class="muted">Silêncio no rádio por enquanto.</li>';
 }
 
 function laserFor(st) {
@@ -14185,12 +14246,25 @@ function stepCrescendo(dt, st) {
   CRESC.k = k;
   if (k > 0.05) { CRESC.pulse -= dt; if (CRESC.pulse <= 0) { tone(st.ot ? 1320 : 990, 0.04, 0.012 + 0.02 * k, 'square'); CRESC.pulse = (st.ot ? 0.45 : 1.1) - 0.5 * k * (st.ot ? 0.3 : 1); } } else CRESC.pulse = 0;
 }
+// the rules on screen: the dark of the lights-out (nearly black for the sniper, dim at the party) and, for the agent under
+// the pair rule, a gold ring under each accomplice
+const contactRings = [];
+function stepRuleView(st) {
+  const live = G.screen === 'game' && st && st.ph === 'play', b = live ? blackoutAt(st) : 0, op = (b * (G.role === 's' ? 0.95 : 0.6)).toFixed(3);
+  const bo = $('#blackout'); if (bo.style.opacity !== op) bo.style.opacity = op;
+  const ids = live && G.role === 'a' && st.ru === 'dupla' && !st.pd ? Object.entries(st.pm || {}).filter(([p]) => st.rl[p] === 'c').map(([, id]) => id) : [];
+  while (contactRings.length < ids.length) { const r = new T.Mesh(new T.RingGeometry(0.36, 0.46, 32), new T.MeshBasicMaterial({ color: 0xd9a441, transparent: true, opacity: 0.8, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.userData.noCol = true; scene.add(r); contactRings.push(r); }
+  contactRings.forEach((r, i) => {
+    const e = i < ids.length && st.ents.find(x => x.id === ids[i]), c = e && CHARS[st.ents.indexOf(e)];
+    r.visible = !!(c && e.anim !== 5); if (r.visible) r.position.set(c.position.x, c.position.y + 0.034, c.position.z);
+  });
+}
 function updateHUD(st) {
   if (G.screen !== 'game' || !st || st.ph !== 'play') return;
   const tt = fmt(st.tl); if (tt !== lastTimerText) { $('#timer').textContent = tt; lastTimerText = tt; $('#timer').classList.toggle('low', st.tl < 30); }
-  { const tag = st.ot ? 'Prorrogação' : 'Rodada ' + st.rd; if ($('#roundTag').textContent !== tag) $('#roundTag').textContent = tag; }
+  { const tag = st.ot ? 'Prorrogação' : 'Rodada ' + st.rd + (st.ru ? ' · ' + RULES[st.ru].nome : ''); if ($('#roundTag').textContent !== tag) $('#roundTag').textContent = tag; }
   if (G.role === 'a') {
-    const dc = $('#dnCount'); if (dc && dc.textContent !== String(st.dn.length)) dc.textContent = st.dn.length;
+    const dc = $('#dnCount'), pg = String(progOf(st)); if (dc && dc.textContent !== pg) dc.textContent = pg;
     document.querySelectorAll('#msList li').forEach(li => li.classList.toggle('done', st.dn.includes(+li.dataset.o)));
     const tn = $('#tsNote'); if (tn && st.ts) { const t = fetchNote(st); if (tn.innerHTML !== t) tn.innerHTML = t; }
   }
@@ -14262,7 +14336,7 @@ function frame(now) {
         placeIso(dt);
       }
       renderEnts(dt, st);
-      updateHUD(st);
+      updateHUD(st); stepRuleView(st);
       renderLabels(st);
     }
     stepFX(dt); if (SCEN.K) { try { SCEN.K.update(dt, now / 1000); } catch (e) { } }
@@ -14293,6 +14367,8 @@ for (const sel of mapSels) {
 try { const v = localStorage.getItem('mira-mapa'); if (v !== null && [...$('#mapSel').options].some(o => o.value === v)) mapSels.forEach(s2 => s2.value = v); } catch (e) { }
 function mapChoice() { return mapPick().id; }
 // the map for the next round: a scenario id, plus the night flag for the rooftop ('n'); 'r' draws among all of them
+// the rule of the next multiplayer round: the one the host chose, or on "surprise" one of them in half the rounds
+function rulePick() { const v = $('#ruleSel').value, ks = Object.keys(RULES); if (v === 's') return rnd() < 0.5 ? ks[Math.floor(rnd() * ks.length)] : null; return RULES[v] ? v : null; }
 function mapPick() { const v = $('#mapSel').value; if (v === 'n') return { id: 0, night: true }; if (v === 'r') { const k = Math.floor(rnd() * (SCENARIOS.length + 2)); return k > SCENARIOS.length ? { id: 0, night: true } : { id: k, night: false }; } return { id: Math.max(0, Math.min(SCENARIOS.length, +v || 0)), night: false }; }
 
 setupPost(); navBuild(); NAV0 = { lv: NAV.lv };
@@ -14316,6 +14392,7 @@ window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animC
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
 Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
 Object.assign(window.__mira, { LURE, lurePts, decodeState, adoptSim, toggleLure });
+Object.assign(window.__mira, { RULES, blackoutAt, progOf, rulePick });
 // sniper: what the sniper's tests and the balance tuning read
 Object.assign(window.__mira, { AI_SNIPER, LENS, NEST_MOODS, INTRO, CRESC });
 // characters: what the tests of the character area read
