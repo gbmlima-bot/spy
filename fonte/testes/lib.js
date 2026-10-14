@@ -10,7 +10,7 @@ exports.page = async (ctx, url, opts = {}) => {
   await p.route('**/*', r => { const u = r.request().url(); if (CDN[u]) return r.fulfill({ body: CDN[u], contentType: 'application/javascript' }); if (u.startsWith('http://localhost')) return r.continue(); return r.abort(); });
   if (opts.mock !== false) await p.addInitScript(MOCK);
   await p.goto(url, { timeout: 300000, waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.__mira && !document.querySelector('#menu').hidden, null, { timeout: 240000 });
+  await p.waitForFunction(opts.until || (() => window.__mira && !document.querySelector('#menu').hidden), null, { timeout: 240000, polling: opts.until ? 500 : 'raf' });
   return p;
 };
 exports.sleep = ms => new Promise(r => setTimeout(r, ms));
