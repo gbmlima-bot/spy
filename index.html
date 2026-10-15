@@ -56,10 +56,10 @@ button.primary{background:var(--brass);color:#17130a;border-color:var(--brass)}
 button.primary:hover{background:#e8b552}
 button:disabled{opacity:.45;cursor:not-allowed}
 input{font:inherit;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:4px;color:var(--paper);padding:10px 12px;min-width:0;width:100%}
-label{display:grid;gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+label{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04em}
 
 /* menu */
-#menu{position:fixed;left:max(16px,4vw);top:50%;transform:translateY(-50%);width:min(400px,calc(100% - 32px));padding:26px 24px;display:grid;gap:18px;max-height:calc(100% - 32px);overflow:auto}
+#menu{position:fixed;left:max(16px,4vw);top:50%;transform:translateY(-50%);width:min(400px,calc(100% - 32px));padding:26px 24px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-height:calc(100% - 32px);overflow:auto}
 #menu h1{font-size:clamp(40px,7vw,58px);color:var(--paper)}
 #menu h1 span{color:var(--brass)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -69,9 +69,9 @@ label{display:grid;gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04e
 .note{font-size:12px;color:var(--muted);line-height:1.45}
 
 /* lobby */
-#lobby{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));padding:24px;display:grid;gap:16px}
+#lobby{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));padding:24px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .code{font-family:var(--f-mono);font-weight:700;font-size:44px;letter-spacing:.2em;color:var(--brass)}
-#langs{position:absolute;top:10px;right:10px;display:flex;gap:4px}#langs button{padding:3px 8px;font-size:12px;letter-spacing:.1em}#langs button.on{background:var(--brass);color:#17130a;border-color:var(--brass)}
+#langs + .eyebrow{padding-right:84px}#langs{position:absolute;top:10px;right:10px;display:flex;gap:4px}#langs button{padding:3px 8px;font-size:12px;letter-spacing:.1em}#langs button.on{background:var(--brass);color:#17130a;border-color:var(--brass)}
 .invite{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--brass);border-radius:4px;background:rgba(217,164,65,.1)}
 .invite b{font-family:var(--f-mono);color:var(--brass);letter-spacing:.12em}
 #players{list-style:none;margin:0;padding:0;display:grid;gap:6px}
@@ -2343,7 +2343,9 @@ window.MIRA_EN = {"Montando a festa…":"Setting up the party…",
 "seis andares":"six floors",
 "Todo mundo dizendo “formaggio”!":"Everybody say “formaggio”!",
 "Cobertura à noite":"Rooftop at night",
-"Encoste num cúmplice (anel dourado) por {1} s; vale uma missão":"Stay close to an accomplice (gold ring) for {1} s; it counts as a mission"};
+"Encoste num cúmplice (anel dourado) por {1} s; vale uma missão":"Stay close to an accomplice (gold ring) for {1} s; it counts as a mission",
+". Ande:":". Move:",
+"Ande:":"Move:"};
 // Mira na Cobertura em inglês: o jogo escreve tudo em português e esta camada traduz o texto que aparece na tela.
 // Um observador do DOM troca cada nó de texto (e placeholder, aria-label, title) pela tradução do dicionário (en.tsv):
 // frase exata, a mesma frase com inicial minúscula, padrões com {1}, {2} (as partes também são traduzidas) e descrições de
