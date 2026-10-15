@@ -16,6 +16,10 @@
   arquivo em `src/` e rode `npm run cenarios` (`node fonte/cenarios/ferramentas/embutir.js`) para copiar para o
   `mira.html`; `npm run build` já faz isso antes de montar. Não edite esses blocos direto no `mira.html`. A prévia (`previa.html`) é gerada por `node fonte/cenarios/ferramentas/build.js`
   e não vai para o repositório.
+- `fonte/idioma/`: a versão em inglês. O jogo escreve tudo em português; `idioma.js` traduz o que aparece na tela usando
+  o dicionário `en.tsv` (uma linha `português<TAB>inglês`; `{1}`, `{2}` marcam partes que variam; a última linha vale, e
+  `texto<TAB>texto` mantém em português). Texto novo na tela pede uma linha em `en.tsv`. `npm run build` copia os dois para
+  o `mira.html` (`node fonte/idioma/embutir.js`, `--checar` só confere). Não edite esse bloco direto no `mira.html`.
 - `fonte/testes/`: testes headless (Playwright) do jogo.
 
 ## Fluxo de trabalho
@@ -69,6 +73,8 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   link entra direto (com nome guardado) ou vê o convite com um botão só. `node fonte/testes/t24.js <url>` (2 abas).
   A prévia do link (WhatsApp, redes) vem das meta tags Open Graph do `montar.js` e da imagem `og.jpg` da raiz, gerada por
   `node fonte/web/og.js <url>` (1200×630, abaixo de 300 KB; o endereço público fica em `SITE` no `montar.js`).
+- Inglês: botões PT/EN no menu (guarda em `localStorage` `mira-lang`; `?lang=en` força). `node fonte/testes/t25.js <url> [0,1,…]`
+  joga em inglês o menu, a sala e cada cenário (sniper e agente) e lista em `out/en-faltando.txt` o que ficou em português.
 - Primeira rodada como agente ou cúmplice: tutorial guiado (`GINTRO`), etiqueta "VOCÊ" sobre a cabeça nos primeiros
   segundos e lista de missões curta (rótulo + andar). `node fonte/testes/t23.js <url> [largura] [altura]`.
 - Revelação: trajeto do agente visto de cima (`renderReplay`, com o laser nele, as missões e o tiro; o anfitrião grava
