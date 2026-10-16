@@ -197,4 +197,39 @@ window.MIRA_COBERTURA = function (K, LEVELS) {
       fachos.forEach(h => { h.g.visible = n; h.g.rotation.set(-0.1 + Math.sin(t * 0.21 + h.f) * 0.25, 0, Math.sin(t * 0.33 + h.f * 1.7) * 0.5); });
       const u = (t % 95) / 70; aviao.visible = n && u < 1; aviao.position.set(-260 + u * 520, 58 + u * 6, -260); le.visible = (t % 1.3) < 0.08; lv.visible = lg.visible = (t % 1.0) < 0.6; });
   }
+
+  // ninho do sniper: laje da cobertura da Torre Norte, do outro lado da rua. Parapeito de concreto com rufo de alumínio
+  // aparafusado, junta de piche remendada, mancha de café, bitucas e a contagem riscada a giz de quem esperou ali antes;
+  // nada sobe nas laterais: a torre é larga e qualquer peça ali taparia a cabeça de quem anda nas bordas (ninhos.js).
+  // O jogo chama K.ninho(K, g) (buildNinho0) ao abrir a Cobertura.
+  K.ninho = (K, g) => {
+    const N = K.ninhoPecas(g, { roughness: 0.85 }), conc = 0xa9a49b, alu = 0xb9bec4;
+    N.tampo(conc, { x0: -2.6, x1: 2.6, z0: -1.26, z1: -0.42, h: 0.3, seed: 1907, draw: (c, w, h, R) => {
+      c.fillStyle = '#aaa59c'; c.fillRect(0, 0, w, h);
+      // concreto: agregado miúdo, poros e manchas de chuva
+      const ag = ['92,88,82', '196,192,184', '140,134,124', '170,160,140'];
+      for (let k = 0; k < 5200; k++) { c.fillStyle = `rgba(${ag[(R() * 4) | 0]},${0.35 + R() * 0.45})`; const r = 0.6 + R() * 1.8; c.fillRect(R() * w, R() * h, r, r); }
+      K.manchas(c, w, h, R, 70, ['70,66,60', '120,112,100'], 8, 46, 0.1);
+      // rufo de alumínio na borda da frente, com parafusos e a dobra que pega a luz
+      c.fillStyle = '#b8bcc2'; c.fillRect(0, 0, w, 34); c.fillStyle = '#e6e9ec'; c.fillRect(0, 2, w, 4); c.fillStyle = 'rgba(40,44,50,.45)'; c.fillRect(0, 32, w, 3);
+      for (let x = 22; x < w; x += 118) { c.fillStyle = '#7d828a'; c.beginPath(); c.arc(x, 19, 4, 0, 7); c.fill(); c.fillStyle = 'rgba(150,80,40,.35)'; c.fillRect(x - 2, 23, 3, 10 + R() * 14); }
+      for (let x = 0; x < w; x += 236) { c.fillStyle = 'rgba(30,32,36,.5)'; c.fillRect(x, 0, 2, 34); }
+      // junta de dilatação remendada com piche, atravessando a laje
+      c.strokeStyle = '#26231f'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(w * 0.62, 36); for (let y = 36, x = w * 0.62; y <= h; y += 18) { x += (R() - 0.5) * 9; c.lineTo(x, y); } c.stroke();
+      c.strokeStyle = 'rgba(38,35,31,.35)'; c.lineWidth = 16; c.stroke();
+      // mancha de café em anel e duas bitucas
+      c.strokeStyle = 'rgba(90,58,30,.45)'; c.lineWidth = 5; c.beginPath(); c.arc(w * 0.205, h * 0.62, 17, 0.3, 6.0); c.stroke();
+      for (const [x, y, a] of [[0.78, 0.7, 0.6], [0.83, 0.55, 2.2]]) { c.save(); c.translate(w * x, h * y); c.rotate(a); c.fillStyle = '#efe9dc'; c.fillRect(-10, -3, 14, 6); c.fillStyle = '#c9893f'; c.fillRect(4, -3, 7, 6); c.fillStyle = '#3a3430'; c.fillRect(-12, -3, 2, 6); c.restore(); }
+      // contagem a giz: quem esperou aqui antes riscou as noites
+      c.strokeStyle = 'rgba(245,242,232,.8)'; c.lineWidth = 3;
+      for (let gq = 0; gq < 3; gq++) { const x0 = w * 0.06 + gq * 46, y0 = h * 0.5; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(x0 + i * 8, y0); c.lineTo(x0 + i * 8 + 2, y0 + 30); c.stroke(); } c.beginPath(); c.moveTo(x0 - 4, y0 + 22); c.lineTo(x0 + 30, y0 + 6); c.stroke(); }
+      c.fillStyle = 'rgba(245,242,232,.72)'; c.font = '600 22px "Courier New", monospace'; c.fillText('T. NORTE · 41º', w * 0.06, h * 0.9);
+      // grão fino com o sorteio do próprio ninho (não mexe no sorteio do mapa)
+      const id = c.getImageData(0, 0, w, h), d = id.data; for (let i = 0; i < d.length; i += 4) { const n = (R() - 0.5) * 12; d[i] += n; d[i + 1] += n; d[i + 2] += n; } c.putImageData(id, 0, 0);
+    } });
+    // a face do parapeito e a fachada da torre descendo, com a pingadeira de alumínio; a borda da frente fica onde estava a
+    // mureta antiga (z -1,27), para não tapar mais da festa lá embaixo do que ela tapava
+    N.box(5.2, 0.05, 0.04, alu, 0, -0.885, -1.28).box(5.2, 0.5, 0.04, alu, 0, -1.14, -1.285).box(5.0, 3.4, 0.8, 0x8f8a82, 0, -2.85, -0.95);
+    N.fim();
+  };
 };
