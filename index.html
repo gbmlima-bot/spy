@@ -14933,7 +14933,7 @@ function mergeMeshes(list, space, names, recolor, skin) {
       else for (let i = 0; i < cnt; i++) for (let c = 0; c < s; c++) d[(vo + i) * s + c] = a.array[i * s + c];
     }
     if (col) { const c = o.material.color; for (let i = 0; i < cnt; i++) { col[(vo + i) * 3] = c.r; col[(vo + i) * 3 + 1] = c.g; col[(vo + i) * 3 + 2] = c.b; } }
-    if (si) for (let i = 0; i < cnt; i++) { si[(vo + i) * 4] = it.bone; sw[(vo + i) * 4] = 1; }
+    if (si) for (let i = 0; i < cnt; i++) { si[(vo + i) * 4] = it.bone; sw[(vo + i) * 4] = 1; if (it.blend) it.blend(g.attributes.position, i, si, sw, (vo + i) * 4); }
     const n3 = g.index ? g.index.count : cnt;
     for (let t = 0; t < n3; t += 3) for (let c = 0; c < 3; c++) { const k = flip ? (c === 0 ? 0 : 3 - c) : c; idx[io + t + c] = vo + (g.index ? g.index.array[t + k] : t + k); }
     vo += cnt; io += n3;
@@ -15063,16 +15063,39 @@ function batchChar(root, B, keep) {
     if (!groups.has(key)) groups.set(key, { sp, list: [] }); groups.get(key).list.push({ o, space: b, bone: boneIx.get(b) });
   });
   if (!groups.size) return;
-  const skel = new T.Skeleton(boneList, boneList.map(() => new T.Matrix4()));
+  // smooth joints: vertices near a joint along a limb or the spine are shared between the two bones that meet there, so
+  // elbows, knees, shoulders and the waist bend as one surface instead of rigid pieces meeting at a crease. That needs the
+  // vertices in the character's own space (not each bone's) and real bind inverses.
+  const skel = new T.Skeleton(boneList), rootInv = new T.Matrix4().copy(root.matrixWorld).invert();
+  for (const { list } of groups.values()) for (const it of list) { it.space = null; it.blend = jointBlend(it.o, boneList[it.bone], boneIx); }
   const noRay = () => { };
   for (const { sp, list } of groups.values()) {
-    const o0 = list[0].o, g = mergeMeshes(list, null, sp.names, sp.recolor, true);
+    const o0 = list[0].o, g = mergeMeshes(list, root, sp.names, sp.recolor, true);
     g.boundingSphere = new T.Sphere(new T.Vector3(0, 0.95, 0), 1.45);
     const m = sp.recolor ? canonMat(CHAR_MATS, o0.material, true) : (() => { const k = o0.material.uuid + '|skin'; let c = CHAR_MATS.get(k); if (!c) { c = o0.material.clone(); c.skinning = true; CHAR_MATS.set(k, c); } return c; })();
     const me = new T.SkinnedMesh(g, m); me.castShadow = o0.castShadow; me.receiveShadow = o0.receiveShadow; me.userData.eid = o0.userData.eid; me.userData.batch = true; me.raycast = noRay;
-    root.add(me); me.bind(skel, new T.Matrix4());
+    root.add(me); me.updateMatrixWorld(true); me.bind(skel, me.matrixWorld);
     for (const { o } of list) o.visible = false;
   }
+}
+// which bones share a joint: a bone blends with its parent at its start and with its one child at its end
+const JOINT_UP = { Spine: 1, Spine1: 1, Spine2: 1, Neck: 1, LeftArm: 1, RightArm: 1, LeftForeArm: 1, RightForeArm: 1, LeftHand: 1, RightHand: 1, LeftUpLeg: 0.6, RightUpLeg: 0.6, LeftLeg: 1, RightLeg: 1, LeftFoot: 1, RightFoot: 1 };
+const JOINT_DOWN = { Hips: 0, Spine: 'Spine1', Spine1: 'Spine2', Neck: 'Head', LeftShoulder: 'LeftArm', RightShoulder: 'RightArm', LeftArm: 'LeftForeArm', RightArm: 'RightForeArm', LeftForeArm: 'LeftHand', RightForeArm: 'RightHand', LeftUpLeg: 'LeftLeg', RightUpLeg: 'RightLeg', LeftLeg: 'LeftFoot', RightLeg: 'RightFoot' };
+const JOINT_R = 6; // cm on each side of a joint
+function jointBlend(o, bone, boneIx) {
+  const up = JOINT_UP[bone.name] && bone.parent && boneIx.has(bone.parent) ? bone.parent : null;
+  const dn = JOINT_DOWN[bone.name] ? bone.children.find(c => c.name === JOINT_DOWN[bone.name]) : null;
+  if (!up && !dn) return null;
+  const toBone = new T.Matrix4().copy(bone.matrixWorld).invert().multiply(o.matrixWorld), v = new T.Vector3();
+  const dir = (dn || bone.children.find(c => boneIx.has(c)) || { position: new T.Vector3(0, 1, 0) }).position.clone(), L = dir.length(); dir.normalize();
+  const ku = (JOINT_UP[bone.name] || 0) * 0.5, iu = up && boneIx.get(up), id = dn && boneIx.get(dn);
+  return (pos, i, si, sw, k) => {
+    const d = v.fromBufferAttribute(pos, i).applyMatrix4(toBone).dot(dir);
+    let wu = up ? Math.min(1, Math.max(0, 0.5 - 0.5 * d / JOINT_R)) * ku * 2 : 0, wd = dn ? Math.min(1, Math.max(0, 0.5 + 0.5 * (d - L) / JOINT_R)) : 0;
+    wu = Math.min(wu, 0.5); wd = Math.min(wd, 0.5);
+    if (wu > 0) { si[k + 1] = iu; sw[k + 1] = wu; } if (wd > 0) { si[k + 2] = id; sw[k + 2] = wd; }
+    sw[k] = 1 - wu - wd;
+  };
 }
 function disposeBatched(o) { o.traverse(n => { if (n.isMesh && n.geometry && n.geometry.userData.batch) n.geometry.dispose(); }); }
 
