@@ -15285,7 +15285,9 @@ function setupPost(samples = 4) {
     const pr = renderer.getPixelRatio();
     // the scene is drawn into this target, not the canvas, so the canvas's own antialias never applies: on WebGL2 the target
     // itself is multisampled (4×), which smooths every edge; without it the game would look jagged on any screen at density 1
-    const ro = { type: T.HalfFloatType, format: T.RGBAFormat, minFilter: T.LinearFilter, magFilter: T.LinearFilter };
+    // stencilBuffer only to get a 24-bit depth buffer: three r128 gives a target 16 bits of depth otherwise, and through the
+    // scope (far from the camera) that is centimetres per step, so floors, rugs and decals fought in stripes
+    const ro = { type: T.HalfFloatType, format: T.RGBAFormat, minFilter: T.LinearFilter, magFilter: T.LinearFilter, stencilBuffer: true };
     const ms = renderer.capabilities.isWebGL2 && T.WebGLMultisampleRenderTarget ? Math.min(samples, renderer.capabilities.maxSamples || 0) : 0;
     postMS = ms;
     const rt = ms ? Object.assign(new T.WebGLMultisampleRenderTarget(innerWidth * pr, innerHeight * pr, ro), { samples: ms }) : new T.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, ro);
