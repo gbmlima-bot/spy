@@ -88,6 +88,7 @@ label{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:12px;co
 #roleCard li{line-height:1.35}
 #roleCard li.done{color:var(--ok);text-decoration:line-through}
 #roleCard li small{color:var(--muted)}
+#roleCard li .fl:empty,#brief li .fl:empty{display:none}
 #roleCard li .fl,#brief li .fl{display:inline-block;margin-left:4px;padding:0 6px;border:1px solid var(--line);border-radius:3px;font-family:var(--f-display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);vertical-align:1px;white-space:nowrap}
 #prompt{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:10px 16px;display:grid;gap:8px;min-width:240px;text-align:center}
 .bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
@@ -175,7 +176,8 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 /* phone upright, agent or accomplice: the mission card sits under the round timer instead of over the middle of the
    screen (where your own character stands) and over the prompt; a tap folds it down to its title */
 @media (orientation:portrait) and (max-width:700px){
-  #roleCard.play{top:calc(56px + env(safe-area-inset-top,0px));bottom:auto;max-height:28vh;width:min(270px,calc(100% - 32px))}
+  #coach{top:calc(56px + env(safe-area-inset-top,0px));width:auto;font-size:13px}
+  #roleCard.play{top:calc(56px + var(--coachH,0px) + env(safe-area-inset-top,0px));bottom:auto;max-height:calc(28vh - var(--coachH,0px));width:min(270px,calc(100% - 32px))}
   #roleCard.play > .eyebrow::after{content:" ▾";color:var(--muted)}#roleCard.play.min > .eyebrow::after{content:" ▸"}
   #lure button,#lure small{display:none}
 }
@@ -184,7 +186,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 #mini .tt{font-family:var(--f-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--brass)}
 #mini .pads button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @media (pointer:coarse){#mini .pads{gap:10px}#mini .pads button{width:54px;height:48px;font-size:20px}}
-#coach{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;font-size:14px;max-width:calc(100% - 24px);z-index:5;animation:tin .25s ease-out}
+#coach{position:fixed;left:12px;right:12px;margin:0 auto;width:max-content;top:calc(70px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;font-size:14px;max-width:calc(100% - 24px);z-index:5;animation:tin .25s ease-out}
 #coachN{font-family:var(--f-mono);font-size:11px;color:var(--brass);letter-spacing:.1em;white-space:nowrap}
 #coachText b{color:var(--paper)}
 #coach.done #coachN{color:var(--ok)}
@@ -2345,7 +2347,12 @@ window.MIRA_EN = {"Montando a festa…":"Setting up the party…",
 "Cobertura à noite":"Rooftop at night",
 "Encoste num cúmplice (anel dourado) por {1} s; vale uma missão":"Stay close to an accomplice (gold ring) for {1} s; it counts as a mission",
 ". Ande:":". Move:",
-"Ande:":"Move:"};
+"Ande:":"Move:",
+"Mire num convidado e aperte":"Aim at a guest and press",
+"ou":"or",
+"O":"The",
+"interagir, sentar, dançar, conversar ·":"interact, sit, dance, chat ·",
+"interagir, sentar, dançar, subir escadas ·":"interact, sit, dance, climb stairs ·"};
 // Mira na Cobertura em inglês: o jogo escreve tudo em português e esta camada traduz o texto que aparece na tela.
 // Um observador do DOM troca cada nó de texto (e placeholder, aria-label, title) pela tradução do dicionário (en.tsv):
 // frase exata, a mesma frase com inicial minúscula, padrões com {1}, {2} (as partes também são traduzidas) e descrições de
@@ -3417,6 +3424,41 @@ window.MIRA_COBERTURA = function (K, LEVELS) {
       fachos.forEach(h => { h.g.visible = n; h.g.rotation.set(-0.1 + Math.sin(t * 0.21 + h.f) * 0.25, 0, Math.sin(t * 0.33 + h.f * 1.7) * 0.5); });
       const u = (t % 95) / 70; aviao.visible = n && u < 1; aviao.position.set(-260 + u * 520, 58 + u * 6, -260); le.visible = (t % 1.3) < 0.08; lv.visible = lg.visible = (t % 1.0) < 0.6; });
   }
+
+  // ninho do sniper: laje da cobertura da Torre Norte, do outro lado da rua. Parapeito de concreto com rufo de alumínio
+  // aparafusado, junta de piche remendada, mancha de café, bitucas e a contagem riscada a giz de quem esperou ali antes;
+  // nada sobe nas laterais: a torre é larga e qualquer peça ali taparia a cabeça de quem anda nas bordas (ninhos.js).
+  // O jogo chama K.ninho(K, g) (buildNinho0) ao abrir a Cobertura.
+  K.ninho = (K, g) => {
+    const N = K.ninhoPecas(g, { roughness: 0.85 }), conc = 0xa9a49b, alu = 0xb9bec4;
+    N.tampo(conc, { x0: -2.6, x1: 2.6, z0: -1.26, z1: -0.42, h: 0.3, seed: 1907, draw: (c, w, h, R) => {
+      c.fillStyle = '#aaa59c'; c.fillRect(0, 0, w, h);
+      // concreto: agregado miúdo, poros e manchas de chuva
+      const ag = ['92,88,82', '196,192,184', '140,134,124', '170,160,140'];
+      for (let k = 0; k < 5200; k++) { c.fillStyle = `rgba(${ag[(R() * 4) | 0]},${0.35 + R() * 0.45})`; const r = 0.6 + R() * 1.8; c.fillRect(R() * w, R() * h, r, r); }
+      K.manchas(c, w, h, R, 70, ['70,66,60', '120,112,100'], 8, 46, 0.1);
+      // rufo de alumínio na borda da frente, com parafusos e a dobra que pega a luz
+      c.fillStyle = '#b8bcc2'; c.fillRect(0, 0, w, 34); c.fillStyle = '#e6e9ec'; c.fillRect(0, 2, w, 4); c.fillStyle = 'rgba(40,44,50,.45)'; c.fillRect(0, 32, w, 3);
+      for (let x = 22; x < w; x += 118) { c.fillStyle = '#7d828a'; c.beginPath(); c.arc(x, 19, 4, 0, 7); c.fill(); c.fillStyle = 'rgba(150,80,40,.35)'; c.fillRect(x - 2, 23, 3, 10 + R() * 14); }
+      for (let x = 0; x < w; x += 236) { c.fillStyle = 'rgba(30,32,36,.5)'; c.fillRect(x, 0, 2, 34); }
+      // junta de dilatação remendada com piche, atravessando a laje
+      c.strokeStyle = '#26231f'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(w * 0.62, 36); for (let y = 36, x = w * 0.62; y <= h; y += 18) { x += (R() - 0.5) * 9; c.lineTo(x, y); } c.stroke();
+      c.strokeStyle = 'rgba(38,35,31,.35)'; c.lineWidth = 16; c.stroke();
+      // mancha de café em anel e duas bitucas
+      c.strokeStyle = 'rgba(90,58,30,.45)'; c.lineWidth = 5; c.beginPath(); c.arc(w * 0.205, h * 0.62, 17, 0.3, 6.0); c.stroke();
+      for (const [x, y, a] of [[0.78, 0.7, 0.6], [0.83, 0.55, 2.2]]) { c.save(); c.translate(w * x, h * y); c.rotate(a); c.fillStyle = '#efe9dc'; c.fillRect(-10, -3, 14, 6); c.fillStyle = '#c9893f'; c.fillRect(4, -3, 7, 6); c.fillStyle = '#3a3430'; c.fillRect(-12, -3, 2, 6); c.restore(); }
+      // contagem a giz: quem esperou aqui antes riscou as noites
+      c.strokeStyle = 'rgba(245,242,232,.8)'; c.lineWidth = 3;
+      for (let gq = 0; gq < 3; gq++) { const x0 = w * 0.06 + gq * 46, y0 = h * 0.5; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(x0 + i * 8, y0); c.lineTo(x0 + i * 8 + 2, y0 + 30); c.stroke(); } c.beginPath(); c.moveTo(x0 - 4, y0 + 22); c.lineTo(x0 + 30, y0 + 6); c.stroke(); }
+      c.fillStyle = 'rgba(245,242,232,.72)'; c.font = '600 22px "Courier New", monospace'; c.fillText('T. NORTE · 41º', w * 0.06, h * 0.9);
+      // grão fino com o sorteio do próprio ninho (não mexe no sorteio do mapa)
+      const id = c.getImageData(0, 0, w, h), d = id.data; for (let i = 0; i < d.length; i += 4) { const n = (R() - 0.5) * 12; d[i] += n; d[i + 1] += n; d[i + 2] += n; } c.putImageData(id, 0, 0);
+    } });
+    // a face do parapeito e a fachada da torre descendo, com a pingadeira de alumínio; a borda da frente fica onde estava a
+    // mureta antiga (z -1,27), para não tapar mais da festa lá embaixo do que ela tapava
+    N.box(5.2, 0.05, 0.04, alu, 0, -0.885, -1.28).box(5.2, 0.5, 0.04, alu, 0, -1.14, -1.285).box(5.0, 3.4, 0.8, 0x8f8a82, 0, -2.85, -0.95);
+    N.fim();
+  };
 };
 </script>
 <script>
@@ -13982,15 +14024,18 @@ const NEST_BASE = new T.Group(); NEST.add(NEST_BASE);
 // z = -1.3 above y = -0.85; side pieces beyond |x| 1.8 may rise to y = 1.5 at z >= -1.3. The nest is not a scope
 // target, does not collide and is disposed when the map changes.
 let NINHO = null;
-function buildNinho(sc) {
+function buildNinho(sc, K) {
   if (NINHO) { scene.remove(NINHO); disposeTree(NINHO); NINHO = null; }
   NEST_BASE.visible = true;
-  if (!sc || typeof sc.ninho !== 'function' || !SCEN.K) return;
+  if (!sc || typeof sc.ninho !== 'function' || !K) return;
   const g = new T.Group(); g.position.copy(SNIPER_POS); g.userData.noCol = true;
-  try { sc.ninho(SCEN.K, g); } catch (e) { console.error('ninho', sc.id, e); disposeTree(g); return; }
+  try { sc.ninho(K, g); } catch (e) { console.error('ninho', sc.id, e); disposeTree(g); return; }
   g.traverse(o => { o.userData.noCol = true; if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
   scene.add(g); NINHO = g; NEST_BASE.visible = false;
 }
+// the rooftop's own nest (fonte/cenarios/src/00-cobertura.js, K.ninho), built at start and whenever the rooftop opens again
+function buildNinho0() { buildNinho(MAP0K && MAP0K.ninho ? { id: 0, ninho: MAP0K.ninho } : null, MAP0K); }
+buildNinho0();
 function stepNest(dt, t) {
   NEST_FX.led.material.emissiveIntensity = Math.sin(t * 2.2) > 0.7 ? 4 : 0.3;
   if (NEST_FX.flashT > 0) { NEST_FX.flashT -= dt; NEST_FX.flash.visible = NEST_FX.flashT > 0; NEST_FX.flash.scale.setScalar(0.6 + Math.random() * 0.8); }
@@ -14025,8 +14070,11 @@ meTag.scale.set(2.0, 1.0, 1); meTag.renderOrder = 999; meTag.visible = false; me
 function drawMeTag(text) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
   g.font = '800 62px "Saira Condensed","Arial Narrow",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = 10; g.fillStyle = '#ffd36b'; g.fillText(text, 128, 50);
-  g.beginPath(); g.moveTo(110, 88); g.lineTo(146, 88); g.lineTo(128, 116); g.closePath(); g.fill();
+  // a dark outline under the gold so it reads over any floor (Veneza's pink checks, Carnaval's confetti, snow)
+  g.lineJoin = 'round'; g.strokeStyle = 'rgba(14,12,8,.92)'; g.lineWidth = 12;
+  g.beginPath(); g.moveTo(110, 88); g.lineTo(146, 88); g.lineTo(128, 116); g.closePath();
+  g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = 10; g.strokeText(text, 128, 50); g.stroke(); g.shadowBlur = 0;
+  g.fillStyle = '#ffd36b'; g.fillText(text, 128, 50); g.fill();
   const tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
   if (meTag.material.map) meTag.material.map.dispose(); meTag.material.map = tx; meTag.material.needsUpdate = true;
 }
@@ -14889,7 +14937,7 @@ function loadMap(id) {
     applyAmbient(sc.ambiente || {}); SCEN.tBuild = Math.round(performance.now() - tb);
   }
   NEST.position.copy(SNIPER_POS);
-  buildNinho(id ? SCEN.sc : null);
+  if (id) buildNinho(SCEN.sc, SCEN.K); else buildNinho0();
   { const p = laserGeo.attributes.position; p.setXYZ(0, SNIPER_POS.x, SNIPER_POS.y, SNIPER_POS.z); p.needsUpdate = true; }
   NAV.auto = 0; NAV.tris = 0;
   if (!id && NAV0) { NAV.lv = NAV0.lv; NAV.ready = true; buildRings(); }
@@ -15179,7 +15227,7 @@ let activeCam = iso;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false);
   const a = w / h;
-  iso.left = -isoState.zoom * a; iso.right = isoState.zoom * a; iso.top = isoState.zoom; iso.bottom = -isoState.zoom; iso.updateProjectionMatrix();
+  { const sh = iso.userData.sh || 0; iso.left = -isoState.zoom * a; iso.right = isoState.zoom * a; iso.top = isoState.zoom * (1 - sh); iso.bottom = -isoState.zoom * (1 + sh); iso.updateProjectionMatrix(); }
   wide.aspect = a; fitWide(a); wide.updateProjectionMatrix();
   scopeCam.aspect = a; scopeCam.updateProjectionMatrix();
   resizePost();
@@ -15193,8 +15241,11 @@ function placeIso(dt, instant) {
   const tx = iso.userData.tx, tz = iso.userData.tz, ty = iso.userData.ty;
   iso.position.set(tx + Math.sin(isoState.az) * 30, ty + 30 * (isoState.elev || 1), tz + Math.cos(isoState.az) * 30);
   iso.lookAt(tx, ty, tz);
+  // isoState.sh lifts the subject off the middle of the screen (0 = centred, 0.5 = halfway to the top): the end-of-round card
+  // covers the lower half, so the agent is framed in the free space above it
+  const sh0 = iso.userData.sh || 0, sh = Math.abs((isoState.sh || 0) - sh0) < 0.002 ? (isoState.sh || 0) : sh0 + ((isoState.sh || 0) - sh0) * k; iso.userData.sh = sh;
   const a = innerWidth / innerHeight;
-  if (iso.top !== isoState.zoom) { iso.left = -isoState.zoom * a; iso.right = isoState.zoom * a; iso.top = isoState.zoom; iso.bottom = -isoState.zoom; iso.updateProjectionMatrix(); }
+  if (iso.top !== isoState.zoom * (1 - sh) || iso.right !== isoState.zoom * a) { iso.left = -isoState.zoom * a; iso.right = isoState.zoom * a; iso.top = isoState.zoom * (1 - sh); iso.bottom = -isoState.zoom * (1 + sh); iso.updateProjectionMatrix(); }
 }
 
 // ---------------------------------------------------------------- post-processing: bloom, diorama focus, grade
@@ -15736,7 +15787,7 @@ function missionsByLevel() {
   return `<p class="muted">${MISSIONS.length} missões possíveis em ${PROPS.length} objetos. Cada rodada sorteia ${MS_N}.</p><ul>` + LEVELS.map((L, lv) => { const ps = PROPS.filter(p => p.lv === lv); const n = ps.reduce((a, p) => a + p.ms.length, 0); return ps.length ? `<li><b>${SCEN.id ? L.name[0].toUpperCase() + L.name.slice(1) : lv === 0 ? 'Festa' : lv === 1 ? 'Terraço' : L.name[0].toUpperCase() + L.name.slice(1) + ' (' + lv + 'º)'}</b> <small>· ${n} missões em ${ps.length} objetos: ${ps.slice(0, 7).map(p => esc(p.where.replace(/^[^,]*\(\dº\),\s*/, '').replace(/^terraço,\s*/, ''))).join(' · ')}${ps.length > 7 ? ' …' : ''}</small></li>` : ''; }).join('') + '</ul>';
 }
 // the floor of a mission, short, as a tag next to it ("Festa", "Cassino 4º", "Convés")
-function floorTag(lv) { const L = LEVELS[lv]; if (!L) return ''; if (SCEN.id) return L.name[0].toUpperCase() + L.name.slice(1); return lv === 0 ? 'Festa' : lv === 1 ? 'Terraço' : L.name[0].toUpperCase() + L.name.slice(1) + ' ' + lv + 'º'; }
+function floorTag(lv) { const L = LEVELS[lv]; if (!L || LV_N === 1) return ''; /* one floor only: the same tag on every line is noise */ if (SCEN.id) return L.name[0].toUpperCase() + L.name.slice(1); return lv === 0 ? 'Festa' : lv === 1 ? 'Terraço' : L.name[0].toUpperCase() + L.name.slice(1) + ' ' + lv + 'º'; }
 function missionLi(o, st) { const M = MISSIONS[o]; return `<li data-o="${o}" title="${esc(M.where)}">${esc(M.label)} <span class="fl">${esc(floorTag(M.lv))}</span>${st.ts && st.ts[0] === o ? `<br><small id="tsNote">${fetchNote(st)}</small>` : ''}</li>`; }
 function fetchNote(st) { return st.tg ? '✓ encomenda na mão' : '↳ antes, pegue a encomenda: ' + esc(PROPS[st.ts[1]].where); }
 function renderRoleCard(st) {
@@ -15752,7 +15803,7 @@ function setupControls() {
   const s = G.role === 's';
   $('#hints').innerHTML = s
     ? '<kbd>Botão direito</kbd> ou <kbd>Espaço</kbd> luneta · <kbd>Roda</kbd> zoom · <kbd>Shift</kbd> prender a respiração · <kbd>F</kbd> anotar suspeito · <kbd>Clique</kbd> atirar'
-    : G.role ? (touch ? 'Toque no chão para andar · toque num objeto, assento ou escada para usar · dois dedos para zoom' : '<kbd>WASD</kbd> ou clique para andar · <kbd>E</kbd> interagir, sentar, dançar, subir pelas escadas em caracol · <kbd>Roda</kbd> zoom') : 'Assistindo a rodada';
+    : G.role ? (touch ? 'Toque no chão para andar · toque num objeto, assento ou escada para usar · dois dedos para zoom' : `<kbd>WASD</kbd> ou clique para andar · <kbd>E</kbd> ${LV_N === 1 ? 'interagir, sentar, dançar, conversar' : SCEN.id ? 'interagir, sentar, dançar, subir escadas' : 'interagir, sentar, dançar, subir pelas escadas em caracol'} · <kbd>Roda</kbd> zoom`) : 'Assistindo a rodada';
   $('#scopeBtn').hidden = !(s && touch); $('#zoomBtn').hidden = !(s && touch); $('#markBtn').hidden = !(s && touch); $('#shootBtn').hidden = !(s && touch); $('#breathBtn').hidden = !(s && touch);
   $('#actBtn').hidden = true;
 }
@@ -16461,6 +16512,8 @@ function stepIntro(_, st) {
   if (s.ok() || INTRO.t > 25) { if (INTRO.i < 4) { $('#coach').classList.add('done'); $('#coachN').textContent = '✓'; sndScope(); INTRO.doneT = 0.7; } else INTRO.doneT = 0.01; }
 }
 $('#coachSkip').onclick = () => (GINTRO.on ? gintroEnd() : introEnd());
+// on a phone held upright the coach sits under the timer and the mission card moves down below it (--coachH)
+if (window.ResizeObserver) new ResizeObserver(() => { const c = $('#coach'), h = c.hidden ? 0 : c.offsetHeight; document.documentElement.style.setProperty('--coachH', h ? h + 6 + 'px' : '0px'); }).observe($('#coach'));
 // The first round as agent (and the first as accomplice) opens the same way, learned by doing: walk, find a mission
 // object (golden ring), use it, then one line on the laser and on blending in. Solo or with friends, once per role.
 const GINTRO = { on: false, role: null, i: 0, t: 0, x0: 0, z0: 0, dn0: 0, doneT: 0, last: 0 };
@@ -16735,6 +16788,19 @@ function readHost() {
 }
 
 // ---------------------------------------------------------------- main loop
+// where the subject sits on screen (isoState.sh, the tilt-shift focus follows): at the end of a round the agent is framed in
+// the middle of the free space above the card; on a phone held upright the mission card and the timer take the top of the
+// screen, so your own character is framed a little lower
+const PHONE_UP = matchMedia('(orientation:portrait) and (max-width:700px)');
+function isoLift(st) {
+  if (G.screen !== 'game') return 0;
+  if (st.ph === 'reveal') {
+    const r = $('#reveal'); if (!(st.ag >= 0) || r.hidden) return 0;
+    const top = r.getBoundingClientRect().top, H = innerHeight, f = Math.max(0.2, top / 2 / H); // where the agent should sit, from the top
+    return Math.max(0, Math.min(0.6, 1 - 2 * f));
+  }
+  return PHONE_UP.matches && (G.role === 'a' || G.role === 'c') ? -0.3 : 0;
+}
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -16756,6 +16822,7 @@ function frame(now) {
         canvas.classList.remove('blur'); activeCam = iso;
         if (G.screen !== 'game' && !window.__noOrbit) { isoState.az += dt * 0.04; isoState.tx = Math.sin(now / 9000) * 3; isoState.tz = 0; }
         if (G.screen === 'game' && st.ph === 'reveal' && st.ag >= 0) { const e = st.ents.find(x => x.id === st.ag); if (e) { isoState.tx = e.x; isoState.tz = e.z; isoState.ty = e.y || 0; } }
+        isoState.sh = isoLift(st);
         if (G.screen !== 'game') isoState.ty = 0;
         placeIso(dt);
       }
@@ -16765,7 +16832,7 @@ function frame(now) {
     }
     stepFX(dt); if (SCEN.K) { try { SCEN.K.update(dt, now / 1000); } catch (e) { } }
     publish(now, st); ambUpdate();
-    renderFrame(dt, { tilt: activeCam === iso ? (G.screen === 'game' ? 1 : 1.15) : 0, blurAll: activeCam === wide && G.screen === 'game' && st && st.ph === 'play' ? 0.22 : 0, focus: 0.5, vig: activeCam === scopeCam ? 0.12 : 0.32, exposure: 0.86 * (SCEN.exposure || 1) });
+    renderFrame(dt, { tilt: activeCam === iso ? (G.screen === 'game' ? 1 : 1.15) : 0, blurAll: activeCam === wide && G.screen === 'game' && st && st.ph === 'play' ? 0.22 : 0, focus: activeCam === iso ? 0.5 + (iso.userData.sh || 0) / 2 : 0.5, vig: activeCam === scopeCam ? 0.12 : 0.32, exposure: 0.86 * (SCEN.exposure || 1) });
   } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
 }

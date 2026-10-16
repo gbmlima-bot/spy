@@ -1,4 +1,4 @@
-// Confere os ninhos temáticos (sc.ninho) de cada cenário contra a interface do Sniper:
+// Confere os ninhos temáticos (sc.ninho; na Cobertura, K.ninho de 00-cobertura.js) de cada mapa contra a interface do Sniper:
 //  - superfície: topo em y = -0,79 cobrindo x -1,8..1,8 e z -1,25..-0,75 (raios de cima para baixo)
 //  - visão livre: nada acima de -0,79 entre x ±1,8; nada à frente de z = -1,3 acima de -0,85; laterais até y = 1,5 com z ≥ -1,3
 //  - nada do ninho entre o olho do sniper e a cabeça (1,6 m) de quem anda em qualquer célula livre da grade de navegação
@@ -39,15 +39,18 @@ const MAPS = (process.argv[3] || '1,2,3,4,5,6,7,8,9,10').split(',').map(Number);
       }
       if (miss) err.push('superfície ausente ou fora de -0,79 em ' + miss + ' amostras');
       // cabeça de quem anda em qualquer célula livre
-      let cells = 0, hid = 0; const tg = new T.Vector3(), dir = new T.Vector3();
+      // na Cobertura a mureta antiga (o grupo escondido do NEST) já tapava a frente do térreo: o ninho não pode tapar mais que ela
+      const base = M.SCEN.sc ? null : M.NEST.children.find(c => c.isGroup && !c.visible), baseM = []; if (base) base.traverse(o => { if (o.isMesh) baseM.push(o); });
+      let cells = 0, hid = 0, hidBase = 0; const tg = new T.Vector3(), dir = new T.Vector3();
       M.NAV.lv.forEach((N, lv) => { const y = M.LVY(lv); for (let j = 0; j < N.nz; j++) for (let i = 0; i < N.nx; i++) {
         if (N.g[j * N.nx + i]) continue; cells++;
         tg.set(N.x0 + i * M.NAV.cell, y + 1.6, N.z0 + j * M.NAV.cell); dir.copy(tg).sub(E); const d = dir.length(); rc.set(E, dir.normalize()); rc.far = d;
         if (rc.intersectObjects(meshes, true).length) hid++;
+        if (baseM.length && rc.intersectObjects(baseM, false).length) hidBase++;
       } });
-      if (hid) err.push('ninho tapa a cabeça em ' + hid + ' de ' + cells + ' células livres');
+      if (hid > hidBase) err.push('ninho tapa a cabeça em ' + hid + ' de ' + cells + ' células livres' + (base ? ` (a mureta antiga tapava ${hidBase})` : ''));
       let calls = 0; g.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isSprite) calls++; });
-      return { id, nome: M.SCEN.sc.nome, calls, err };
+      return { id, nome: M.SCEN.sc ? M.SCEN.sc.nome : 'Cobertura', calls, err };
     }, id);
     if (r.sem) { console.log(`${id}: sem ninho temático`); continue; }
     bad += r.err.length;
