@@ -14028,20 +14028,52 @@ function segGeo(len, r0, r1, axis, seg = 14) {
   if (axis === 'x') g.rotateZ(-Math.PI / 2); else if (axis === '-x') g.rotateZ(Math.PI / 2); else if (axis === '-y') g.rotateX(Math.PI); else if (axis === 'z') g.rotateX(Math.PI / 2);
   return g;
 }
+// a limb: a smooth tube from the joint along an axis, with rounded ends that tuck into the next piece, several rings so it
+// bends with the joint blending in batchChar, and a muscle bulge (biceps, forearm, thigh, calf) peaking at 'at' of its length
+function limbGeo(len, r0, r1, axis, bulge = 0, at = 0.35, seg = 10, n = 4) {
+  const pts = [], cap = Math.min(r0, r1) * 0.9;
+  for (let i = 0; i <= 2; i++) { const a = (i / 2) * Math.PI / 2; pts.push(new T.Vector2(Math.max(0.01, r0 * Math.sin(a)), -cap * Math.cos(a))); }
+  for (let i = 1; i < n; i++) { const t = i / n, b = t < at ? Math.sin(Math.PI / 2 * t / at) : Math.cos(Math.PI / 2 * (t - at) / (1 - at)); pts.push(new T.Vector2(r0 + (r1 - r0) * t + bulge * b, len * t)); }
+  for (let i = 0; i <= 2; i++) { const a = (i / 2) * Math.PI / 2; pts.push(new T.Vector2(Math.max(0.01, r1 * Math.cos(a)), len + cap * Math.sin(a))); }
+  const g = new T.LatheGeometry(pts, seg);
+  if (axis === 'x') g.rotateZ(-Math.PI / 2); else if (axis === '-x') g.rotateZ(Math.PI / 2); else if (axis === '-y') g.rotateX(Math.PI); else if (axis === 'z') g.rotateX(Math.PI / 2);
+  return g;
+}
+// a hand along its bone's x: a rounded palm, four slightly curled fingers and the thumb, as one piece
+function handGeo(sx) {
+  const parts = [], palm = new T.SphereGeometry(1, 8, 5); palm.scale(4.6, 1.6, 3.7); palm.translate(4.3, 0, 0); parts.push(palm);
+  [[-2.55, 5.2, 0.78], [-0.86, 6.1, 0.84], [0.86, 5.8, 0.82], [2.5, 4.7, 0.72]].forEach(([z, l, r]) => {
+    const f = limbGeo(l, r, r * 0.85, 'x', 0, 0.5, 5, 1); f.rotateZ(-0.45); f.translate(8.2, -0.1, z); parts.push(f);
+  });
+  const th = limbGeo(5.2, 1.15, 0.95, 'x', 0, 0.5, 5, 1); th.rotateY(-0.9); th.rotateZ(-0.15); th.translate(2.4, -0.4, 3.4); parts.push(th);
+  const g = joinGeos(parts); if (sx < 0) { g.scale(-1, 1, 1); flipWinding(g); } return g;
+}
+function joinGeos(list) {
+  const gs = list.map(g => g.index ? g.toNonIndexed() : g); let n = 0; for (const g of gs) n += g.attributes.position.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let o = 0;
+  for (const g of gs) { if (!g.attributes.normal) g.computeVertexNormals(); pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; }
+  const out = new T.BufferGeometry(); out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('normal', new T.BufferAttribute(nor, 3)); out.setAttribute('uv', new T.BufferAttribute(new Float32Array(n * 2), 2)); return out;
+}
+function flipWinding(g) { const p = g.attributes.position.array, q = g.attributes.normal.array; for (let i = 0; i < p.length; i += 9) for (const a of [p, q]) for (let c = 0; c < 3; c++) { const t = a[i + 3 + c]; a[i + 3 + c] = a[i + 6 + c]; a[i + 6 + c] = t; } }
 const CG = {
-  upperArm: { L: segGeo(27.8, 5.8, 4.8, 'x'), R: segGeo(27.8, 5.8, 4.8, '-x') }, bareUpper: { L: segGeo(27.8, 4.6, 3.8, 'x'), R: segGeo(27.8, 4.6, 3.8, '-x') },
-  foreArm: { L: segGeo(28.3, 4.8, 3.6, 'x'), R: segGeo(28.3, 4.8, 3.6, '-x') }, bareFore: { L: segGeo(28.3, 3.8, 3.1, 'x'), R: segGeo(28.3, 3.8, 3.1, '-x') },
+  upperArm: { L: limbGeo(27.8, 5.8, 4.8, 'x', 0.5), R: limbGeo(27.8, 5.8, 4.8, '-x', 0.5) }, bareUpper: { L: limbGeo(27.8, 4.4, 3.4, 'x', 0.6), R: limbGeo(27.8, 4.4, 3.4, '-x', 0.6) },
+  foreArm: { L: limbGeo(28.3, 4.8, 3.6, 'x', 0.4, 0.25), R: limbGeo(28.3, 4.8, 3.6, '-x', 0.4, 0.25) }, bareFore: { L: limbGeo(28.3, 3.5, 2.6, 'x', 0.6, 0.25), R: limbGeo(28.3, 3.5, 2.6, '-x', 0.6, 0.25) },
   cuff: { L: new T.CylinderGeometry(4.6, 4.6, 3, 8).rotateZ(-Math.PI / 2).translate(26, 0, 0), R: new T.CylinderGeometry(4.6, 4.6, 3, 8).rotateZ(Math.PI / 2).translate(-26, 0, 0) },
-  hand: { L: (() => { const g = new T.SphereGeometry(4.6, 8, 6); g.scale(1.5, 0.6, 0.9); g.translate(5.5, 0, 0); return g; })(), R: (() => { const g = new T.SphereGeometry(4.6, 8, 6); g.scale(1.5, 0.6, 0.9); g.translate(-5.5, 0, 0); return g; })() },
-  elbow: new T.SphereGeometry(4.9, 12, 8), bareElbow: new T.SphereGeometry(3.9, 12, 8),
-  shoulder: (() => { const g = new T.SphereGeometry(7.6, 16, 12); g.scale(1, 0.75, 0.9); return g; })(), bareShoulder: new T.SphereGeometry(5.6, 16, 12),
-  thigh: segGeo(44.4, 8.2, 6.4, '-y'), shin: segGeo(44.4, 6.4, 4.8, '-y'), bareThigh: segGeo(44.4, 6.8, 5.2, '-y'), bareShin: segGeo(44.4, 5.2, 3.6, '-y'),
-  knee: new T.SphereGeometry(6.0, 12, 8), bareKnee: new T.SphereGeometry(4.9, 12, 8),
+  hand: null, // built below with handGeo
+  elbow: new T.SphereGeometry(4.8, 8, 6), bareElbow: new T.SphereGeometry(3.4, 8, 6),
+  shoulder: (() => { const g = new T.SphereGeometry(7.6, 12, 9); g.scale(1, 0.75, 0.9); return g; })(), bareShoulder: new T.SphereGeometry(5.6, 12, 9),
+  thigh: limbGeo(44.4, 8.2, 6.4, '-y', 0.6, 0.3), shin: limbGeo(44.4, 6.4, 4.8, '-y', 0.5, 0.3), bareThigh: limbGeo(44.4, 6.8, 4.6, '-y', 0.7, 0.3), bareShin: limbGeo(44.4, 4.6, 2.9, '-y', 1.1, 0.28),
+  knee: new T.SphereGeometry(6.2, 8, 6), bareKnee: new T.SphereGeometry(4.5, 8, 6),
   shoe: new T.BoxGeometry(10, 7, 25).translate(0, -4.3, 4.5), heel: new T.BoxGeometry(7.5, 5, 20).translate(0, -5, 4), heelBlock: new T.BoxGeometry(4, 6, 4).translate(0, -5.5, -4.5),
   pelvis: new T.CylinderGeometry(13.6, 13.4, 16, 14).scale(1, 1, 0.62).translate(0, -5, 0), // oval like the hem round it, so no corner pokes through
   hem: null, jacket: null, bodice: null, // built below with rbox
   neck: segGeo(9.6, 4.8, 5.2, 'y', 8),
-  head: (() => { const g = new T.SphereGeometry(11.3, 16, 12); g.scale(0.93, 1.12, 1.0); return g; })(),
+  // the head: an egg narrowing to the jaw, cheekbones, a little chin and a flatter back
+  head: (() => { const g = new T.SphereGeometry(11.3, 18, 13); g.scale(0.93, 1.12, 1.0); const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i), z = p.getZ(i); const lo = Math.max(0, -y / 12.6), fr = Math.max(0, z / 11.3);
+      x *= 1 - 0.2 * lo * lo; z *= 1 - 0.12 * lo * lo * (1 - fr); if (z < 0) z *= 0.94;
+      z += 1.2 * Math.exp(-((y + 10.5) ** 2) / 6) * fr * Math.exp(-(x * x) / 18); x *= 1 + 0.04 * Math.exp(-((y + 1.5) ** 2) / 10) * fr; p.setXYZ(i, x, y, z); }
+    g.computeVertexNormals(); return g; })(),
   ear: (() => { const g = new T.SphereGeometry(2.4, 6, 5); g.scale(0.5, 1, 0.8); return g; })(),
   eye: new T.SphereGeometry(1.25, 6, 5), brow: new T.BoxGeometry(3.6, 0.7, 0.8),
   nose: (() => { const g = new T.ConeGeometry(1.7, 3.4, 5); g.rotateX(Math.PI / 2); return g; })(), lip: new T.BoxGeometry(3.6, 0.9, 0.8),
@@ -14089,6 +14121,7 @@ CG.gownSit = {
 // and the shin on the floor behind stay covered
 CG.gownKnee = { thigh: new T.CylinderGeometry(9.6, 8.8, 54, 10).translate(0, -25, 0), shin: (() => { const g = new T.CylinderGeometry(9, 11.5, 44, 10); g.scale(1, 1, 0.85); return g.translate(0, -22, 0); })() };
 CG.robeSkirt = lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80], [20.5, -96]], 0.82);
+CG.hand = { L: handGeo(1), R: handGeo(-1) };
 CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.1, 6, 5);
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
 CG.fringe = (() => { const g = new T.CylinderGeometry(11.9, 11.7, 7.5, 14, 1, true, -0.8, 1.6); g.scale(0.96, 1, 1.03); return g; })();
@@ -14143,8 +14176,8 @@ function makeChar(o, id) {
     } else for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
-    m(CG.pelvis, pants, 0, 0, 0, B.Hips).scale.x = bw;
-    if (!o.tee && !o.knit && !o.camisa) m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong).scale.x = bw; // a T-shirt, sweater or tucked-in shirt ends at the waist
+    { const pv = m(CG.pelvis, pants, 0, 0, 0, B.Hips); pv.scale.x = bw; pv.userData.wy = ['Spine', -6, 6]; }
+    if (!o.tee && !o.knit && !o.camisa) { const hm = m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); hm.scale.x = bw; if (!o.robeLong) hm.userData.wy = ['Spine', -6, 6]; } // a T-shirt, sweater or tucked-in shirt ends at the waist
     // build: the torso is a little wider or narrower (width only, so everything on the chest stays put)
     m(CG.jacket, cloth, 0, -4, 0, B.Spine, true).scale.x = bw;
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
@@ -14224,7 +14257,7 @@ function makeChar(o, id) {
     else if (o.camisa) { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); const rl = m(CG.cuff[k], cloth, 0, 0, 0, B[s + 'ForeArm']); rl.scale.set(0.5, 1.25, 1.25); rl.position.x = s === 'Left' ? -7 : 7; m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); } // sleeves rolled to the elbow
     else if (o.tee) { const sl = m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); sl.scale.set(0.5, 1.12, 1.12); m(CG.bareUpper[k], skin, 0, 0, 0, B[s + 'Arm']); m(CG.bareElbow, skin, 0, 0, 0, B[s + 'ForeArm']); m(CG.bareFore[k], skin, 0, 0, 0, B[s + 'ForeArm']); }
     else { m(CG.upperArm[k], cloth, 0, 0, 0, B[s + 'Arm']); m(CG.elbow, cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.foreArm[k], cloth, 0, 0, 0, B[s + 'ForeArm']); m(CG.cuff[k], o.knit ? cloth : shirt, 0, 0, 0, B[s + 'ForeArm']); }
-    m(CG.hand[k], skin, 0, 0, 0, B[s + 'Hand']); m(CG.thumb, skin, s === 'Left' ? 4.2 : -4.2, 0.6, 3.4, B[s + 'Hand']);
+    m(CG.hand[k], skin, 0, 0, 0, B[s + 'Hand']);
     if (s === 'Left' && o.watch) { m(CG.watchBand, mat(o.watch === 'gold' ? 0x3a2a1a : 0x15151a, { roughness: 0.5 }), 25.2, 0, 0, B.LeftForeArm).rotation.y = Math.PI / 2; m(CG.watchFace, o.watch === 'gold' ? gold : mat(0xd0d4da, { metalness: 0.9, roughness: 0.2 }), 25.2, 4.6, 0, B.LeftForeArm); }
     if (o.bracelet && ((o.bracelet === 'L') === (s === 'Left'))) { m(CG.bracelet, gold, s === 'Left' ? 24.5 : -24.5, 0, 0, B[s + 'ForeArm']).rotation.y = Math.PI / 2; }
     if (s === 'Right' && o.glass) {
@@ -14861,10 +14894,14 @@ function batchChar(root, B, keep) {
   }
 }
 // which bones share a joint: a bone blends with its parent at its start and with its one child at its end
-const JOINT_UP = { Spine: 1, Spine1: 1, Spine2: 1, Neck: 1, LeftArm: 1, RightArm: 1, LeftForeArm: 1, RightForeArm: 1, LeftHand: 1, RightHand: 1, LeftUpLeg: 0.6, RightUpLeg: 0.6, LeftLeg: 1, RightLeg: 1, LeftFoot: 1, RightFoot: 1 };
+const JOINT_UP = { Spine1: 1, Spine2: 1, Neck: 1, LeftArm: 1, RightArm: 1, LeftForeArm: 1, RightForeArm: 1, LeftHand: 1, RightHand: 1, LeftUpLeg: 0.6, RightUpLeg: 0.6, LeftLeg: 1, RightLeg: 1, LeftFoot: 1, RightFoot: 1 };
 const JOINT_DOWN = { Hips: 0, Spine: 'Spine1', Spine1: 'Spine2', Neck: 'Head', LeftShoulder: 'LeftArm', RightShoulder: 'RightArm', LeftArm: 'LeftForeArm', RightArm: 'RightForeArm', LeftForeArm: 'LeftHand', RightForeArm: 'RightHand', LeftUpLeg: 'LeftLeg', RightUpLeg: 'RightLeg', LeftLeg: 'LeftFoot', RightLeg: 'RightFoot' };
 const JOINT_R = 6; // cm on each side of a joint
 function jointBlend(o, bone, boneIx) {
+  // a piece can ask to fade from its bone to another along its own height (o.userData.wy = [bone name, y0, y1]): the
+  // jacket's hem, on the hips at its lower edge and on the spine at the top, so it turns with the jacket when dancing
+  const wy = o.userData.wy, to = wy && bone.parent && [bone, ...bone.children].find(c => c.name === wy[0]);
+  if (to && boneIx.has(to)) { const it = boneIx.get(to); return (pos, i, si, sw, k) => { const w = Math.min(1, Math.max(0, (pos.getY(i) - wy[1]) / (wy[2] - wy[1]))); si[k + 1] = it; sw[k + 1] = w; sw[k] = 1 - w; }; }
   const up = JOINT_UP[bone.name] && bone.parent && boneIx.has(bone.parent) ? bone.parent : null;
   const dn = JOINT_DOWN[bone.name] ? bone.children.find(c => c.name === JOINT_DOWN[bone.name]) : null;
   if (!up && !dn) return null;
