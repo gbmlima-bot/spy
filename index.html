@@ -14317,8 +14317,10 @@ const lathe = (pts, sz = 0.62, seg = 16) => { if (pts[0][1] > pts[pts.length - 1
 CG.jacket = lathe([[5, -2.5], [15.2, -2], [15.6, 2], [14.4, 10], [15.3, 20], [17.0, 30], [17.6, 36], [13.5, 39.5], [5, 40.5]]);
 CG.hem = lathe([[5, -9.5], [15.4, -9], [15.8, -3], [15.3, 3], [14.9, 8], [5, 8.5]]);
 CG.bodice = lathe([[4, -1.5], [13.3, -1], [13.7, 3], [11.7, 12], [13.9, 22], [14.7, 29], [14.1, 34], [9.5, 37], [4, 37.5]], 0.66);
-CG.gown = lathe([[13.4, 10], [14.6, 4], [17.2, -10], [19.4, -30], [20.2, -48], [21.5, -66], [26, -84], [35, -100]], 0.82);
-CG.cocktail = lathe([[13.4, 10], [14.6, 4], [16.2, -10], [19, -25], [25, -40], [30, -50]], 0.8);
+// soft folds falling from the hips: the radius ripples round the skirt, more towards the hem
+const folds = (g, k, amp, y0, y1) => { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), f = Math.min(1, Math.max(0, (y0 - y) / (y0 - y1))); if (!f) continue; const w = 1 + amp * f * Math.sin(k * Math.atan2(z, x)); p.setX(i, x * w); p.setZ(i, z * w); } g.computeVertexNormals(); return g; };
+CG.gown = folds(lathe([[13.4, 10], [14.6, 4], [17.2, -10], [19.4, -30], [20.2, -48], [21.5, -66], [26, -84], [35, -100]], 0.82, 32), 8, 0.07, 0, -100);
+CG.cocktail = folds(lathe([[13.4, 10], [14.6, 4], [16.2, -10], [19, -25], [25, -40], [30, -50]], 0.8, 32), 8, 0.07, -5, -50);
 CG.shoe = (() => { const g = new T.SphereGeometry(1, 10, 7); g.scale(5, 3.6, 12.5); g.translate(0, -4.3, 4.5); return g; })();
 CG.sole = new T.BoxGeometry(9.6, 1.2, 24).translate(0, -7.4, 4.5);
 // eyes: an almond white, a coloured iris and a small pupil; lips: a thin upper lip over a fuller lower one; a nose with
@@ -14347,7 +14349,7 @@ CG.gownSit = {
 // a long gown kneeling: cloth over each thigh and a skirt flaring from each knee, on the leg bones, so the knee up front
 // and the shin on the floor behind stay covered
 CG.gownKnee = { thigh: new T.CylinderGeometry(9.6, 8.8, 54, 10).translate(0, -25, 0), shin: (() => { const g = new T.CylinderGeometry(9, 11.5, 44, 10); g.scale(1, 1, 0.85); return g.translate(0, -22, 0); })() };
-CG.robeSkirt = lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80], [20.5, -96]], 0.82);
+CG.robeSkirt = folds(lathe([[13.4, 10], [15.6, 0], [16.4, -20], [17.4, -50], [19, -80], [20.5, -96]], 0.82, 24), 6, 0.04, 0, -96);
 CG.hand = { L: handGeo(1), R: handGeo(-1) };
 CG.thumb = new T.SphereGeometry(1.5, 6, 5); CG.pendant = new T.SphereGeometry(1.1, 6, 5);
 CG.strand = new T.CylinderGeometry(3.0, 2.4, 26, 8); CG.tail = new T.CylinderGeometry(3.4, 2.0, 30, 8);
@@ -14391,12 +14393,12 @@ function makeChar(o, id) {
     m(CG.bodice, cloth, 0, -3, 0, B.Spine, true).scale.x = bw;
     if (o.gown) {
       // two gowns, standing and seated, kept out of the batch so animChar can swap them (see gownSit)
-      gownStand = m(CG.gown, cloth, 0, -2, 0, B.Hips, true);
+      gownStand = m(CG.gown, cloth, 0, -2, 0, B.Hips, true); gownStand.userData.skirt = true;
       gownSit = new T.Group(); gownSit.position.y = -2; gownSit.visible = false; B.Hips.add(gownSit);
       for (const k of ['hips', 'lap', 'drape']) m(CG.gownSit[k], cloth, 0, 0, 0, gownSit, true).raycast = noPick;
       gownKnee = ['Left', 'Right'].flatMap(s => [m(CG.gownKnee.thigh, cloth, 0, 0, 0, B[s + 'UpLeg']), m(CG.gownKnee.shin, cloth, 0, 0, 0, B[s + 'Leg'])]);
       for (const g of gownKnee) { g.visible = false; g.raycast = noPick; }
-    } else m(CG.cocktail, cloth, 0, -2, 0, B.Hips, true);
+    } else m(CG.cocktail, cloth, 0, -2, 0, B.Hips, true).userData.skirt = true;
     if (!o.robe) {
       m(CG.belt, mat(o.accent, { metalness: 0.6, roughness: 0.3 }), 0, -3, 0, B.Spine);
       for (const s of ['Left', 'Right']) { m(CG.bareShoulder, skin, 0, 0, 0, B[s + 'Arm']); m(CG.strap, cloth, s === 'Left' ? 8.6 : -8.6, 13.4, 2.6, B.Spine2); }
@@ -14404,7 +14406,7 @@ function makeChar(o, id) {
     if (o.necklace) { const n = m(CG.necklace, gold, 0, 14, 4, B.Spine2); n.rotation.x = Math.PI / 2 + 0.35; m(CG.pendant, mat(o.accent === 0xc9ced6 ? 0xd8e4f0 : 0xe2c26a, { metalness: 0.9, roughness: 0.2 }), 0, 11, 8.5, B.Spine2); }
   } else {
     { const pv = m(CG.pelvis, pants, 0, 0, 0, B.Hips); pv.scale.x = bw; pv.userData.wy = ['Spine', -6, 6]; }
-    if (!o.tee && !o.knit && !o.camisa) { const hm = m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); hm.scale.x = bw; if (!o.robeLong) hm.userData.wy = ['Spine', -6, 6]; } // a T-shirt, sweater or tucked-in shirt ends at the waist
+    if (!o.tee && !o.knit && !o.camisa) { const hm = m(o.robe && o.robeLong ? CG.robeSkirt : CG.hem, cloth, 0, 0, 0, B.Hips, !!o.robeLong); hm.scale.x = bw; if (!o.robeLong) hm.userData.wy = ['Spine', -6, 6]; else hm.userData.skirt = true; } // a T-shirt, sweater or tucked-in shirt ends at the waist
     // build: the torso is a little wider or narrower (width only, so everything on the chest stays put)
     m(CG.jacket, cloth, 0, -4, 0, B.Spine, true).scale.x = bw;
     for (const s of ['Left', 'Right']) m(CG.shoulder, cloth, 0, 0, 0, B[s + 'Arm']);
@@ -14632,7 +14634,7 @@ function animChar(c, anim, t, moving, dt = 0.016, speed = 1.2) {
   rig.position.set(0, u.ry, anim === 8 || anim === 16 ? rz : 0); rig.rotation.x = u.rx;
   if (u.gownSit) { // seated in a long gown: swap to the seated gown (and make only the shown one hit by the scope)
     const sit = anim === 7 || anim === 9 || anim === 12 || anim === 17;
-    if (u.gownSit.visible !== sit) { u.gownSit.visible = sit; u.gownStand.visible = !sit; u.gownStand.raycast = sit ? noPick : T.Mesh.prototype.raycast; u.gownSit.traverse(n => { if (n.isMesh) n.raycast = sit ? T.Mesh.prototype.raycast : noPick; }); }
+    if (u.gownSit.visible !== sit) { u.gownSit.visible = sit; (u.gownStand.userData.skin || u.gownStand).visible = !sit; u.gownStand.raycast = sit ? noPick : T.Mesh.prototype.raycast; u.gownSit.traverse(n => { if (n.isMesh) n.raycast = sit ? T.Mesh.prototype.raycast : noPick; }); }
     const kneel = anim === 21;
     if (u.gownKnee[0].visible !== kneel) for (const g of u.gownKnee) { g.visible = kneel; g.raycast = kneel ? T.Mesh.prototype.raycast : noPick; }
   }
@@ -15113,6 +15115,15 @@ function batchChar(root, B, keep) {
   const skel = new T.Skeleton(boneList), rootInv = new T.Matrix4().copy(root.matrixWorld).invert();
   for (const { list } of groups.values()) for (const it of list) { it.space = null; it.blend = jointBlend(it.o, boneList[it.bone], boneIx); }
   const noRay = () => { };
+  // a skirt kept out of the batch (the long gown swaps with the seated one): drawn by a skinned copy of its own, while the
+  // hidden original still answers the scope's ray; animChar shows and hides the copy through userData.skin
+  for (const k of keep) if (k && k.isMesh && k.userData.skirt && boneIx.has(k.parent)) {
+    const g = mergeMeshes([{ o: k, space: null, bone: boneIx.get(k.parent), blend: jointBlend(k, k.parent, boneIx) }], root, ['position', 'normal'], false, true);
+    g.boundingSphere = new T.Sphere(new T.Vector3(0, 0.6, 0), 1.2);
+    const mk = k.material.uuid + '|skin'; let mm = CHAR_MATS.get(mk); if (!mm) { mm = k.material.clone(); mm.skinning = true; CHAR_MATS.set(mk, mm); }
+    const sk = new T.SkinnedMesh(g, mm); sk.castShadow = k.castShadow; sk.userData.eid = k.userData.eid; sk.userData.batch = true; sk.raycast = noRay; sk.visible = k.visible;
+    root.add(sk); sk.updateMatrixWorld(true); sk.bind(skel, sk.matrixWorld); k.visible = false; k.userData.skin = sk;
+  }
   for (const { sp, list } of groups.values()) {
     const o0 = list[0].o, g = mergeMeshes(list, root, sp.names, sp.recolor, true);
     g.boundingSphere = new T.Sphere(new T.Vector3(0, 0.95, 0), 1.45);
@@ -15126,7 +15137,18 @@ function batchChar(root, B, keep) {
 const JOINT_UP = { Spine1: 1, Spine2: 1, Neck: 1, LeftArm: 1, RightArm: 1, LeftForeArm: 1, RightForeArm: 1, LeftHand: 1, RightHand: 1, LeftUpLeg: 0.6, RightUpLeg: 0.6, LeftLeg: 1, RightLeg: 1, LeftFoot: 1, RightFoot: 1 };
 const JOINT_DOWN = { Hips: 0, Spine: 'Spine1', Spine1: 'Spine2', Neck: 'Head', LeftShoulder: 'LeftArm', RightShoulder: 'RightArm', LeftArm: 'LeftForeArm', RightArm: 'RightForeArm', LeftForeArm: 'LeftHand', RightForeArm: 'RightHand', LeftUpLeg: 'LeftLeg', RightUpLeg: 'RightLeg', LeftLeg: 'LeftFoot', RightLeg: 'RightFoot' };
 const JOINT_R = 6; // cm on each side of a joint
+// a skirt on the hips: its lower part on each side shares weight with that side's thigh, so it swings with the legs
+// (more towards the hem, up to 0.7) instead of the legs coming out through it
+function skirtBlend(o, B, boneIx) {
+  const toHips = new T.Matrix4().copy(B.Hips.matrixWorld).invert().multiply(o.matrixWorld), v = new T.Vector3(), il = boneIx.get(B.LeftUpLeg), ir = boneIx.get(B.RightUpLeg);
+  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  return (pos, i, si, sw, k) => {
+    v.fromBufferAttribute(pos, i).applyMatrix4(toHips); const f = 0.7 * ss(-4, -55, v.y), l = f * ss(-9, 9, v.x), r = f - l;
+    si[k + 1] = il; sw[k + 1] = l; si[k + 2] = ir; sw[k + 2] = r; sw[k] = 1 - f;
+  };
+}
 function jointBlend(o, bone, boneIx) {
+  if (o.userData.skirt && bone.name === 'Hips') return skirtBlend(o, { Hips: bone, LeftUpLeg: bone.children.find(c => c.name === 'LeftUpLeg'), RightUpLeg: bone.children.find(c => c.name === 'RightUpLeg') }, boneIx);
   // a piece can ask to fade from its bone to another along its own height (o.userData.wy = [bone name, y0, y1]): the
   // jacket's hem, on the hips at its lower edge and on the spine at the top, so it turns with the jacket when dancing
   const wy = o.userData.wy, to = wy && bone.parent && [bone, ...bone.children].find(c => c.name === wy[0]);
