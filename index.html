@@ -12296,6 +12296,7 @@ function outfitFor(seed, id, st) {
       if (!o.dress && o.hairStyle === 'short') { if (h < 0.15) o.hairStyle = 'bald'; else if (h < 0.27) o.hairStyle = 'curly'; }
       else if (o.dress && (o.hairStyle === 'long' || o.hairStyle === 'wavy') && h < 0.25) { o.hairStyle = 'curly'; o.bangs = false; }
     }
+    o.eyeC = pick([0x4a2c18, 0x3a2412, 0x6b4a22, 0x2f5a7a, 0x4a6a3a, 0x5a5040], r);
   }
   return o;
 }
@@ -14320,9 +14321,17 @@ CG.gown = lathe([[13.4, 10], [14.6, 4], [17.2, -10], [19.4, -30], [20.2, -48], [
 CG.cocktail = lathe([[13.4, 10], [14.6, 4], [16.2, -10], [19, -25], [25, -40], [30, -50]], 0.8);
 CG.shoe = (() => { const g = new T.SphereGeometry(1, 10, 7); g.scale(5, 3.6, 12.5); g.translate(0, -4.3, 4.5); return g; })();
 CG.sole = new T.BoxGeometry(9.6, 1.2, 24).translate(0, -7.4, 4.5);
-CG.sclera = (() => { const g = new T.SphereGeometry(1.75, 8, 6); g.scale(1.25, 1, 0.55); return g; })(); CG.pupil = new T.SphereGeometry(0.95, 6, 5);
+// eyes: an almond white, a coloured iris and a small pupil; lips: a thin upper lip over a fuller lower one; a nose with
+// a bridge, a round tip and the wings of the nostrils
+CG.sclera = (() => { const g = new T.SphereGeometry(1.5, 8, 6); g.scale(1.32, 0.95, 0.5); return g; })();
+CG.iris = (() => { const g = new T.SphereGeometry(0.82, 8, 4); g.scale(1, 1, 0.35); return g; })();
+CG.pupil = (() => { const g = new T.SphereGeometry(0.4, 6, 3); g.scale(1, 1, 0.4); return g; })();
+CG.lipUp = (() => { const g = new T.SphereGeometry(1, 8, 4); g.scale(1.65, 0.36, 0.5); return g; })();
+CG.lipLo = (() => { const g = new T.SphereGeometry(1, 8, 4); g.scale(1.4, 0.5, 0.55); return g; })();
+CG.nose = (() => { const s = (r, sx, sy, sz, x, y, z) => { const g = new T.SphereGeometry(r, 7, 5); g.scale(sx, sy, sz); g.translate(x, y, z); return g; };
+  return joinGeos([s(1, 0.7, 1.4, 0.6, 0, 0.3, -1.2), s(1.0, 1.2, 0.9, 0.85, 0, -1.0, -0.55), s(0.65, 1, 0.8, 0.9, -0.95, -1.35, -0.9), s(0.65, 1, 0.8, 0.9, 0.95, -1.35, -0.9)]); })();
 // an eyelid: a skin-coloured cap hanging from its top edge, so scaling it in y opens and closes the eye
-CG.lid = (() => { const g = new T.SphereGeometry(2.0, 7, 4); g.scale(1.25, 1, 0.75); g.translate(0, -2.0, 0); return g; })();
+CG.lid = (() => { const g = new T.SphereGeometry(1.7, 8, 4); g.scale(1.3, 1, 0.75); g.translate(0, -2.0, 0); return g; })();
 CG.collar = new T.BoxGeometry(5, 3.2, 1); CG.neckband = new T.TorusGeometry(5.2, 1.0, 5, 14);
 CG.lens = new T.BoxGeometry(4.4, 2.7, 1.0); CG.bridge = new T.BoxGeometry(1.6, 0.6, 0.6); CG.temple = new T.BoxGeometry(0.5, 0.6, 11);
 CG.watchBand = new T.TorusGeometry(4.9, 0.7, 5, 14); CG.watchFace = new T.CylinderGeometry(2.3, 2.3, 1.1, 10); CG.bracelet = new T.TorusGeometry(4.3, 0.6, 5, 14);
@@ -14434,8 +14443,9 @@ function makeChar(o, id) {
   m(CG.head, skin, 0, 0, 0, headG, true);
   for (const s of [-1, 1]) {
     m(CG.ear, skin, s * 10.4, -0.5, -0.5, headG);
-    m(CG.sclera, mat(0xf4f1ea, { roughness: 0.35 }), s * 3.8, 1.2, 10.3, headG);
-    m(CG.pupil, mat(0x1a1410, { roughness: 0.2 }), s * 3.8, 1.2, 11.1, headG);
+    m(CG.sclera, mat(0xf4f1ea, { roughness: 0.35 }), s * 3.8, 1.2, 10.35, headG);
+    m(CG.iris, mat(o.eyeC || 0x3a2a1a, { roughness: 0.35 }), s * 3.75, 1.15, 10.95, headG);
+    m(CG.pupil, mat(0x1a1410, { roughness: 0.2 }), s * 3.75, 1.15, 11.22, headG);
     const b = m(CG.brow, hair, s * 4, 4.2, 10.9, brows); b.rotation.z = s * (-0.12 + (o.browT || 0)); b.scale.y = o.browW || 1;
     if (o.blush) m(CG.blush, mat(new T.Color(o.skin).lerp(new T.Color(0xd9566a), 0.35).getHex(), { roughness: 0.7 }), s * 5.7, -1.8, 9.2, headG);
     if (o.earring) m(CG.earring, mat(0xe2c26a, { metalness: 0.9, roughness: 0.2 }), s * 10.6, -4, 0, headG);
@@ -14445,7 +14455,8 @@ function makeChar(o, id) {
   const lids = new T.Object3D(); lids.name = 'Lids'; lids.position.set(0, 9.5 + 3.2, 1.5); B.Head.add(lids); B.Lids = lids;
   for (const s of [-1, 1]) m(CG.lid, skin, s * 3.8, 0, 10.6, lids);
   m(CG.nose, skin, 0, -1.2, 11.9, headG).scale.setScalar(o.nose || 1);
-  m(CG.lip, mat(o.lipC || (o.dress ? 0x9b3a3a : 0x8a5a4a)), 0, -5.8, 10.4, headG);
+  { const lc = mat(o.lipC || (o.dress ? 0x9b3a3a : new T.Color(o.skin).lerp(new T.Color(0x8a4a40), 0.45).getHex()));
+    m(CG.lipUp, lc, 0, -5.3, 10.2, headG); m(CG.lipLo, lc, 0, -6.1, 10.05, headG); }
   if (o.sunglasses) {
     const lm = mat(0x0f0f14, { roughness: 0.15, metalness: 0.6 });
     for (const s of [-1, 1]) { m(CG.lens, lm, s * 3.9, 1.3, 11.6, headG); m(CG.temple, lm, s * 6.6, 1.5, 5.8, headG); }
