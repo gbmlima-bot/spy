@@ -30,9 +30,13 @@ const close = s => new Promise(r => s.close(r));
       await p.fill('#nome', name); pages.push(p);
     }
     const h = pages[0]; await h.selectOption('#mapSel', '10'); await h.click('#btnCreate');
-    await h.waitForSelector('#lobby:not([hidden])'); const code = await h.locator('#lobbyCode').innerText();
+    await h.waitForSelector('#lobby:not([hidden])'); await h.selectOption('#ruleSel', '0'); const code = await h.locator('#lobbyCode').innerText();
     for (const p of pages.slice(1)) { await p.fill('#codeIn', code); await p.click('#btnJoin'); await p.waitForSelector('#lobby:not([hidden])'); }
     await Promise.all(pages.map(p => p.waitForFunction(() => window.__mira.Net.peers().length === 7, null, { timeout: 45000 })));
+    await h.setViewportSize({ width: 640, height: 480 }); await h.locator('#btnStart').scrollIntoViewIfNeeded();
+    const startBox = await h.locator('#btnStart').boundingBox(); assert.ok(startBox.y >= 0 && startBox.y + startBox.height <= 480);
+    report.shortWindowStart = startBox; await h.screenshot({ path: OUT + '/sala-sete-640x480.png' });
+    await h.setViewportSize({ width: 960, height: 800 });
     await h.click('#btnStart');
     await Promise.all(pages.map(p => p.waitForFunction(() => window.__mira.G.screen === 'game' && !!window.__mira.G.role, null, { timeout: 60000 })));
     const roles = await Promise.all(pages.map(p => p.evaluate(() => ({ role: __mira.G.role, eid: __mira.G.myEid }))));
@@ -79,6 +83,19 @@ const close = s => new Promise(r => s.close(r));
       await Promise.all(pages.map(p => p.waitForFunction(o => __mira.st.tells.includes(o), o, { timeout: 15000 })));
       report.agent.push(result); console.log('PASS shared mission: ' + kind);
     }
+    const lamp = await agent.evaluate(() => __mira.PROPS.find(q => q.key === 'abajur').ms[0]);
+    await position(agent, roles[ai].eid, lamp, true);
+    const xy = await agent.evaluate(() => {
+      const M = __mira; Object.assign(M.isoState, { zoom: 6, az: -.55 }); M.placeIso(0, true); M.iso.updateMatrixWorld(true);
+      const v = new THREE.Vector3(-.8, 1.1, -11.86).project(M.iso); return { x: (v.x + 1) * innerWidth / 2, y: (1 - v.y) * innerHeight / 2 };
+    });
+    await agent.mouse.click(xy.x, xy.y); await agent.waitForFunction(o => __mira.ctrl.act?.o === o, lamp, { timeout: 10000 });
+    const clicked = await solve(agent); assert.equal(clicked.o, lamp); report.agent.push({ ...clicked, via: 'rendered lamp click' });
+    await Promise.all(pages.map(p => p.waitForFunction(o => __mira.st.dn.includes(o) && __mira.st.tells.includes(o), lamp, { timeout: 15000 })));
+    await Promise.all(pages.map(p => p.waitForFunction(() => {
+      let green = false; __mira.SCEN.root.traverse(q => { if (q.isMesh && Math.abs(q.position.x + .8) < .001 && Math.abs(q.position.y - 1.1) < .001 && Math.abs(q.position.z + 11.86) < .001 && q.material?.color?.g > 2) green = true; }); return green;
+    }, null, { timeout: 15000 })));
+    console.log('PASS rendered lamp click, completion and visible clue on all seven clients');
     for (let i = 0; i < pages.length; i++) if (roles[i].role === 'c') {
       const p = pages[i], o = await p.evaluate(i => __mira.PROPS[i + 2].ms[0], report.accomplices.length);
       await position(p, roles[i].eid, o, false); await p.keyboard.press('g');
@@ -89,7 +106,7 @@ const close = s => new Promise(r => s.close(r));
       report.accomplices.push({ player: i, ...result }); console.log('PASS accomplice completion and distraction: ' + i);
     }
     report.realLogs = await h.evaluate(() => __mira.G.sim.lg.filter(q => q[3] === 1).length);
-    assert.equal(report.realLogs, 6); assert.deepEqual(errors, []); report.errors = errors;
+    assert.equal(report.realLogs, 7); assert.deepEqual(errors, []); report.errors = errors;
     console.log('PASS seven-player mission synchronization');
   } finally {
     fs.writeFileSync(OUT + '/multijogador-missoes.json', JSON.stringify(report, null, 2));
