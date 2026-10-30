@@ -140,7 +140,7 @@ kbd{font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:1px solid va
 #scores li{display:flex;justify-content:space-between}
 
 #toasts{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));display:grid;gap:8px;justify-items:end;pointer-events:none;max-width:calc(100% - 32px)}
-.toast{padding:10px 14px;font-size:13px;animation:tin .25s ease-out}
+.toast{padding:10px 14px;font-size:13px;animation:tin .25s ease-out;pointer-events:none}
 .toast.good{border-color:var(--ok)}
 .toast.bad{border-color:var(--laser)}
 @keyframes tin{from{opacity:0;transform:translateY(-6px)}}
@@ -3791,7 +3791,7 @@ MIRA_CENARIOS.push({
     { k: 'balde', label: 'Trocar a garrafa no balde de gelo', where: 'lounge branco, mesa de centro', s: [-4.5, -3.9], l: [-4.5, -5.3] },
     { k: 'sushi', label: 'Esconder o pendrive no sushi', where: 'mesa de sushi do chef', s: [4.2, -4.7], l: [4.2, -5.9] },
     { k: 'jetski', label: 'Soltar a amarra do jet-ski', where: 'popa, cunho de bombordo', s: [-8.6, 8.6], l: [-8.6, 12.8] },
-    { k: 'bandeira', label: 'Hastear outra bandeira na popa', where: 'mastro da popa, boreste', s: [11.0, 8.5], l: [11.9, 9.1] },
+    { k: 'bandeira', label: 'Hastear outra bandeira na popa', where: 'mastro da popa, boreste', s: [11.0, 8.5], l: [11.9, 9.1], hitRadius: 1.4 },
     { k: 'piscina', label: 'Ligar a luz subaquática da piscina', where: 'painel da piscina de borda infinita', s: [-8.0, 4.0], l: [-7.4, 4.4] },
     { k: 'guardasol', label: 'Fechar o guarda-sol de boreste', where: 'mesa com guarda-sol, à direita', s: [8.1, 1.9], l: [7.0, 0.8] },
     { k: 'radar', label: 'Desligar o radar pelo painel do timão', where: 'flybridge, posto de comando', s: [10.2, -13.3], l: [10.1, -14.6], lv: 1 },
@@ -14686,6 +14686,7 @@ function scenarioProps(sc) {
     });
     for (let j = 0; acts.length < 4; j++) { const g = SCEN_GEN[(i * 3 + j) % SCEN_GEN.length], a = (i * 3 + j) * 2.1; acts.push([g[0], SP(g[1], [px + Math.cos(a) * 0.16, 0.01, pz + Math.sin(a) * 0.16], { ry: a })]); }
     defProp(list, m.k, m.where, lv, sp, l, acts);
+    list[list.length - 1].hitRadius = m.hitRadius || 1;
   });
   return list;
 }
@@ -15908,6 +15909,23 @@ function interactAt(x, z, lv, st) {
 }
 // A lamp, sign or painting is above the floor: projecting its pixel onto a floor plane moves the target behind it,
 // sometimes even outside the map. Pick the visible solid surface first when it belongs to a mission object.
+let propTargetCache = null;
+function propTargets() {
+  if (propTargetCache && propTargetCache.props === PROPS) return propTargetCache;
+  const objects = new Map(), materials = new Map(), anchors = PROPS.map(() => []);
+  const own = (map, key, pi) => { if (!map.has(key)) map.set(key, new Set()); map.get(key).add(pi); };
+  const visit = (fx, pi) => {
+    if (Array.isArray(fx)) { fx.forEach(f => visit(f, pi)); return; } if (!fx) return;
+    if (fx.h) for (const q of resolveH(fx.h)) {
+      if (q.isMaterial) own(materials, q, pi);
+      else if (q.isObject3D) q.traverse(o => { if (o.isMesh) own(objects, o, pi); });
+    }
+    if (fx.k === 'screen') own(materials, screenMat, pi);
+    if (fx.k === 'spawn' && fx.at[1] > .15) anchors[pi].push([fx.at[0], LVY(PROPS[pi].lv) + fx.at[1], fx.at[2]]);
+  };
+  PROPS.forEach((P, pi) => P.acts.forEach(a => visit(a[1], pi)));
+  return (propTargetCache = { props: PROPS, objects, materials, anchors });
+}
 function pickGuestTarget(px, py, st) {
   ndc.set(px / innerWidth * 2 - 1, -(py / innerHeight) * 2 + 1); ray.setFromCamera(ndc, iso);
   const shown = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; };
@@ -15917,11 +15935,22 @@ function pickGuestTarget(px, py, st) {
     // Assign a surface to the floor beneath it. A terrace floor must not select an object on the floor below.
     let lv = -1, y = -Infinity;
     LEVELS.forEach((L, i) => { const p = surface.point; if (L.y > y && L.y <= p.y + 0.08 && p.x >= L.x0 - 0.1 && p.x <= L.x1 + 0.1 && p.z >= L.z0 - 0.1 && p.z <= L.z1 + 0.1) { lv = i; y = L.y; } });
-    let pi = -1, best = 1;
+    const targets = propTargets(), owners = new Set(targets.objects.get(surface.object) || []);
+    for (const mat of Array.isArray(surface.object.material) ? surface.object.material : [surface.object.material]) for (const i of targets.materials.get(mat) || []) owners.add(i);
+    let pi = -1, best = Infinity;
+    // Effects already name the actual mesh/material. Use that ownership for large objects and flat targets such as
+    // the cinema screen, the red beanbag or a yoga mat, whose edges can be far from the object's look point.
+    for (const i of owners) {
+      const P = PROPS[i], d = Math.hypot(surface.point.x - P.l[0], surface.point.z - P.l[1]);
+      if ((lv < 0 || P.lv === lv) && d < best) { best = d; pi = i; }
+    }
+    if (pi >= 0) best = -1;
     PROPS.forEach((P, i) => {
-      const dy = surface.point.y - LVY(P.lv), d = Math.hypot(surface.point.x - P.l[0], surface.point.z - P.l[1]);
+      const dy = surface.point.y - LVY(P.lv), radius = P.hitRadius || 1;
+      let d = Math.hypot(surface.point.x - P.l[0], surface.point.z - P.l[1]) / radius;
+      for (const a of targets.anchors[i]) if (Math.abs(a[1] - surface.point.y) < 1) d = Math.min(d, Math.hypot(surface.point.x - a[0], surface.point.z - a[2]));
       // Objects beyond a deck (the yacht's jet-ski, for example) can sit below its walking floor.
-      if ((lv < 0 || P.lv === lv) && dy > (lv < 0 ? -3 : 0.15) && dy < SCENE_BOX.top && d < best) { best = d; pi = i; }
+      if ((lv < 0 || P.lv === lv) && dy > (lv < 0 ? -3 : 0.15) && dy < SCENE_BOX.top && d < 1 && d < best) { best = d; pi = i; }
     });
     if (pi >= 0) {
       const P = PROPS[pi], o = missionAtProp(pi, st);
