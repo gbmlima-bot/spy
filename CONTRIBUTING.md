@@ -55,6 +55,18 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   Rode antes e depois de mudar o sniper de IA, as missões ou os convidados e ponha os números no PR.
 - Missões: `t11.js` confere gesto, duração e conclusão das missões do agente; `rotulos.js <url> <arquivo>`
   lista os rótulos das missões de todos os mapas.
+- Revisão completa: após `npm ci` e `npx playwright install chromium`, sirva a raiz em `http://127.0.0.1:8874/`
+  e rode `npm run test:missoes` (ou passe outra URL após `--`). Verifica as 780 missões nos 11 mapas com teclado
+  e controles de toque, todas as famílias de desafio oferecidas em 80 rodadas por missão, efeitos, alvos de clique,
+  caminhada até os 174 objetos, escadas, missões falsas e encomendas. Usa posição e relógio controlados para as
+  conclusões; a caminhada usa o controlador real, sem ocupação temporária de outros convidados. Relatório em
+  `fonte/testes/out/missoes.json`; falhas encerram com código 1.
+- Mesas numeradas: `npm run test:mesas` verifica indicação, teclado e capturas do Expresso em português e inglês.
+  As placas físicas são numeradas da esquerda para a direita, de 1 a 4; as missões do abajur, taça e charuto usam a 3.
+- Rede: `npm run test:multijogador` sobe os servidores locais necessários e abre sete contextos independentes,
+  com PeerJS/WebRTC real. Confere conclusão dos seis tipos de desafio do agente e os despistes dos cinco cúmplices
+  nos sete participantes. Posição e relógio são controlados; não é uma validação de conexão entre redes externas.
+  O relatório fica em `fonte/testes/out/multijogador-missoes.json`. No macOS use `GPU=1` nesses testes para Chromium/Metal.
 - Celular em pé, lado do agente: `node fonte/testes/t17.js <url>` abre o jogo em 390×780 com toque e confere que não
   há texto de tecla, que o cartão de missões não cobre o meio da tela nem o painel do desafio, que todos os
   minidesafios têm botões de pelo menos 44 px e que o toque conta. A cópia servida precisa das duas meta tags do

@@ -67,7 +67,7 @@ MIRA_CENARIOS.push({
     { k: 'jornal', label: 'Esconder o bilhete no jornal', where: 'banca de jornais, à esquerda', s: [-11.35, -3.0], l: [-12.4, -3.0] },
     { k: 'vapor', label: 'Fechar a válvula de vapor', where: 'lateral da locomotiva', s: [10.2, -8.6], l: [10.2, -9.45] },
     { k: 'painel', label: 'Mudar o destino no painel de palhetas', where: 'painel de partidas, à direita', s: [9.7, -3.45], l: [9.7, -4.4] },
-    { k: 'abajur', label: 'Trocar o abajur da mesa 3', where: 'vagão-restaurante, mesa do meio', s: [-0.8, -10.2], l: [-0.8, -11.8] },
+    { k: 'abajur', label: 'Trocar o abajur da mesa 3', where: 'vagão-restaurante, mesa 3', s: [-0.8, -10.2], l: [-0.8, -11.8] },
     { k: 'placa', label: 'Virar a placa de Istambul', where: 'passarela de ferro, lado da frente', s: [5.0, 7.45], l: [5.0, 8.1], lv: 1 },
   ],
   build(K) {
@@ -410,6 +410,12 @@ MIRA_CENARIOS.push({
         const tz = -11.48;
         K.box(0.8, 0.04, 1.05, M.linen, tx, 0.74, tz); K.add(new T.BoxGeometry(0.84, 0.26, 1.08), K.mat(0xf3eee2, { roughness: 0.95 }), tx, 0.62, tz);
         K.cyl(0.04, 0.12, 0.5, teakD, tx, 0.25, tz, {}, 8);
+        // Placas voltadas para o corredor: a numeração também identifica as missões da mesa 3.
+        K.box(0.34, 0.28, 0.025, brass, tx, 0.92, tz + 0.54, { cast: false });
+        const number = K.sign(String(ti + 1), 0.30, 0.24, tx, 0.92, tz + 0.555,
+          { bg: '#f5edd5', color: '#38200d', font: 'Arial, sans-serif', w: 128, h: 128, size: 104 });
+        number.name = 'mesa-' + (ti + 1);
+        number.userData.tableNumber = ti + 1;
         K.col(tx - 0.4, -12.0, tx + 0.4, tz + 0.53);
         for (const sx of [-1, 1]) for (const dz of [-0.26, 0.26]) {
           const cx = tx + sx * 0.72, cz = tz + dz;

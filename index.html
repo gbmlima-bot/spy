@@ -878,7 +878,7 @@ window.MIRA_EN = {"Montando a festa…":"Setting up the party…",
 "Mudar o destino no painel de palhetas":"Change the destination on the flap board",
 "painel de partidas, à direita":"departures board, right",
 "Trocar o abajur da mesa 3":"Swap the lamp at table 3",
-"vagão-restaurante, mesa do meio":"dining car, middle table",
+"vagão-restaurante, mesa 3":"dining car, table 3",
 "Virar a placa de Istambul":"Flip the Istanbul sign",
 "passarela de ferro, lado da frente":"iron footbridge, front side",
 "ESTAÇÃO DO ORIENTE":"ORIENT STATION",
@@ -10509,7 +10509,7 @@ MIRA_CENARIOS.push({
     { k: 'jornal', label: 'Esconder o bilhete no jornal', where: 'banca de jornais, à esquerda', s: [-11.35, -3.0], l: [-12.4, -3.0] },
     { k: 'vapor', label: 'Fechar a válvula de vapor', where: 'lateral da locomotiva', s: [10.2, -8.6], l: [10.2, -9.45] },
     { k: 'painel', label: 'Mudar o destino no painel de palhetas', where: 'painel de partidas, à direita', s: [9.7, -3.45], l: [9.7, -4.4] },
-    { k: 'abajur', label: 'Trocar o abajur da mesa 3', where: 'vagão-restaurante, mesa do meio', s: [-0.8, -10.2], l: [-0.8, -11.8] },
+    { k: 'abajur', label: 'Trocar o abajur da mesa 3', where: 'vagão-restaurante, mesa 3', s: [-0.8, -10.2], l: [-0.8, -11.8] },
     { k: 'placa', label: 'Virar a placa de Istambul', where: 'passarela de ferro, lado da frente', s: [5.0, 7.45], l: [5.0, 8.1], lv: 1 },
   ],
   build(K) {
@@ -10852,6 +10852,12 @@ MIRA_CENARIOS.push({
         const tz = -11.48;
         K.box(0.8, 0.04, 1.05, M.linen, tx, 0.74, tz); K.add(new T.BoxGeometry(0.84, 0.26, 1.08), K.mat(0xf3eee2, { roughness: 0.95 }), tx, 0.62, tz);
         K.cyl(0.04, 0.12, 0.5, teakD, tx, 0.25, tz, {}, 8);
+        // Placas voltadas para o corredor: a numeração também identifica as missões da mesa 3.
+        K.box(0.34, 0.28, 0.025, brass, tx, 0.92, tz + 0.54, { cast: false });
+        const number = K.sign(String(ti + 1), 0.30, 0.24, tx, 0.92, tz + 0.555,
+          { bg: '#f5edd5', color: '#38200d', font: 'Arial, sans-serif', w: 128, h: 128, size: 104 });
+        number.name = 'mesa-' + (ti + 1);
+        number.userData.tableNumber = ti + 1;
         K.col(tx - 0.4, -12.0, tx + 0.4, tz + 0.53);
         for (const sx of [-1, 1]) for (const dz of [-0.26, 0.26]) {
           const cx = tx + sx * 0.72, cz = tz + dz;
@@ -16096,7 +16102,7 @@ function nearInteraction(st) {
   if (other) return { k: 'pose', anim: 4, rot: Math.atan2(other.x - x, other.z - z), label: 'Conversar' };
   return null;
 }
-function startClimb(dir, li = 0) { ctrl.lk = { dir, s: dir > 0 ? 0 : 1, li }; ctrl.pose = null; ctrl.settle = null; ctrl.goal = null; ctrl.stuck = 0; ctrl.lastD = 1e9; }
+function startClimb(dir, li = 0, keepGoal = false) { ctrl.lk = { dir, s: dir > 0 ? 0 : 1, li }; ctrl.pose = null; ctrl.settle = null; if (!keepGoal) ctrl.goal = null; ctrl.stuck = 0; ctrl.lastD = 1e9; }
 // what a click at (x, z) on level lv is aiming at: a free seat, a mission object, a stair end or the bar; null for plain floor
 function interactAt(x, z, lv, st) {
   let best = null, bd = 1.0;
@@ -16108,8 +16114,9 @@ function interactAt(x, z, lv, st) {
   }
   PROPS.forEach((m, i) => { if (m.lv !== lv) return; const d = Math.min(Math.hypot(x - m.l[0], z - m.l[1]), Math.hypot(x - m.s[0], z - m.s[1])); if (d < bd) { bd = d; best = { k: 'mission', x: m.s[0], z: m.s[1], label: isFetch(i, st) ? FETCH_LABEL : MISSIONS[missionAtProp(i, st)].label }; } });
   LINKS.forEach(L => {
-    if (L.lo === lv) { const d = Math.hypot(x - L.base[0], z - L.base[1]); if (d < Math.max(bd, 1.6)) { bd = d; best = { k: 'stair', x: L.base[0], z: L.base[1], label: 'Subir' }; } }
-    if (L.lo + 1 === lv) { const d = Math.hypot(x - L.top[0], z - L.top[1]); if (d < Math.max(bd, 1.6)) { bd = d; best = { k: 'stair', x: L.top[0], z: L.top[1], label: 'Descer' }; } }
+    // A nearby stair must not steal a click aimed directly at a mission object or seat.
+    if (L.lo === lv) { const d = Math.hypot(x - L.base[0], z - L.base[1]); if (d < (best ? bd : 1.6)) { bd = d; best = { k: 'stair', x: L.base[0], z: L.base[1], label: 'Subir' }; } }
+    if (L.lo + 1 === lv) { const d = Math.hypot(x - L.top[0], z - L.top[1]); if (d < (best ? bd : 1.6)) { bd = d; best = { k: 'stair', x: L.top[0], z: L.top[1], label: 'Descer' }; } }
   });
   if (!best) {
     if ((lv === 0 && x > -11.2 && x < -3.9 && z > -6.5 && z < -4.6) || (lv === 1 && x > 7.4 && x < 10.6 && z > -12.7 && z < -11.0)) best = { k: 'bar', x, z, label: 'Pedir um drinque' };
@@ -16280,7 +16287,7 @@ function updateLocal(dt, st) {
           if (wp.link) {
             // only step onto the stair from its end; otherwise re-route there first
             const ns = nearStair(ctrl.x, ctrl.z, ctrl.lv);
-            if (ns && ns.li === wp.li && ns.dir === wp.link) { ctrl.path.shift(); startClimb(wp.link, wp.li); }
+            if (ns && ns.li === wp.li && ns.dir === wp.link) { ctrl.path.shift(); startClimb(wp.link, wp.li, true); }
             else { const end = ctrl.path[ctrl.path.length - 1]; ctrl.path = route(ctrl.x, ctrl.z, ctrl.lv, end[0], end[1], ctrl.tlv ?? ctrl.lv); }
           }
           else {
