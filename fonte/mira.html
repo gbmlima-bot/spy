@@ -40,6 +40,7 @@ input{font:inherit;background:rgba(0,0,0,.35);border:1px solid var(--line);borde
 label{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:12px;color:var(--muted);letter-spacing:.04em}
 
 /* menu */
+#menu,#lobby,.center{box-sizing:border-box}
 #menu{position:fixed;left:max(16px,4vw);top:50%;transform:translateY(-50%);width:min(400px,calc(100% - 32px));padding:26px 24px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-height:calc(100% - 32px);overflow:auto}
 #menu h1{font-size:clamp(40px,7vw,58px);color:var(--paper)}
 #menu h1 span{color:var(--brass)}
@@ -50,7 +51,7 @@ label{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:12px;co
 .note{font-size:12px;color:var(--muted);line-height:1.45}
 
 /* lobby */
-#lobby{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));padding:24px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+#lobby{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));padding:24px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-height:calc(100% - 32px);overflow:auto}
 .code{font-family:var(--f-mono);font-weight:700;font-size:44px;letter-spacing:.2em;color:var(--brass)}
 #langs + .eyebrow{padding-right:84px}#langs{position:absolute;top:10px;right:10px;display:flex;gap:4px}#langs button{padding:3px 8px;font-size:12px;letter-spacing:.1em}#langs button.on{background:var(--brass);color:#17130a;border-color:var(--brass)}
 .invite{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--brass);border-radius:4px;background:rgba(217,164,65,.1)}
@@ -1646,6 +1647,7 @@ window.MIRA_EN = {"Montando a festa…":"Setting up the party…",
 "Esquentar as mãos":"Warm hands",
 "Dançar":"Dance",
 "Pedir um drinque":"Order a drink",
+"Você ganha pontos de isca com o laser em você e quando entra no caderno do sniper. Uma vez por rodada, arme o despiste: sua próxima missão falsa faz o rádio do sniper ouvir algo mudar. Se o sniper gastar o último tiro em você, os convidados vencem. Errar o primeiro tiro derruba alguém e o jogo segue. Se o tempo acabar antes das 4 missões, o sniper vence.":"You earn decoy points while the laser is on you and when you're in the sniper's notebook. Once per round, arm the feint: your next fake mission makes the sniper's radio hear something change. If the sniper spends the last shot on you, the guests win. The first missed shot takes someone down and the game continues. If time runs out before the 4 missions, the sniper wins.",
 "Conversar":"Chat",
 "Subir":"Go up",
 "Descer":"Go down",
@@ -11298,7 +11300,7 @@ function buildMap0Missions() {
   legacy(1, [
     ['Trocar o quadro por uma cópia', TI('pic', 0x8fb0ff)],
     ['Esconder um microfilme atrás do quadro', [RO('painting', 'z', -0.1), SP('sticker', [11.3, 1.3, -9.9], { c: 0xffffff, face: 'z' })]],
-    ['Marcar o quadro com giz', SP('mark', [12.75, 1.5, -9.92], { face: 'z', s: 0.35 })],
+    ['Marcar o quadro com giz', SP('mark', [11.8, 1.8, -9.88], { face: 'z', s: 0.35 })],
     ['Apagar a luz do quadro', HI('paintPool')],
   ]);
   legacy(2, [
@@ -11569,7 +11571,7 @@ function buildMap0Missions() {
     ['Trocar a tela do cavalete', TI('canvas', 0xff6060)],
     ['Deixar um bilhete no cavalete', SP('note', [-10.9, 0.92, -56.2], { ry: 2.5, s: 0.8 })],
     ['Deixar a paleta no chão junto ao cavalete', SP('palette', [-10.6, 0.02, -55.9])],
-    ['Assinar a tela do cavalete', SP('mark', [-11.3, 1.05, -56.25], { face: 'z', ry: 2.54, s: 0.12, c: 0xc8322f })],
+    ['Assinar a tela do cavalete', SP('mark', [-11.651, 1.102, -56.419], { face: 'z', ry: -0.6, rx: -0.1, s: 0.12, c: 0xc8322f })],
     ['Esconder a cápsula atrás do cavalete', SP('chip', [-11.8, 0.02, -56.9])],
   ]);
   D('xadrez', 'heliponto (4º), xadrez gigante', 4, [0.4, -54.9], [0.4, -57.0], [
@@ -13624,7 +13626,7 @@ let wheelSpin = 0, rotorSpin = 0;
       (H.sc2 = plinth(-6.0, -52.6, new T.TorusGeometry(0.36, 0.12, 10, 24), mat(0x2e5fa8, { roughness: 0.3, metalness: 0.3 }))).rotation.x = 0.6;
       const tw = plinth(-13.2, -59.4, new T.BoxGeometry(0.5, 1.1, 0.5), mat(0xf6f1e8, { roughness: 0.35 }), 0.8, 0.55); tw.rotation.y = 0.6;
       // the painter's easel and a half-finished canvas of the skyline
-      const ex = -11.45, ez = -56.5; const easel = new T.Group(); easel.position.set(ex, 0, ez); easel.rotation.y = -0.6 + Math.PI; G.add(easel);
+      const ex = -11.45, ez = -56.5; const easel = new T.Group(); easel.position.set(ex, 0, ez); easel.rotation.y = -0.6; G.add(easel);
       for (const [a, b, t] of [[-0.3, 0.1, 0.15], [0.3, 0.1, -0.15], [0, -0.35, 0]]) { const l = cyl(0.02, 0.025, 1.9, walnut, a, 0.95, b, { parent: easel, cast: false }, 5); l.rotation.z = t; l.rotation.x = b < 0 ? -0.35 : 0.1; }
       box(0.7, 0.04, 0.08, walnut, 0, 0.9, 0.12, { parent: easel, cast: false });
       const art = canvasTex(128, 96, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#1b2250'); gr.addColorStop(1, '#d98a5a'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#0e1225'; for (let i = 0; i < 9; i++) g.fillRect(i * 14, 40 + (i * 37) % 30, 12, 60); g.fillStyle = '#fff2b0'; g.beginPath(); g.arc(96, 22, 9, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(80, 60, 48, 36); });
@@ -13962,7 +13964,7 @@ function fxApply(fx, m, live) {
         o = makeItem(fx.item, fx.c); o.position.set(fx.at[0], y0 + fx.at[1], fx.at[2]);
         // flat things lie on a surface unless told to face a wall (z / x); vertical things (marks, stickers) face +z unless told to lie flat
         const vert = fx.item === 'mark' || fx.item === 'sticker', face = fx.face || (vert ? 'z' : 'up');
-        if (fx.ry) o.rotateY(fx.ry); if (face === 'x') o.rotateY(Math.PI / 2);
+        if (fx.ry) o.rotateY(fx.ry); if (fx.rx) o.rotateX(fx.rx); if (face === 'x') o.rotateY(Math.PI / 2);
         if (vert) { if (face === 'up') o.rotateX(-Math.PI / 2); } else if (face !== 'up') o.rotateX(-Math.PI / 2);
         scene.add(o); SPAWNED[key] = o;
       }
@@ -15567,7 +15569,7 @@ function renderBrief(st) {
   const whereTxt = SCEN.id ? `<p class="muted"><b>${esc(SCEN.sc.nome)}</b> · ${esc(SCEN.sc.lugar)}. Você está ${esc(SCEN.sc.sniper.desc || 'no prédio em frente')}.</p>` : '';
   if (r === 's') body = `${whereTxt}<p>De onde está, observe a festa. Os jogadores estão misturados a ${nGuests} convidados comuns espalhados ${lvTxt} e ninguém tem nome sobre a cabeça.</p><p class="muted">O agente precisa cumprir 4 missões. Procure gestos estranhos e objetos que mudam de lugar. O rádio avisa onde algo mudou; enquadre o lugar com zoom para descobrir o quê. Você tem um único tiro. Se o tempo acabar, você vence; com o agente a uma missão, há ${OT_T} s de prorrogação.</p>`;
   else if (r === 'a') body = `${whereTxt}<p>Cumpra 4 destas missões antes que o sniper descubra você:</p><ol>${st.ms.map(o => `<li>${esc(MISSIONS[o].label)} <span class="fl">${esc(floorTag(MISSIONS[o].lv))}</span>${st.ts && st.ts[0] === o ? `<br><small class="muted">↳ antes, pegue a encomenda: ${esc(PROPS[st.ts[1]].where)}</small>` : ''}</li>`).join('')}</ol><p class="muted">Ande como os outros convidados. O laser vermelho mostra para onde o sniper está olhando.</p>`;
-  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Você ganha pontos de isca com o laser em você e quando entra no caderno do sniper. Uma vez por rodada, arme o despiste: sua próxima missão falsa faz o rádio do sniper ouvir algo mudar. Se o sniper atirar em você, os convidados vencem. Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
+  else if (r === 'c') body = `<p>Você não sabe quem é o agente. Seu trabalho é parecer suspeito na hora certa: faça missões falsas nos mesmos objetos para atrair a mira.</p><p class="muted">Você ganha pontos de isca com o laser em você e quando entra no caderno do sniper. Uma vez por rodada, arme o despiste: sua próxima missão falsa faz o rádio do sniper ouvir algo mudar. ${st.ru === 'duas' ? 'Se o sniper gastar o último tiro em você, os convidados vencem. Errar o primeiro tiro derruba alguém e o jogo segue.' : 'Se o sniper atirar em você, os convidados vencem.'} Se o tempo acabar antes das 4 missões, o sniper vence.</p>`;
   else body = `<p>A rodada já começou. Você entra na próxima.</p>`;
   if (st.ru === 'duas') body = body.replace('Você tem um único tiro.', 'Você tem duas balas.');
   const ru = RULES[st.ru], rule = ru ? `<p class="ruleTag"><b>Regra da rodada: ${esc(ru.nome)}.</b> ${esc(ru.txt)}</p>` : '';
@@ -15739,14 +15741,12 @@ canvas.addEventListener('pointerdown', e => {
   if (G.role && G.role !== 's' && st.ph === 'play' && e.button === 0) {
     // a second finger is a pinch, not a second walk: drop the walk the first finger just asked for
     if (e.pointerType !== 'mouse' && TOUCHES.size > 1) { ctrl.path = []; ctrl.goal = null; return; }
-    ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-    ray.setFromCamera(ndc, iso);
-    const hit = ray.intersectObjects(FLOORS)[0];
-    if (hit && !ctrl.lk) {
-      let tx = hit.point.x, tz = hit.point.z; const tlv = hit.object.userData.lv || 0;
+    const target = pickGuestTarget(e.clientX, e.clientY, st);
+    if (target && !ctrl.lk) {
+      let tx = target.x, tz = target.z; const tlv = target.lv;
       if (ctrl.act) cancelAct(); ctrl.pose = null; ctrl.settle = null; ctrl.detours = 0; ctrl.stuck = 0; ctrl.lastD = 1e9; ctrl.tlv = tlv;
       // clicking on a seat, the bar, a stair or a mission object walks there and uses it on arrival
-      const it = interactAt(tx, tz, tlv, st);
+      const it = target.it;
       if (it) { tx = it.x; tz = it.z; ctrl.goal = it; } else { ctrl.goal = null; [tx, tz] = navFree(tx, tz, tlv); }
       ctrl.path = route(ctrl.x, ctrl.z, ctrl.lv, tx, tz, tlv);
       clickRipple(tx, tz, LVY(tlv), !!it);
@@ -15875,9 +15875,9 @@ function nearInteraction(st) {
     sd = d; seat = s;
   }
   if (seat) return { k: 'seat', slot: seat, anim: SEAT_ANIM[seat.type], label: SEAT_LABEL[seat.type] };
-  if (lv === 1 && Math.hypot(x - FIRE_AT[0], z - FIRE_AT[1]) < 2.6) return { k: 'pose', anim: 10, rot: Math.atan2(FIRE_AT[0] - x, FIRE_AT[1] - z), label: 'Esquentar as mãos' };
-  if (lv === 0 && x > 1 && x < 8 && z > 1 && z < 7) return { k: 'pose', anim: 3, label: 'Dançar' };
-  if ((lv === 0 && x > -11.2 && x < -3.9 && z > -6.5 && z < -4.6) || (lv === 1 && x > 7.4 && x < 10.6 && z > -12.7 && z < -11.0)) return { k: 'pose', anim: 6, dur: 3.2, rot: Math.PI, label: 'Pedir um drinque' };
+  if (!SCEN.id && lv === 1 && Math.hypot(x - FIRE_AT[0], z - FIRE_AT[1]) < 2.6) return { k: 'pose', anim: 10, rot: Math.atan2(FIRE_AT[0] - x, FIRE_AT[1] - z), label: 'Esquentar as mãos' };
+  if ((!SCEN.id && lv === 0 && x > 1 && x < 8 && z > 1 && z < 7) || (SCEN.id && SLOTS.some(s => s.lv === lv && s.type === 'dance' && Math.hypot(s.x - x, s.z - z) < 1.3))) return { k: 'pose', anim: 3, label: 'Dançar' };
+  if (!SCEN.id && ((lv === 0 && x > -11.2 && x < -3.9 && z > -6.5 && z < -4.6) || (lv === 1 && x > 7.4 && x < 10.6 && z > -12.7 && z < -11.0))) return { k: 'pose', anim: 6, dur: 3.2, rot: Math.PI, label: 'Pedir um drinque' };
   for (const b of BAR_ZONES) if (b.lv === lv && Math.hypot(x - b.x, z - b.z) < b.r) return { k: 'pose', anim: 6, dur: 3.2, rot: b.rot, label: b.label || 'Pedir um drinque' };
   let other = null, od = 1.5;
   for (const e of st.ents) { if (e.id === G.myEid || e.anim === 5 || Math.abs((e.y || 0) - LVY(lv)) > 0.5) continue; const d = Math.hypot(e.x - x, e.z - z); if (d < od) { od = d; other = e; } }
@@ -15901,10 +15901,36 @@ function interactAt(x, z, lv, st) {
     if (L.lo + 1 === lv) { const d = Math.hypot(x - L.top[0], z - L.top[1]); if (d < (best ? bd : 1.6)) { bd = d; best = { k: 'stair', x: L.top[0], z: L.top[1], label: 'Descer' }; } }
   });
   if (!best) {
-    if ((lv === 0 && x > -11.2 && x < -3.9 && z > -6.5 && z < -4.6) || (lv === 1 && x > 7.4 && x < 10.6 && z > -12.7 && z < -11.0)) best = { k: 'bar', x, z, label: 'Pedir um drinque' };
+    if (!SCEN.id && ((lv === 0 && x > -11.2 && x < -3.9 && z > -6.5 && z < -4.6) || (lv === 1 && x > 7.4 && x < 10.6 && z > -12.7 && z < -11.0))) best = { k: 'bar', x, z, label: 'Pedir um drinque' };
     for (const b of BAR_ZONES) if (b.lv === lv && Math.hypot(x - b.x, z - b.z) < b.r) best = { k: 'bar', x, z, label: b.label || 'Pedir um drinque' };
   }
   return best;
+}
+// A lamp, sign or painting is above the floor: projecting its pixel onto a floor plane moves the target behind it,
+// sometimes even outside the map. Pick the visible solid surface first when it belongs to a mission object.
+function pickGuestTarget(px, py, st) {
+  ndc.set(px / innerWidth * 2 - 1, -(py / innerHeight) * 2 + 1); ray.setFromCamera(ndc, iso);
+  const shown = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; };
+  const solid = (SCEN.id ? SCEN.occ || [] : OCCLUDERS).filter(o => shown(o) && !FLOORS.includes(o));
+  const surface = ray.intersectObjects(solid, false)[0];
+  if (surface) {
+    // Assign a surface to the floor beneath it. A terrace floor must not select an object on the floor below.
+    let lv = -1, y = -Infinity;
+    LEVELS.forEach((L, i) => { const p = surface.point; if (L.y > y && L.y <= p.y + 0.08 && p.x >= L.x0 - 0.1 && p.x <= L.x1 + 0.1 && p.z >= L.z0 - 0.1 && p.z <= L.z1 + 0.1) { lv = i; y = L.y; } });
+    let pi = -1, best = 1;
+    PROPS.forEach((P, i) => {
+      const dy = surface.point.y - LVY(P.lv), d = Math.hypot(surface.point.x - P.l[0], surface.point.z - P.l[1]);
+      // Objects beyond a deck (the yacht's jet-ski, for example) can sit below its walking floor.
+      if ((lv < 0 || P.lv === lv) && dy > (lv < 0 ? -3 : 0.15) && dy < SCENE_BOX.top && d < best) { best = d; pi = i; }
+    });
+    if (pi >= 0) {
+      const P = PROPS[pi], o = missionAtProp(pi, st);
+      return { x: P.s[0], z: P.s[1], lv: P.lv, it: { k: 'mission', x: P.s[0], z: P.s[1], label: isFetch(pi, st) ? FETCH_LABEL : MISSIONS[o].label } };
+    }
+  }
+  const hit = ray.intersectObjects(FLOORS)[0]; if (!hit) return null;
+  const x = hit.point.x, z = hit.point.z, lv = hit.object.userData.lv || 0;
+  return { x, z, lv, it: interactAt(x, z, lv, st) };
 }
 function tryAct() {
   const st = currentState(); if (!st || st.ph !== 'play' || !G.role || G.role === 's' || ctrl.act || ctrl.lk) return;
@@ -16678,7 +16704,7 @@ Net.init().then(ok => {
 });
 window.__mira = { NEST, NEST_FX, spotVisible, areaOf, makeChar, outfitFor, animChar, get PROPS() { return PROPS; }, get MISSIONS() { return MISSIONS; }, Sim, ROUND_T, GESTURES, renderer, charGroup, mergeable, SNIPER_POS, LVY, loadMap, SCEN, SCENARIOS, get LEVELS() { return LEVELS; }, get LINKS() { return LINKS; }, get STATICS() { return STATICS; }, FLOORS, BAR_ZONES, mapChoice, wide, fitWide, SCENE_BOX, WIDE_AIM, get RINGS() { return RINGS; }, resolveH, applyTell, resetProps, stepFX, FX, SPAWNED, UNDO, H, OCCLUDERS, updateSniper, scopeCam, crosshairHit, NAV, navPath, navFree, navBuild, navSight, navNearest, navCell, COLS, interactAt, encodeState, iso, isoState, placeIso, updateLocal, CHARS: () => CHARS, G, Net, ctrl, snip, SLOTS, get MISSIONS() { return MISSIONS; }, blocked, DH, linkPos, route, nearInteraction, tryAct, startClimb, applyTell, get bloom() { return bloomPass; }, get fin() { return finalPass; }, get composer() { return composer; }, rebuildPost, get postMS() { return postMS; }, scene, sun, get st() { return currentState(); }, FPS };
 // missions: what the tests of the mission area read (kept on its own line so areas do not collide on the line above)
-Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, LINK_LEN, botActTime, challengeProgress, THEMES });
+Object.assign(window.__mira, { makeChallenge, missionAtProp, SCEN_ACTS, fxApply, nearInteraction, pickGuestTarget, LINK_LEN, botActTime, challengeProgress, THEMES });
 Object.assign(window.__mira, { LURE, lurePts, decodeState, adoptSim, toggleLure });
 Object.assign(window.__mira, { RULES, blackoutAt, progOf, rulePick });
 // sniper: what the sniper's tests and the balance tuning read
