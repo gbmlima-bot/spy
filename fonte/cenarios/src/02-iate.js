@@ -60,7 +60,7 @@ MIRA_CENARIOS.push({
     { k: 'balde', label: 'Trocar a garrafa no balde de gelo', where: 'lounge branco, mesa de centro', s: [-4.5, -3.9], l: [-4.5, -5.3] },
     { k: 'sushi', label: 'Esconder o pendrive no sushi', where: 'mesa de sushi do chef', s: [4.2, -4.7], l: [4.2, -5.9] },
     { k: 'jetski', label: 'Soltar a amarra do jet-ski', where: 'popa, cunho de bombordo', s: [-8.6, 8.6], l: [-8.6, 12.8] },
-    { k: 'bandeira', label: 'Hastear outra bandeira na popa', where: 'mastro da popa, boreste', s: [11.0, 8.5], l: [11.9, 9.1] },
+    { k: 'bandeira', label: 'Hastear outra bandeira na popa', where: 'mastro da popa, boreste', s: [11.0, 8.5], l: [11.9, 9.1], hitRadius: 1.4 },
     { k: 'piscina', label: 'Ligar a luz subaquática da piscina', where: 'painel da piscina de borda infinita', s: [-8.0, 4.0], l: [-7.4, 4.4] },
     { k: 'guardasol', label: 'Fechar o guarda-sol de boreste', where: 'mesa com guarda-sol, à direita', s: [8.1, 1.9], l: [7.0, 0.8] },
     { k: 'radar', label: 'Desligar o radar pelo painel do timão', where: 'flybridge, posto de comando', s: [10.2, -13.3], l: [10.1, -14.6], lv: 1 },

@@ -8,8 +8,12 @@ const CLICKS = [
   [0, 'quadro', [11.8, 1.8, -9.88]], [0, 'luminaria', [-13.9, 1.65, 2.1]],
   [0, 'telescopio', [12.2, 4.62, -10.7]],
   [0, 'cavalete', [-11.54, 19.6, -56.37]],
+  [0, 'ripas', [-2.7, 1.3, -7.42]], [0, 'espreguicadeiras', [1.2, 5.05, -13]],
+  [0, 'yoga', [9.2, 9.24, -24.6]], [0, 'pufes', [1.6, 23.32, -70.4]],
+  [0, 'tela', [3, 24.6, -75.37]],
   [1, 'poco', [0, 1.925, -2]], [2, 'sushi', [4.58, 1.14, -5.95]],
   [2, 'jetski', [-8.6, -1.2, 12.9]],
+  [2, 'bandeira', [12.366, 1.943, 10.171]],
   [3, 'pomba', [13.27, 1.254, -7.298]], [4, 'gema', [-11.6, 1.3, -6.6]],
   [4, 'rastreador', [3.55, 3.97, 1.62]], [5, 'omamori', [-7, 2.904, -8.55]],
   [6, 'estandarte', [.9, 2.3, -2.55]], [7, 'jacuzzi', [9.849, 1.32, -6.521]],
@@ -17,7 +21,7 @@ const CLICKS = [
   [10, 'sinal', [14, 2.6, -7.28]], [10, 'abajur', [-.8, 1.1, -11.86]],
 ];
 (async () => {
-  const b = await L.launch(), bad = [], errors = [], report = { clicks: [], contexts: [], crowd: [], briefings: [], lobby: [] };
+  const b = await L.launch(), bad = [], errors = [], report = { clicks: [], contexts: [], crowd: [], briefings: [], lobby: [], toastInputs: [] };
   const check = (ok, msg) => { if (!ok) bad.push(msg); };
   try {
     // Real mouse/tap delivery to the canvas, then the real walk-to-use controller (clock advanced deliberately).
@@ -25,6 +29,15 @@ const CLICKS = [
       const ctx = await b.newContext({ viewport: touch ? { width: 390, height: 780 } : { width: 1280, height: 800 }, hasTouch: touch, isMobile: touch });
       await ctx.addInitScript(() => { window.__noIntro = true; });
       const p = await L.page(ctx, U); p.on('pageerror', e => errors.push(e.message));
+      // Feedback is passive: a notification over a field must not swallow the click/tap needed to focus it.
+      await p.locator('#codeIn').focus(); const field = await p.locator('#nome').boundingBox();
+      await p.evaluate(r => {
+        const q = document.createElement('div'); q.id = 'toastInputTest'; q.className = 'card toast'; q.textContent = 'Ação interrompida.';
+        Object.assign(q.style, { position: 'fixed', left: r.x + 'px', top: r.y + 'px', width: r.width + 'px', height: r.height + 'px' }); document.querySelector('#toasts').append(q);
+      }, field);
+      if (touch) await p.touchscreen.tap(field.x + 8, field.y + field.height / 2); else await p.mouse.click(field.x + 8, field.y + field.height / 2);
+      const focused = await p.evaluate(() => document.activeElement.id === 'nome'); check(focused, 'notification blocked input focus: touch=' + touch);
+      report.toastInputs.push({ touch, focused }); await p.evaluate(() => document.querySelector('#toastInputTest').remove());
       for (const config of [{ id: 0, night: true }, ...Array.from({ length: 11 }, (_, id) => ({ id, night: false }))]) {
         const { id, night } = config;
         await p.evaluate(({ id, night }) => {
@@ -45,8 +58,10 @@ const CLICKS = [
             return { x: (v.x + 1) * innerWidth / 2, y: (1 - v.y) * innerHeight / 2, o: P.ms[0] };
           }, { key, point });
           await L.sleep(120);
-          const top = await p.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, xy);
-          check(top === 'c' || (touch && top === 'actBtn'), `click obscured by UI: ${id}/${key}/${touch}: ${top}`);
+          const hitUI = await p.evaluate(({ x, y }) => { const q = document.elementFromPoint(x, y); return { id: q?.id, tag: q?.tagName, html: q?.outerHTML.slice(0, 180), parent: q?.parentElement?.closest('[id]')?.id }; }, xy);
+          const top = hitUI.id;
+          check(top === 'c' || (touch && top === 'actBtn'), `click obscured by UI: ${id}/${key}/${touch}: ${JSON.stringify({ xy, hitUI })}`);
+          if (top !== 'c' && !(touch && top === 'actBtn')) await p.screenshot({ path: OUT + '/obstruido-' + key + '-' + touch + '.png' });
           if (top === 'c' || (touch && top === 'actBtn')) {
             if (touch) await p.touchscreen.tap(xy.x, xy.y); else await p.mouse.click(xy.x, xy.y);
           }

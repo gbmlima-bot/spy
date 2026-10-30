@@ -26,6 +26,10 @@ Nada aqui mexe no `mira.html`. Os cenários são dados + uma função `build(K)`
 | `SNIPER_POS` | `sc.sniper.pos` |
 | céu, neblina, luzes, exposição, bloom | `sc.ambiente` (ver `load()` em motor.js) |
 
+Os cliques do jogo usam a superfície visível do objeto, os objetos/materiais nomeados nos efeitos e os pontos
+dos itens deixados acima do chão. `sc.missoes[].hitRadius` permite ajustar o raio de clique ao redor de `l`
+para peças largas (padrão 1; a bandeira do iate usa 1,4). Isso não muda o alcance da ação, o ponto `s` nem a colisão.
+
 ## Passos sugeridos
 1. Incluir kit.js, personagens.js e os 10 cenários antes do script principal.
 2. Em `makeChar`, logo antes de `root.userData = {...}`: `if (window.MIRA_VESTIR) MIRA_VESTIR(T, o, B, m, mat, glow, headG);`

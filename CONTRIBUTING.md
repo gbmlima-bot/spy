@@ -66,7 +66,8 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Interações dos cenários: `npm run test:cenarios` verifica cliques e toques em objetos renderizados nos 11 mapas
   e na Cobertura à noite; alvos do chão visíveis; áreas corretas de bar/dança; convidados cedendo os 174 objetos;
   pistas no quadro/cavalete; instruções PT/EN das duas balas; menu, sala de sete pessoas, briefing e resultado em
-  janelas baixas. Usa o mouse/toque real para os exemplos renderizados, além de posição e relógio controlados.
+  janelas baixas; avisos temporários deixando cliques e toques passarem. Inclui partes afastadas do centro dos
+  objetos grandes. Usa o mouse/toque real para os exemplos renderizados, além de posição e relógio controlados.
   Aceita URL e pasta de saída como argumentos; relatório e capturas em `fonte/testes/out/revisao-cenarios/`.
 - Rede: `npm run test:multijogador` sobe os servidores locais necessários e abre sete contextos independentes,
   com PeerJS/WebRTC real. Confere conclusão dos seis tipos de desafio do agente, clique no abajur com a pista
