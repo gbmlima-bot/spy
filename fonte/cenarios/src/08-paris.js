@@ -265,7 +265,7 @@ MIRA_CENARIOS.push({
     const fuse = K.group(5.6, 0, -9.8); dyn(fuse);
     K.box(0.6, 0.8, 0.22, K.mat(0x7a7e86, { metalness: 0.6, roughness: 0.4 }), 0, 1.3, 0, { parent: fuse }); K.box(0.08, 1.0, 0.08, ironM, 0, 0.5, 0, { parent: fuse });
     const fuseLed = K.box(0.06, 0.06, 0.02, K.glow(0x40ff70, 3), 0.18, 1.55, 0.12, { parent: fuse, cast: false });
-    const lever = K.box(0.05, 0.22, 0.05, K.mat(0xc8322f), -0.12, 1.3, 0.14, { parent: fuse }); lever.geometry.translate(0, 0.1, 0);
+    const lever = K.box(0.05, 0.22, 0.05, K.mat(0xc8322f), -0.12, 1.3, 0.14, { parent: fuse }); K.mutable(lever).geometry.translate(0, 0.1, 0);
     K.sign('⚡ 380V', 0.4, 0.12, 5.6, 1.62, -9.68, { color: '#f2d040', bg: '#1a1a1a', size: 60, w: 256, h: 64 });
     for (let k = 0; k < 4; k++) K.cyl(0.02, 0.02, 1.2, K.mat(0x16161a), 5.3 + k * 0.05, 0.6, -9.85, { cast: false }, 4);
     K.col(5.25, -10.0, 5.95, -9.6);

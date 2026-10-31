@@ -3,7 +3,7 @@
 // node t21.js <url>
 const L = require('./lib');
 (async () => {
-  const b = await L.launch(); const ctx = await b.newContext({ viewport: { width: 900, height: 560 } });
+  const b = await L.launch(); const ctx = await b.newContext({ locale: 'pt-BR', viewport: { width: 900, height: 560 } });
   const p = await L.page(ctx, process.argv[2]);
   const r = await p.evaluate(async () => {
     const M = window.__mira, G = M.G, frame = () => new Promise(r => requestAnimationFrame(() => r())), wait = ms => new Promise(r => setTimeout(r, ms));

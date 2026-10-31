@@ -1,6 +1,6 @@
 # Mira na Cobertura fora do claude.ai
 
-O `index.html` da raiz do repositório é o mesmo jogo de `../mira.html` (versão 11), com uma troca: o multijogador,
+A entrada `index.html` e os arquivos de `assets/` da raiz do repositório formam o mesmo jogo de `../mira.html` (versão 11), com uma troca: o multijogador,
 que no claude.ai usa a capacidade `room`, aqui roda ponto a ponto entre os navegadores
 (WebRTC, biblioteca PeerJS). Não há servidor do jogo: o navegador do anfitrião continua
 rodando a partida, como no artefato.
@@ -14,7 +14,7 @@ rodando a partida, como no artefato.
 
 ## Publicar
 
-Qualquer hospedagem de arquivos estáticos serve; basta o `index.html`.
+Qualquer hospedagem de arquivos estáticos serve; envie `index.html` junto com toda a pasta `assets/`. O montador gera ambos com bibliotecas locais, hashes e carregamento de cenários sob demanda.
 
 - GitHub Pages: repositório público com `index.html` na raiz, Settings > Pages > Deploy from
   branch (main, /root). Endereço: `https://<usuário>.github.io/<repositório>/`.
@@ -28,3 +28,5 @@ Qualquer hospedagem de arquivos estáticos serve; basta o `index.html`.
   `window.MIRA_NET` no topo de `index.html` (ou em `montar.js`).
 - Redes muito fechadas: o PeerJS já inclui servidores de retransmissão (TURN) públicos.
 - three.js e fontes vêm de CDNs, como no artefato.
+
+Os perfis de qualidade, o benchmark e as verificações de performance estão em [DESEMPENHO.md](../../DESEMPENHO.md).

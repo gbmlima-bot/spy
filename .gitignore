@@ -7,3 +7,6 @@ fonte/testes/cdn/
 fonte/testes/*.html
 fonte/web/cdn/
 fonte/web/index.html
+
+# assets do build alternativo (o assets/ da raiz é publicado)
+fonte/web/assets/

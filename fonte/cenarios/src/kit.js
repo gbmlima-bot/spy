@@ -54,6 +54,7 @@ function MIRA_KIT(T, root, seed) {
 
   // ---------------------------------------------------------------- geometria
   K.add = (geo, m, x = 0, y = 0, z = 0, o = {}) => {
+    if (o.mutable) geo = geo.clone();
     const mesh = new T.Mesh(geo, m); mesh.position.set(x, y, z);
     mesh.castShadow = o.cast !== false; mesh.receiveShadow = o.recv !== false;
     if (o.ry) mesh.rotation.y = o.ry; if (o.rx) mesh.rotation.x = o.rx; if (o.rz) mesh.rotation.z = o.rz;
@@ -62,10 +63,14 @@ function MIRA_KIT(T, root, seed) {
     if (o.occ) K.occ.push(mesh);
     return mesh;
   };
-  K.box = (w, h, d, m, x, y, z, o) => K.add(new T.BoxGeometry(w, h, d), m, x, y, z, o);
-  K.cyl = (rt, rb, h, m, x, y, z, o, seg = 12) => K.add(new T.CylinderGeometry(rt, rb, h, seg), m, x, y, z, o);
-  K.sphere = (r, m, x, y, z, o, ws = 12, hs = 8) => K.add(new T.SphereGeometry(r, ws, hs), m, x, y, z, o);
-  K.cone = (r, h, m, x, y, z, o, seg = 12) => K.add(new T.ConeGeometry(r, h, seg), m, x, y, z, o);
+  const primitiveGeometries = new Map();
+  const primitive = (kind, args, create) => { const key = kind + ':' + args.join(','); if (!primitiveGeometries.has(key)) primitiveGeometries.set(key, create()); return primitiveGeometries.get(key); };
+  // Clone before vertex edits; cached primitives are shared only while immutable.
+  K.mutable = mesh => { if (!mesh.userData.uniqueGeometry) { mesh.geometry = mesh.geometry.clone(); mesh.userData.uniqueGeometry = true; } return mesh; };
+  K.box = (w, h, d, m, x, y, z, o) => K.add(primitive('box', [w, h, d], () => new T.BoxGeometry(w, h, d)), m, x, y, z, o);
+  K.cyl = (rt, rb, h, m, x, y, z, o, seg = 12) => K.add(primitive('cylinder', [rt, rb, h, seg], () => new T.CylinderGeometry(rt, rb, h, seg)), m, x, y, z, o);
+  K.sphere = (r, m, x, y, z, o, ws = 12, hs = 8) => K.add(primitive('sphere', [r, ws, hs], () => new T.SphereGeometry(r, ws, hs)), m, x, y, z, o);
+  K.cone = (r, h, m, x, y, z, o, seg = 12) => K.add(primitive('cone', [r, h, seg], () => new T.ConeGeometry(r, h, seg)), m, x, y, z, o);
   K.torus = (r, t, m, x, y, z, o, rs = 8, ts = 24) => K.add(new T.TorusGeometry(r, t, rs, ts), m, x, y, z, o);
   K.group = (x = 0, y = 0, z = 0, ry = 0, parent = root) => { const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g); return g; };
   // caixa com cantos arredondados (estofados, tampos)
@@ -132,6 +137,8 @@ function MIRA_KIT(T, root, seed) {
   // anima algo por d segundos: fn(ease, u, t)
   K.anim = (d, fn) => K.fx.push({ d, t: 0, fn });
   K.tick = (fn) => K.ticks.push(fn);
+  // Only opt-in ambient particles may skip decorative updates; mission ticks and tells keep their cadence.
+  K.decorTick = (fn, object) => { let pending = 0; K.tick((dt, t) => { pending += dt; const step = object.userData.decorInterval || 0; if (pending + 1e-6 < step) return; fn(pending, t); pending = 0; }); };
   K.update = (dt, t) => {
     for (let i = K.fx.length - 1; i >= 0; i--) { const f = K.fx[i]; f.t += dt; const u = Math.min(1, f.t / f.d); f.fn(u * u * (3 - 2 * u), u, f.t); if (u >= 1) K.fx.splice(i, 1); }
     K.flames.forEach((f, i) => { const k = f.userData.s * (0.85 + Math.sin(t * 11 + i * 1.7) * 0.08 + Math.sin(t * 23 + i) * 0.06); f.scale.set(k, k * 1.2, k); });
@@ -238,7 +245,7 @@ function MIRA_KIT(T, root, seed) {
     for (let i = 0; i < n; i++) { const c = cols[i % cols.length]; col.set([c.r, c.g, c.b], i * 3); base.push({ x: x0 + r() * (x1 - x0), z: z0 + r() * (z1 - z0), y: r() * H, ph: r() * 6.28, sp: 0.6 + r() * 0.8, c }); }
     const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('color', new T.BufferAttribute(col, 3));
     const pts = new T.Points(geo, pointsMat(o.tam || 0.08, o)); pts.frustumCulled = false; pts.userData.noCol = true; sizeInMeters(pts, o.tam || 0.08); (o.parent || root).add(pts);
-    K.tick((dt, t) => {
+    K.decorTick((dt, t) => {
       for (let i = 0; i < n; i++) {
         const b = base[i]; let y;
         if (modo === 'cai') y = y0 + (((b.y - t * v * b.sp) % H) + H) % H;
@@ -249,7 +256,7 @@ function MIRA_KIT(T, root, seed) {
         else if (modo === 'sobe') { const k = 1 - (y - y0) / H; col[i * 3] = b.c.r * k; col[i * 3 + 1] = b.c.g * k; col[i * 3 + 2] = b.c.b * k; }
       }
       geo.attributes.position.needsUpdate = true; if (o.pisca || modo === 'sobe') geo.attributes.color.needsUpdate = true;
-    });
+    }, pts);
     return pts;
   };
   // brilhos que piscam numa superfície (reflexo de lanternas na água, lantejoulas, gelo)

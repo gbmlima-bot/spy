@@ -187,8 +187,8 @@ MIRA_CENARIOS.push({
       // mostrador do relógio da fachada (aceso) e a janela escura do sniper logo abaixo
       K.cyl(1.7, 1.7, 0.1, K.glow(0xffe6b0, 1.4), 0, 25.8, -2.62, { parent: tw, cast: false, rx: PI / 2 }, 32);
       K.torus(1.75, 0.12, gilt, 0, 25.8, -2.68, { parent: tw, cast: false }, 8, 32);
-      const hh = K.box(0.12, 1.0, 0.05, black, 0, 25.8, -2.72, { parent: tw, cast: false }); hh.geometry.translate(0, 0.45, 0); hh.rotation.z = 0.6;
-      const mh = K.box(0.08, 1.45, 0.05, black, 0, 25.8, -2.76, { parent: tw, cast: false }); mh.geometry.translate(0, 0.65, 0); mh.rotation.z = -2.3;
+      const hh = K.box(0.12, 1.0, 0.05, black, 0, 25.8, -2.72, { parent: tw, cast: false }); K.mutable(hh).geometry.translate(0, 0.45, 0); hh.rotation.z = 0.6;
+      const mh = K.box(0.08, 1.45, 0.05, black, 0, 25.8, -2.76, { parent: tw, cast: false }); K.mutable(mh).geometry.translate(0, 0.65, 0); mh.rotation.z = -2.3;
       K.add(new T.PlaneGeometry(2.2, 2.4), K.mat(0x0a0a10), 0, 23.4, -2.63, { parent: tw, cast: false, ry: PI });
       K.box(2.6, 0.2, 0.6, K.mat(0xa89870), 0, 22.15, -2.8, { parent: tw, cast: false });
       K.halo(2, 21.6, 47.1, 0.35, 0xff4134, 1.0);
@@ -499,7 +499,7 @@ MIRA_CENARIOS.push({
       K.tick((dt, t) => flags.forEach((f, i) => { f.rotation.y = Math.sin(t * 6 + i) * 0.4; }));
       // rodas motrizes vermelhas, bielas e cilindro
       const wheels = [];
-      for (const x of [9.6, 11.4, 13.2]) { const wg = K.group(x, -0.15, ZF - 0.08); K.torus(0.85, 0.07, redW, 0, 0, 0, { parent: wg }, 6, 28); K.cyl(0.12, 0.12, 0.12, redW, 0, 0, 0, { parent: wg, rx: PI / 2 }, 10); for (let k = 0; k < 12; k++) K.box(0.04, 0.8, 0.03, redW, 0, 0, 0, { parent: wg, rz: k * PI / 6 }).geometry.translate(0, 0.4, 0); K.box(0.2, 0.42, 0.05, redW, 0, -0.45, -0.02, { parent: wg }); wheels.push(wg); }
+      for (const x of [9.6, 11.4, 13.2]) { const wg = K.group(x, -0.15, ZF - 0.08); K.torus(0.85, 0.07, redW, 0, 0, 0, { parent: wg }, 6, 28); K.cyl(0.12, 0.12, 0.12, redW, 0, 0, 0, { parent: wg, rx: PI / 2 }, 10); for (let k = 0; k < 12; k++) K.box(0.04, 0.8, 0.03, redW, 0, 0, 0, { parent: wg, rz: k * PI / 6, mutable: true }).geometry.translate(0, 0.4, 0); K.box(0.2, 0.42, 0.05, redW, 0, -0.45, -0.02, { parent: wg }); wheels.push(wg); }
       const rod = K.box(3.8, 0.08, 0.05, steel, 11.4, 0.2, ZF + 0.02, { cast: false });
       K.cyl(0.3, 0.3, 0.9, K.mat(0x16161a, { roughness: 0.4 }), 14.6, 0.25, ZF - 0.05, { rz: PI / 2 }, 14); K.cyl(0.04, 0.04, 1.4, steel, 13.8, 0.25, ZF + 0.02, { rz: PI / 2, cast: false }, 6);
       K.tick((dt, t) => { const a = Math.sin(t * 0.6) * 0.03; wheels.forEach(w => w.rotation.z = a); rod.position.y = 0.2 + Math.sin(a) * 0.4; });
@@ -534,9 +534,9 @@ MIRA_CENARIOS.push({
       for (const s of [1, -1]) {
         K.add(new T.CircleGeometry(0.6, 28), fm, cx, cy, cz + s * 0.165, { cast: false, ry: s > 0 ? 0 : PI });
         K.torus(0.63, 0.04, gilt, cx, cy, cz + s * 0.17, { cast: false }, 6, 28);
-        const hh = K.box(0.05, 0.3, 0.012, black, cx, cy, cz + s * 0.18, { cast: false }); hh.geometry.translate(0, 0.13, 0);
-        const mh = K.box(0.035, 0.48, 0.012, black, cx, cy, cz + s * 0.19, { cast: false }); mh.geometry.translate(0, 0.21, 0);
-        const sh = K.box(0.012, 0.5, 0.008, K.mat(0xc8102a), cx, cy, cz + s * 0.2, { cast: false }); sh.geometry.translate(0, 0.18, 0);
+        const hh = K.box(0.05, 0.3, 0.012, black, cx, cy, cz + s * 0.18, { cast: false }); K.mutable(hh).geometry.translate(0, 0.13, 0);
+        const mh = K.box(0.035, 0.48, 0.012, black, cx, cy, cz + s * 0.19, { cast: false }); K.mutable(mh).geometry.translate(0, 0.21, 0);
+        const sh = K.box(0.012, 0.5, 0.008, K.mat(0xc8102a), cx, cy, cz + s * 0.2, { cast: false }); K.mutable(sh).geometry.translate(0, 0.18, 0);
         clockHands.push({ hh, mh, sh, s });
       }
       for (const s of [-0.35, 0.35]) K.cyl(0.015, 0.015, 8.0 - cy - 0.5, iron, cx + s, (8.0 + cy + 0.5) / 2, cz, { cast: false }, 4);

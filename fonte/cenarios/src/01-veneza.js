@@ -210,8 +210,8 @@ MIRA_CENARIOS.push({
     const clockG = K.group(9.4, 0, -9.55);
     K.box(0.7, 2.3, 0.4, oakDark, 0, 1.15, 0, { parent: clockG }); K.box(0.8, 0.25, 0.45, gilt, 0, 2.38, 0, { parent: clockG }); K.cone(0.42, 0.3, gilt, 0, 2.66, 0, { parent: clockG }, 4).rotation.y = Math.PI / 4;
     K.cyl(0.27, 0.27, 0.04, M.white, 0, 1.9, 0.21, { parent: clockG, rx: Math.PI / 2 }, 24); K.torus(0.28, 0.025, gilt, 0, 1.9, 0.22, { parent: clockG });
-    const hHour = K.box(0.025, 0.14, 0.01, M.black, 0, 1.9, 0.245, { parent: clockG }); hHour.geometry.translate(0, 0.06, 0);
-    const hMin = K.box(0.018, 0.22, 0.01, M.black, 0, 1.9, 0.25, { parent: clockG }); hMin.geometry.translate(0, 0.1, 0);
+    const hHour = K.box(0.025, 0.14, 0.01, M.black, 0, 1.9, 0.245, { parent: clockG }); K.mutable(hHour).geometry.translate(0, 0.06, 0);
+    const hMin = K.box(0.018, 0.22, 0.01, M.black, 0, 1.9, 0.25, { parent: clockG }); K.mutable(hMin).geometry.translate(0, 0.1, 0);
     const pend = K.group(0, 1.55, 0.21, 0, clockG); K.cyl(0.006, 0.006, 0.7, gilt, 0, -0.35, 0, { parent: pend }); K.cyl(0.08, 0.08, 0.02, gilt, 0, -0.7, 0, { parent: pend, rx: Math.PI / 2 }, 14);
     K.box(0.5, 0.9, 0.01, K.glass, 0, 1.05, 0.205, { parent: clockG, cast: false });
     K.col(9.0, -9.8, 9.8, -9.3);

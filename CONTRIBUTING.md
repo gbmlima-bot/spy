@@ -44,8 +44,8 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 
 - Jogo: `fonte/testes/t1.js` … `t8.js` (com `lib.js` e `mock.js`, que imita a sala multijogador).
   Cada teste recebe a URL da página como 1º argumento, por exemplo
-  `node fonte/testes/t1.js http://localhost:8765/mira-pub.html`, com um servidor estático local
-  servindo uma cópia de `fonte/mira.html`. As capturas vão para `fonte/testes/out/`.
+  `node fonte/testes/t1.js http://127.0.0.1:8874/`, após `npm run build`, com um servidor estático local
+  servindo a raiz e sua pasta `assets/`. As capturas vão para `fonte/testes/out/`.
 - Equilíbrio: `node fonte/testes/t10.js <url> [rodadas] [mapas]` joga rodadas inteiras só com o
   computador (agente e 3 cúmplices robôs contra o sniper de IA), sem desenhar, e mostra por mapa a
   vitória do agente (`agentWinPct`), missões por rodada, por que a rodada acabou (`why`) e quantos
@@ -100,7 +100,7 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
   em `Sim.track`) e, a cada 5 rodadas com amigos, o pódio da noite (`renderPodium`). `node fonte/testes/t22.js <url> [mapa]`.
 - Qualidade de imagem: `node fonte/testes/qualidade.js <url> <pasta> [mapas] [rotulo]` captura cada mapa na vista larga,
   na luneta e de perto (agente), em 1280×720 com densidade 1, o pior caso para serrilhado (`DPR=2` para tela de alta
-  densidade). Com `AB=1` grava o mesmo quadro sem e com o antialias do pós-processamento. O jogo desenha a cena num alvo
+  densidade). Com `AB=1` grava o mesmo quadro com FXAA e com MSAA 4× (`-fxaa.png`/`-msaa.png`). O jogo desenha a cena num alvo
   do `EffectComposer`, onde o `antialias` do canvas não vale: o alvo é multiamostrado (4×) no WebGL2 (`setupPost`).
 - Tempo das missões: `node fonte/testes/t16.js <url> [rodadas] [mapas]` calcula, por mapa, quanto um agente
   eficiente leva para fazer 4 missões (caminho com escadas na velocidade do jogador, minidesafio no ritmo de uma
@@ -128,3 +128,19 @@ Para evitar conflitos entre quem trabalha em paralelo, cada PR deve ficar, de pr
 - Cópias de teste do `mira.html` precisam de `<meta charset="utf-8">` no início; sem isso o texto
   com acentos quebra quando servido sem charset.
 - WebGL roda por software (SwiftShader): os testes são lentos e usam timeouts longos.
+
+## Performance e arquivos publicados
+
+Veja [DESEMPENHO.md](DESEMPENHO.md) para perfis, benchmark reproduzível, testes e limitações da nuvem.
+O build agora gera `index.html` **e** `assets/`: ambos fazem parte do site publicado e devem acompanhar mudanças de fonte.
+A geometria da Cobertura foi extraída para `fonte/web/cobertura.js`; altere esse fonte, não o arquivo com hash em `assets/`.
+Antes de chamar `loadMap(id)` diretamente numa ferramenta, aguarde `__mira.ensureMapAssets(id)`.
+Geometrias do kit podem ser compartilhadas: use `K.mutable(mesh)` antes de modificar seus vértices.
+
+O rifle apoiado e as mãos do sniper ficam em `makeSniperView` / `poseSniperView`, em `fonte/mira.html`.
+O primeiro plano tem quatro malhas visíveis em repouso e cerca de 18 mil triângulos para as luvas, mangas e rifle.
+Ele não usa sombras ou texturas próprias e reutiliza
+o render target do compositor. Ele usa uma cena separada para não entrar em colisões, oclusores ou
+raios de tiro; a luneta e a visão do agente não o desenham. O enquadramento acompanha o FOV de cada
+mapa e reduz o conjunto no celular. Execute `npm run test:sniper` para verificar luneta, toque,
+orientação, trocas de qualidade e estabilidade de recursos; as capturas ficam em `fonte/testes/out/sniper/`.

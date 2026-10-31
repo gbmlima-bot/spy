@@ -8,7 +8,12 @@
     "test:missoes": "node fonte/testes/missoes.js",
     "test:mesas": "node fonte/testes/mesas.js",
     "test:cenarios": "node fonte/testes/cenarios-interacoes.js",
-    "test:multijogador": "node fonte/testes/multijogador-missoes.js"
+    "test:multijogador": "node fonte/testes/multijogador-missoes.js",
+    "test:qualidade": "node fonte/testes/qualidade-controller.test.js",
+    "test:sniper": "node fonte/testes/sniper-posto.js",
+    "test:performance": "node fonte/testes/performance.js",
+    "benchmark": "node fonte/cenarios/ferramentas/desempenho.js",
+    "report:performance": "node fonte/cenarios/ferramentas/relatorio.js"
   },
   "devDependencies": {
     "express": "4.22.3",

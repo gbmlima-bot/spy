@@ -6,8 +6,7 @@ const OUT = __dirname + '/out'; fs.mkdirSync(OUT, { recursive: true });
 const listen = s => new Promise(r => s.listen(0, '127.0.0.1', () => r(s.address().port)));
 const close = s => new Promise(r => s.close(r));
 (async () => {
-  const html = fs.readFileSync(require('path').join(__dirname, '../../index.html'));
-  const site = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); r.end(html); });
+  const site = http.createServer(express.static(require('path').join(__dirname, '../..')));
   const app = express(), signal = http.createServer(app), errors = [], report = { transport: 'real PeerJS/WebRTC, local signaling, 7 independent browser contexts', agent: [], accomplices: [] };
   let b;
   try {
