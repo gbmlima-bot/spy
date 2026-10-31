@@ -578,7 +578,7 @@ Object.assign(MIRA_CENARIOS[5], {
     for (const x of [-12, -4, 4, 12]) { K.cyl(0.07, 0.1, 5.3, greenIron, x, 2.65, 9.62, {}, 8); K.cyl(0.14, 0.16, 0.5, greenIron, x, 0.25, 9.62, {}, 8); K.box(0.06, 0.06, 4.0, greenIron, x, 4.95, 7.65); K.cyl(0.02, 0.02, 0.7, greenIron, x, 4.6, 9.3, { rx: -0.9 }, 4); K.colR(x, 9.62, 0.16);
       K.box(0.06, 0.35, 0.06, greenIron, x, 3.6, 9.42); K.box(0.24, 0.3, 0.24, K.glow(0xffc070, 1.6), x, 3.3, 9.3, { cast: false }); K.cone(0.2, 0.15, greenIron, x, 3.52, 9.3, {}, 4); K.halo(x, 3.3, 9.3, 0.5, 0xffb060, 0.45); K.pool(x, 9.0, 1.4, 0xffb060, 0.25); }
     wire([-45, 4.9, 5.7], [45, 4.9, 5.7], 0.05);
-    
+
     // ------------------------------------------------------------ largo do mirante (nível 1)
     { // guarda-corpo de ferro no fundo, olhando a baía
       const bars = []; for (let x = -9.2; x <= 9.2; x += 0.12) bars.push([x, L1 + 0.5, -12.78]); K.inst(new T.CylinderGeometry(0.012, 0.012, 1.0, 4), K.iron, bars, { cast: false });

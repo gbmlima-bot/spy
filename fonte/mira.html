@@ -6309,7 +6309,7 @@ MIRA_CENARIOS.push({
       for (const s of [-1, 1]) { K.box(2.2, 2.9, 0.2, plaster, s * 2.4, 1.45, 0, { parent: gate, cast: false });
         K.add(new T.PlaneGeometry(1.2, 1.0), K.texMat(K.canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#ffcf86'; g.fillRect(0, 0, w, h); g.strokeStyle = '#5a2010'; g.lineWidth = 4; for (let k = 0; k <= 4; k++) { g.beginPath(); g.moveTo(k * 16, 0); g.lineTo(k * 16, h); g.stroke(); g.beginPath(); g.moveTo(0, k * 16); g.lineTo(w, k * 16); g.stroke(); } }), { emissive: 0xffa040, emissiveIntensity: 0.5 }), s * 2.4, 2.0, 0.11, { parent: gate, cast: false });
         // guardiões Niō sugeridos: estátuas vermelhas nas grades
-        K.box(0.7, 0.2, 0.5, stoneL, s * 2.4, 0.1, 0.35, { parent: gate, cast: false }); 
+        K.box(0.7, 0.2, 0.5, stoneL, s * 2.4, 0.1, 0.35, { parent: gate, cast: false });
         { const ni = K.group(s * 2.4, 0.2, 0.35, 0, gate), nm = K.mat(0x9a2a1a, { roughness: 0.6 }), ng = K.mat(0x3a2a1a, { roughness: 0.7 }), o = { parent: ni, cast: false };
           for (const e of [-1, 1]) { K.cyl(0.07, 0.09, 0.6, nm, e * 0.15, 0.3, 0, { ...o, rz: e * 0.12 }, 8); K.box(0.14, 0.06, 0.22, nm, e * 0.19, 0.03, 0.04, o); }
           K.cyl(0.2, 0.3, 0.38, ng, 0, 0.62, 0, o, 10); K.cyl(0.27, 0.17, 0.55, nm, 0, 1.06, 0, o, 10); K.add(new T.SphereGeometry(0.29, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.35, 0.75), nm, 0, 1.32, 0, o);
@@ -7619,7 +7619,7 @@ MIRA_CENARIOS.push({
     for (const x of [-12, -4, 4, 12]) { K.cyl(0.07, 0.1, 5.3, greenIron, x, 2.65, 9.62, {}, 8); K.cyl(0.14, 0.16, 0.5, greenIron, x, 0.25, 9.62, {}, 8); K.box(0.06, 0.06, 4.0, greenIron, x, 4.95, 7.65); K.cyl(0.02, 0.02, 0.7, greenIron, x, 4.6, 9.3, { rx: -0.9 }, 4); K.colR(x, 9.62, 0.16);
       K.box(0.06, 0.35, 0.06, greenIron, x, 3.6, 9.42); K.box(0.24, 0.3, 0.24, K.glow(0xffc070, 1.6), x, 3.3, 9.3, { cast: false }); K.cone(0.2, 0.15, greenIron, x, 3.52, 9.3, {}, 4); K.halo(x, 3.3, 9.3, 0.5, 0xffb060, 0.45); K.pool(x, 9.0, 1.4, 0xffb060, 0.25); }
     wire([-45, 4.9, 5.7], [45, 4.9, 5.7], 0.05);
-    
+
     // ------------------------------------------------------------ largo do mirante (nível 1)
     { // guarda-corpo de ferro no fundo, olhando a baía
       const bars = []; for (let x = -9.2; x <= 9.2; x += 0.12) bars.push([x, L1 + 0.5, -12.78]); K.inst(new T.CylinderGeometry(0.012, 0.012, 1.0, 4), K.iron, bars, { cast: false });
